@@ -1,0 +1,318 @@
+{
+  "_readme": "Cada chave de nível superior é o slug do cliente, usado na URL como ?cliente=slug. Não há autenticação: o link em si é o que o cliente recebe. Para cadastrar um novo cliente, copie um bloco inteiro, troque o slug e os campos abaixo. faseAtual é o índice (0 a 7) da fase em andamento.",
+  "acme-cursos": {
+    "nome": "Ana Ferreira",
+    "empresa": "Acme Cursos Online",
+    "inicial": "AF",
+    "dataInicio": "2026-06-01",
+    "faseAtual": 4,
+    "fases": [
+      {
+        "titulo": "Boas-vindas e Kickoff",
+        "descricao": "Reunião inicial para alinhar expectativas, apresentar o time responsável e definir o plano de trabalho.",
+        "dataPrevista": "2026-06-01",
+        "dataConclusao": "2026-06-01",
+        "responsavel": "Time de Onboarding",
+        "tarefas": [
+          { "nome": "Reunião de kickoff realizada", "concluida": true },
+          { "nome": "Apresentação do time e canais de contato", "concluida": true },
+          { "nome": "Envio do guia de boas-vindas", "concluida": true }
+        ]
+      },
+      {
+        "titulo": "Diagnóstico e Planejamento",
+        "descricao": "Levantamento do produto, público-alvo, metas de vendas e definição do cronograma de lançamento.",
+        "dataPrevista": "2026-06-05",
+        "dataConclusao": "2026-06-06",
+        "responsavel": "Estrategista de Conta",
+        "tarefas": [
+          { "nome": "Briefing de produto e público preenchido", "concluida": true },
+          { "nome": "Metas e KPIs definidos", "concluida": true },
+          { "nome": "Cronograma de lançamento aprovado", "concluida": true }
+        ]
+      },
+      {
+        "titulo": "Configuração da Conta Hotmart",
+        "descricao": "Criação e verificação da conta de produtor, dados fiscais e configuração de recebimento.",
+        "dataPrevista": "2026-06-10",
+        "dataConclusao": "2026-06-11",
+        "responsavel": "Suporte Técnico",
+        "tarefas": [
+          { "nome": "Conta de produtor criada e verificada", "concluida": true },
+          { "nome": "Dados bancários e fiscais configurados", "concluida": true },
+          { "nome": "Modelo de comissionamento (afiliados) definido", "concluida": true }
+        ]
+      },
+      {
+        "titulo": "Criação do Produto e Oferta",
+        "descricao": "Cadastro do produto na Hotmart, estrutura de módulos/conteúdo e definição das ofertas.",
+        "dataPrevista": "2026-06-18",
+        "dataConclusao": "2026-06-20",
+        "responsavel": "Especialista de Produto",
+        "tarefas": [
+          { "nome": "Produto cadastrado na plataforma", "concluida": true },
+          { "nome": "Área de membros estruturada", "concluida": true },
+          { "nome": "Ofertas e planos de pagamento criados", "concluida": true }
+        ]
+      },
+      {
+        "titulo": "Checkout, Preços e Pagamentos",
+        "descricao": "Personalização do checkout, definição de preços, cupons, order bumps e meios de pagamento.",
+        "dataPrevista": "2026-06-25",
+        "dataConclusao": null,
+        "responsavel": "Especialista de Conversão",
+        "tarefas": [
+          { "nome": "Checkout personalizado com identidade visual", "concluida": true },
+          { "nome": "Preços e cupons configurados", "concluida": false },
+          { "nome": "Order bump / upsell definidos", "concluida": false }
+        ]
+      },
+      {
+        "titulo": "Integrações e Automações",
+        "descricao": "Conexão com CRM, e-mail marketing, pixels de rastreamento e webhooks.",
+        "dataPrevista": "2026-07-02",
+        "dataConclusao": null,
+        "responsavel": "Time Técnico",
+        "tarefas": [
+          { "nome": "Pixels de rastreamento instalados", "concluida": false },
+          { "nome": "Automação de e-mail conectada", "concluida": false },
+          { "nome": "Webhooks e integrações validados", "concluida": false }
+        ]
+      },
+      {
+        "titulo": "Testes e Homologação",
+        "descricao": "Simulação de compra ponta a ponta, revisão de conteúdo e checklist final de qualidade.",
+        "dataPrevista": "2026-07-08",
+        "dataConclusao": null,
+        "responsavel": "QA de Onboarding",
+        "tarefas": [
+          { "nome": "Compra de teste realizada com sucesso", "concluida": false },
+          { "nome": "Acesso à área de membros validado", "concluida": false },
+          { "nome": "Checklist final aprovado pelo cliente", "concluida": false }
+        ]
+      },
+      {
+        "titulo": "Lançamento e Acompanhamento",
+        "descricao": "Ativação oficial das vendas e acompanhamento dos primeiros resultados.",
+        "dataPrevista": "2026-07-15",
+        "dataConclusao": null,
+        "responsavel": "Time de Onboarding",
+        "tarefas": [
+          { "nome": "Vendas ativadas ao público", "concluida": false },
+          { "nome": "Relatório dos primeiros 7 dias enviado", "concluida": false },
+          { "nome": "Reunião de encerramento do onboarding", "concluida": false }
+        ]
+      }
+    ]
+  },
+  "vida-fit": {
+    "nome": "Bruno Costa",
+    "empresa": "Vida Fit Treinamentos",
+    "inicial": "BC",
+    "dataInicio": "2026-07-20",
+    "faseAtual": 1,
+    "fases": [
+      {
+        "titulo": "Boas-vindas e Kickoff",
+        "descricao": "Reunião inicial para alinhar expectativas, apresentar o time responsável e definir o plano de trabalho.",
+        "dataPrevista": "2026-07-20",
+        "dataConclusao": "2026-07-20",
+        "responsavel": "Time de Onboarding",
+        "tarefas": [
+          { "nome": "Reunião de kickoff realizada", "concluida": true },
+          { "nome": "Apresentação do time e canais de contato", "concluida": true },
+          { "nome": "Envio do guia de boas-vindas", "concluida": true }
+        ]
+      },
+      {
+        "titulo": "Diagnóstico e Planejamento",
+        "descricao": "Levantamento do produto, público-alvo, metas de vendas e definição do cronograma de lançamento.",
+        "dataPrevista": "2026-07-24",
+        "dataConclusao": null,
+        "responsavel": "Estrategista de Conta",
+        "tarefas": [
+          { "nome": "Briefing de produto e público preenchido", "concluida": true },
+          { "nome": "Metas e KPIs definidos", "concluida": false },
+          { "nome": "Cronograma de lançamento aprovado", "concluida": false }
+        ]
+      },
+      {
+        "titulo": "Configuração da Conta Hotmart",
+        "descricao": "Criação e verificação da conta de produtor, dados fiscais e configuração de recebimento.",
+        "dataPrevista": "2026-07-29",
+        "dataConclusao": null,
+        "responsavel": "Suporte Técnico",
+        "tarefas": [
+          { "nome": "Conta de produtor criada e verificada", "concluida": false },
+          { "nome": "Dados bancários e fiscais configurados", "concluida": false },
+          { "nome": "Modelo de comissionamento (afiliados) definido", "concluida": false }
+        ]
+      },
+      {
+        "titulo": "Criação do Produto e Oferta",
+        "descricao": "Cadastro do produto na Hotmart, estrutura de módulos/conteúdo e definição das ofertas.",
+        "dataPrevista": "2026-08-05",
+        "dataConclusao": null,
+        "responsavel": "Especialista de Produto",
+        "tarefas": [
+          { "nome": "Produto cadastrado na plataforma", "concluida": false },
+          { "nome": "Área de membros estruturada", "concluida": false },
+          { "nome": "Ofertas e planos de pagamento criados", "concluida": false }
+        ]
+      },
+      {
+        "titulo": "Checkout, Preços e Pagamentos",
+        "descricao": "Personalização do checkout, definição de preços, cupons, order bumps e meios de pagamento.",
+        "dataPrevista": "2026-08-12",
+        "dataConclusao": null,
+        "responsavel": "Especialista de Conversão",
+        "tarefas": [
+          { "nome": "Checkout personalizado com identidade visual", "concluida": false },
+          { "nome": "Preços e cupons configurados", "concluida": false },
+          { "nome": "Order bump / upsell definidos", "concluida": false }
+        ]
+      },
+      {
+        "titulo": "Integrações e Automações",
+        "descricao": "Conexão com CRM, e-mail marketing, pixels de rastreamento e webhooks.",
+        "dataPrevista": "2026-08-19",
+        "dataConclusao": null,
+        "responsavel": "Time Técnico",
+        "tarefas": [
+          { "nome": "Pixels de rastreamento instalados", "concluida": false },
+          { "nome": "Automação de e-mail conectada", "concluida": false },
+          { "nome": "Webhooks e integrações validados", "concluida": false }
+        ]
+      },
+      {
+        "titulo": "Testes e Homologação",
+        "descricao": "Simulação de compra ponta a ponta, revisão de conteúdo e checklist final de qualidade.",
+        "dataPrevista": "2026-08-26",
+        "dataConclusao": null,
+        "responsavel": "QA de Onboarding",
+        "tarefas": [
+          { "nome": "Compra de teste realizada com sucesso", "concluida": false },
+          { "nome": "Acesso à área de membros validado", "concluida": false },
+          { "nome": "Checklist final aprovado pelo cliente", "concluida": false }
+        ]
+      },
+      {
+        "titulo": "Lançamento e Acompanhamento",
+        "descricao": "Ativação oficial das vendas e acompanhamento dos primeiros resultados.",
+        "dataPrevista": "2026-09-02",
+        "dataConclusao": null,
+        "responsavel": "Time de Onboarding",
+        "tarefas": [
+          { "nome": "Vendas ativadas ao público", "concluida": false },
+          { "nome": "Relatório dos primeiros 7 dias enviado", "concluida": false },
+          { "nome": "Reunião de encerramento do onboarding", "concluida": false }
+        ]
+      }
+    ]
+  },
+  "mente-criativa": {
+    "nome": "Carla Nunes",
+    "empresa": "Mente Criativa Design",
+    "inicial": "CN",
+    "dataInicio": "2026-05-04",
+    "faseAtual": 7,
+    "fases": [
+      {
+        "titulo": "Boas-vindas e Kickoff",
+        "descricao": "Reunião inicial para alinhar expectativas, apresentar o time responsável e definir o plano de trabalho.",
+        "dataPrevista": "2026-05-04",
+        "dataConclusao": "2026-05-04",
+        "responsavel": "Time de Onboarding",
+        "tarefas": [
+          { "nome": "Reunião de kickoff realizada", "concluida": true },
+          { "nome": "Apresentação do time e canais de contato", "concluida": true },
+          { "nome": "Envio do guia de boas-vindas", "concluida": true }
+        ]
+      },
+      {
+        "titulo": "Diagnóstico e Planejamento",
+        "descricao": "Levantamento do produto, público-alvo, metas de vendas e definição do cronograma de lançamento.",
+        "dataPrevista": "2026-05-08",
+        "dataConclusao": "2026-05-08",
+        "responsavel": "Estrategista de Conta",
+        "tarefas": [
+          { "nome": "Briefing de produto e público preenchido", "concluida": true },
+          { "nome": "Metas e KPIs definidos", "concluida": true },
+          { "nome": "Cronograma de lançamento aprovado", "concluida": true }
+        ]
+      },
+      {
+        "titulo": "Configuração da Conta Hotmart",
+        "descricao": "Criação e verificação da conta de produtor, dados fiscais e configuração de recebimento.",
+        "dataPrevista": "2026-05-13",
+        "dataConclusao": "2026-05-13",
+        "responsavel": "Suporte Técnico",
+        "tarefas": [
+          { "nome": "Conta de produtor criada e verificada", "concluida": true },
+          { "nome": "Dados bancários e fiscais configurados", "concluida": true },
+          { "nome": "Modelo de comissionamento (afiliados) definido", "concluida": true }
+        ]
+      },
+      {
+        "titulo": "Criação do Produto e Oferta",
+        "descricao": "Cadastro do produto na Hotmart, estrutura de módulos/conteúdo e definição das ofertas.",
+        "dataPrevista": "2026-05-20",
+        "dataConclusao": "2026-05-19",
+        "responsavel": "Especialista de Produto",
+        "tarefas": [
+          { "nome": "Produto cadastrado na plataforma", "concluida": true },
+          { "nome": "Área de membros estruturada", "concluida": true },
+          { "nome": "Ofertas e planos de pagamento criados", "concluida": true }
+        ]
+      },
+      {
+        "titulo": "Checkout, Preços e Pagamentos",
+        "descricao": "Personalização do checkout, definição de preços, cupons, order bumps e meios de pagamento.",
+        "dataPrevista": "2026-05-27",
+        "dataConclusao": "2026-05-27",
+        "responsavel": "Especialista de Conversão",
+        "tarefas": [
+          { "nome": "Checkout personalizado com identidade visual", "concluida": true },
+          { "nome": "Preços e cupons configurados", "concluida": true },
+          { "nome": "Order bump / upsell definidos", "concluida": true }
+        ]
+      },
+      {
+        "titulo": "Integrações e Automações",
+        "descricao": "Conexão com CRM, e-mail marketing, pixels de rastreamento e webhooks.",
+        "dataPrevista": "2026-06-03",
+        "dataConclusao": "2026-06-04",
+        "responsavel": "Time Técnico",
+        "tarefas": [
+          { "nome": "Pixels de rastreamento instalados", "concluida": true },
+          { "nome": "Automação de e-mail conectada", "concluida": true },
+          { "nome": "Webhooks e integrações validados", "concluida": true }
+        ]
+      },
+      {
+        "titulo": "Testes e Homologação",
+        "descricao": "Simulação de compra ponta a ponta, revisão de conteúdo e checklist final de qualidade.",
+        "dataPrevista": "2026-06-10",
+        "dataConclusao": "2026-06-10",
+        "responsavel": "QA de Onboarding",
+        "tarefas": [
+          { "nome": "Compra de teste realizada com sucesso", "concluida": true },
+          { "nome": "Acesso à área de membros validado", "concluida": true },
+          { "nome": "Checklist final aprovado pelo cliente", "concluida": true }
+        ]
+      },
+      {
+        "titulo": "Lançamento e Acompanhamento",
+        "descricao": "Ativação oficial das vendas e acompanhamento dos primeiros resultados.",
+        "dataPrevista": "2026-06-17",
+        "dataConclusao": null,
+        "responsavel": "Time de Onboarding",
+        "tarefas": [
+          { "nome": "Vendas ativadas ao público", "concluida": true },
+          { "nome": "Relatório dos primeiros 7 dias enviado", "concluida": false },
+          { "nome": "Reunião de encerramento do onboarding", "concluida": false }
+        ]
+      }
+    ]
+  }
+}
