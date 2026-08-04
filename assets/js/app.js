@@ -2,18 +2,27 @@
   "use strict";
 
   var STORAGE_KEY = "hm_onboarding_store_v2";
+  var PROFILE_KEY = "hm_current_user_v1";
+
+  var PROFILES = ["Ilana", "Pedro", "Josiane", "Madu", "Amanda"];
+  var ASSIGNABLE = ["Ilana", "Pedro", "Josiane", "Madu"];
 
   var app = document.getElementById("app");
   var copyBtn = document.getElementById("copy-link-btn");
   var exportBtn = document.getElementById("export-btn");
   var addClientBtn = document.getElementById("add-client-btn");
+  var analyticsBtn = document.getElementById("analytics-btn");
+  var profileBtn = document.getElementById("profile-btn");
+  var profileBtnLabel = document.getElementById("profile-btn-label");
   var modal = document.getElementById("add-client-modal");
   var addClientForm = document.getElementById("add-client-form");
   var addClientError = document.getElementById("add-client-error");
 
   var store = null; // { [slug]: cliente }
-  var openPhases = new Set();
+  var currentUser = localStorage.getItem(PROFILE_KEY) || null;
   var currentSlug = null;
+  var openPhases = new Set();
+  var addingTaskFor = new Set();
 
   // ---------- Template para novos clientes ----------
 
@@ -185,9 +194,32 @@
     return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
   }
 
-  function getClienteSlug() {
-    var params = new URLSearchParams(window.location.search);
-    return params.get("cliente");
+  function escapeHtml(str) {
+    return (str || "").toString().replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  // ---------- Perfil / permissões ----------
+  // Não é autenticação: é uma preferência local (localStorage) para filtrar a lista de
+  // clientes por responsável. Um link direto de cliente (?cliente=slug) nunca é
+  // bloqueado por isso — só a lista/analytics internos são filtrados.
+
+  function visibleSlugs() {
+    var all = Object.keys(store);
+    if (currentUser === "Amanda") return all;
+    return all.filter(function (s) { return store[s].responsavelCliente === currentUser; });
+  }
+
+  function updateProfileButton() {
+    profileBtnLabel.textContent = currentUser ? "👤 " + currentUser + " · trocar" : "Selecionar perfil";
+    profileBtn.classList.toggle("is-set", !!currentUser);
+  }
+
+  function switchProfile() {
+    currentUser = null;
+    localStorage.removeItem(PROFILE_KEY);
+    setParams({ cliente: null, view: null });
   }
 
   // ---------- Cálculo de progresso ----------
@@ -276,6 +308,20 @@
     refresh();
   }
 
+  function addTask(slug, faseIdx, nome) {
+    var cliente = store[slug];
+    var fase = cliente.fases[faseIdx];
+    if (!fase) return;
+    var idx = fase.tarefas.length + 1;
+    var id = "f" + (faseIdx + 1) + "-custom-" + idx;
+    while (fase.tarefas.some(function (t) { return t.id === id; })) {
+      idx++;
+      id = "f" + (faseIdx + 1) + "-custom-" + idx;
+    }
+    fase.tarefas.push({ id: id, nome: nome, concluida: false, data: null, removida: false });
+    persist();
+  }
+
   function addClient(fields) {
     var slug = uniqueSlug(slugify(fields.nome));
     store[slug] = {
@@ -283,6 +329,7 @@
       empresa: fields.empresa || "",
       inicial: initials(fields.nome),
       idConta: fields.idConta || "",
+      responsavelCliente: fields.responsavelCliente || "",
       dataInicio: fields.dataInicio || todayISO(),
       fases: cloneTemplateFases()
     };
@@ -292,17 +339,47 @@
 
   // ---------- Renderização ----------
 
+  function renderProfileGate() {
+    copyBtn.style.display = "none";
+    var tpl = document.getElementById("tpl-profile-gate");
+    var node = tpl.content.cloneNode(true);
+    var grid = node.getElementById("profile-grid");
+
+    PROFILES.forEach(function (name) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "profile-chip" + (name === "Amanda" ? " profile-chip--coord" : "");
+      btn.textContent = name + (name === "Amanda" ? " (coordenação — vê tudo)" : "");
+      btn.addEventListener("click", function () {
+        currentUser = name;
+        localStorage.setItem(PROFILE_KEY, name);
+        refresh();
+      });
+      grid.appendChild(btn);
+    });
+
+    app.innerHTML = "";
+    app.appendChild(node);
+  }
+
   function renderPicker() {
     copyBtn.style.display = "none";
     var tpl = document.getElementById("tpl-client-picker");
     var node = tpl.content.cloneNode(true);
     var list = node.getElementById("picker-list");
 
-    var slugs = Object.keys(store);
+    var filterNote = document.createElement("p");
+    filterNote.className = "picker__filter-note";
+    filterNote.textContent = currentUser === "Amanda"
+      ? "Visão geral (coordenação): todos os clientes, de todos os responsáveis."
+      : "Mostrando apenas os clientes de " + currentUser + ".";
+    node.getElementById("picker-example-url").parentNode.parentNode.insertBefore(filterNote, list);
+
+    var slugs = visibleSlugs();
     if (!slugs.length) {
       var empty = document.createElement("p");
       empty.className = "picker__text";
-      empty.textContent = "Nenhum cliente cadastrado ainda. Use o botão “+ Novo cliente” para começar.";
+      empty.textContent = "Nenhum cliente atribuído a você ainda. Use o botão “+ Novo cliente” para começar.";
       list.appendChild(empty);
     }
 
@@ -312,10 +389,11 @@
       a.className = "picker__item";
       a.href = "?cliente=" + encodeURIComponent(slug);
       a.innerHTML =
-        '<span class="picker__item-avatar">' + c.inicial + "</span>" +
+        '<span class="picker__item-avatar">' + escapeHtml(c.inicial) + "</span>" +
         '<span class="picker__item-body">' +
-          '<span class="picker__item-name">' + c.nome + "</span><br>" +
-          '<span class="picker__item-meta">' + (c.empresa || "Sem empresa informada") + "</span>" +
+          '<span class="picker__item-name">' + escapeHtml(c.nome) + "</span><br>" +
+          '<span class="picker__item-meta">' + escapeHtml(c.empresa || "Sem empresa informada") +
+            (c.responsavelCliente ? " · " + escapeHtml(c.responsavelCliente) : "") + "</span>" +
         "</span>" +
         '<span class="picker__item-progress">' + clientProgress(c) + "%</span>";
       list.appendChild(a);
@@ -334,8 +412,81 @@
   function renderNotFound() {
     copyBtn.style.display = "none";
     var tpl = document.getElementById("tpl-not-found");
+    var backWrap = document.createElement("div");
+    backWrap.innerHTML = backLinkHtml();
     app.innerHTML = "";
+    app.appendChild(backWrap.firstElementChild);
     app.appendChild(tpl.content.cloneNode(true));
+  }
+
+  function backLinkHtml() {
+    return '<a href="?" class="back-link" data-action="nav-back">← Voltar para clientes</a>';
+  }
+
+  function statTileHtml(value, label) {
+    return (
+      '<div class="stat-tile">' +
+        '<div class="stat-tile__value">' + value + "</div>" +
+        '<div class="stat-tile__label">' + label + "</div>" +
+      "</div>"
+    );
+  }
+
+  function renderAnalytics() {
+    copyBtn.style.display = "none";
+    var slugs = visibleSlugs();
+    var rows = slugs
+      .map(function (slug) {
+        var c = store[slug];
+        return {
+          slug: slug,
+          nome: c.nome,
+          empresa: c.empresa,
+          responsavel: c.responsavelCliente,
+          pct: clientProgress(c)
+        };
+      })
+      .sort(function (a, b) { return b.pct - a.pct; });
+
+    var avg = rows.length ? Math.round(rows.reduce(function (sum, r) { return sum + r.pct; }, 0) / rows.length) : 0;
+
+    var barsHtml = rows.map(function (r) {
+      return (
+        '<a class="bar-row" href="?cliente=' + encodeURIComponent(r.slug) + '" title="' +
+          escapeHtml(r.nome) + " — " + r.pct + '% concluído">' +
+          '<div class="bar-row__label">' +
+            '<span class="bar-row__name">' + escapeHtml(r.nome) + "</span>" +
+            '<span class="bar-row__meta">' + escapeHtml(r.empresa || "") +
+              (r.responsavel ? " · " + escapeHtml(r.responsavel) : "") + "</span>" +
+          "</div>" +
+          '<div class="bar-row__track"><div class="bar-row__fill" style="width:' + r.pct + '%"></div></div>' +
+          '<span class="bar-row__value">' + r.pct + "%</span>" +
+        "</a>"
+      );
+    }).join("");
+
+    var wrap = document.createElement("section");
+    wrap.className = "analytics";
+    wrap.innerHTML =
+      backLinkHtml() +
+      '<div class="analytics__header">' +
+        '<h1 class="analytics__title">Analytics</h1>' +
+        '<p class="analytics__subtitle">' +
+          (currentUser === "Amanda"
+            ? "Progresso de todos os clientes, todos os responsáveis."
+            : "Progresso dos clientes de " + escapeHtml(currentUser) + ".") +
+        "</p>" +
+      "</div>" +
+      '<div class="analytics__stats">' +
+        statTileHtml(rows.length, rows.length === 1 ? "Cliente" : "Clientes") +
+        statTileHtml(avg + "%", "Progresso médio") +
+      "</div>" +
+      (rows.length
+        ? '<div class="chart-card"><div class="bar-chart">' + barsHtml + "</div></div>"
+        : '<p class="picker__text">Nenhum cliente para mostrar.</p>');
+
+    app.innerHTML = "";
+    app.appendChild(wrap);
   }
 
   function taskRowHtml(faseIdx, task) {
@@ -344,7 +495,7 @@
         '<button type="button" class="task-check" data-action="toggle-task" data-fase="' + faseIdx + '" data-task="' + task.id + '" aria-label="Marcar tarefa como concluída">' +
           (task.concluida ? "✓" : "") +
         "</button>" +
-        '<span class="task-name">' + task.nome + "</span>" +
+        '<span class="task-name">' + escapeHtml(task.nome) + "</span>" +
         '<input type="date" class="task-date" data-action="set-date" data-fase="' + faseIdx + '" data-task="' + task.id + '" value="' + (task.data || "") + '" />' +
         '<button type="button" class="task-remove" data-action="remove-task" data-fase="' + faseIdx + '" data-task="' + task.id + '" title="Remover (não se aplica a este cliente)">Remover</button>' +
       "</div>"
@@ -354,10 +505,23 @@
   function removedTaskRowHtml(faseIdx, task) {
     return (
       '<div class="task-row task-row--removed">' +
-        '<span class="task-name">' + task.nome + "</span>" +
+        '<span class="task-name">' + escapeHtml(task.nome) + "</span>" +
         '<button type="button" class="task-restore" data-action="restore-task" data-fase="' + faseIdx + '" data-task="' + task.id + '">Restaurar</button>' +
       "</div>"
     );
+  }
+
+  function addTaskControlHtml(faseIdx) {
+    if (addingTaskFor.has(faseIdx)) {
+      return (
+        '<form class="add-task-form" data-fase="' + faseIdx + '">' +
+          '<input type="text" name="nome" class="add-task-input" placeholder="Nome da nova tarefa" required autocomplete="off" />' +
+          '<button type="submit" class="btn btn--primary btn--small">Adicionar</button>' +
+          '<button type="button" class="btn btn--secondary btn--small" data-action="cancel-add-task" data-fase="' + faseIdx + '">Cancelar</button>' +
+        "</form>"
+      );
+    }
+    return '<button type="button" class="add-task-btn" data-action="show-add-task" data-fase="' + faseIdx + '">+ Adicionar tarefa</button>';
   }
 
   function renderClient(slug) {
@@ -371,15 +535,19 @@
       openPhases.add(atualIdx >= 0 ? atualIdx : 0);
     }
 
+    var backWrap = document.createElement("div");
+    backWrap.innerHTML = backLinkHtml();
+
     var header = document.createElement("section");
     header.className = "client-header";
     header.innerHTML =
       '<div class="client-header__top">' +
-        '<div class="client-header__avatar">' + cliente.inicial + "</div>" +
+        '<div class="client-header__avatar">' + escapeHtml(cliente.inicial) + "</div>" +
         "<div>" +
-          '<h1 class="client-header__name">' + cliente.nome + "</h1>" +
-          '<p class="client-header__company">' + (cliente.empresa || "Sem empresa informada") + "</p>" +
-          '<p class="client-header__account">ID da conta: <strong>' + (cliente.idConta || "não informado") + "</strong></p>" +
+          '<h1 class="client-header__name">' + escapeHtml(cliente.nome) + "</h1>" +
+          '<p class="client-header__company">' + escapeHtml(cliente.empresa || "Sem empresa informada") + "</p>" +
+          '<p class="client-header__account">ID da conta: <strong>' + escapeHtml(cliente.idConta || "não informado") +
+            "</strong> · Responsável: <strong>" + escapeHtml(cliente.responsavelCliente || "não atribuído") + "</strong></p>" +
         "</div>" +
       "</div>" +
       '<div class="progress">' +
@@ -415,7 +583,7 @@
         '<div class="phase__card">' +
           '<div class="phase__header" data-action="toggle-phase" data-fase="' + i + '">' +
             '<div class="phase__title-group">' +
-              '<p class="phase__title">' + (i + 1) + ". " + fase.titulo + "</p>" +
+              '<p class="phase__title">' + (i + 1) + ". " + escapeHtml(fase.titulo) + "</p>" +
               '<div class="phase__progress">' +
                 '<div class="phase__progress-track"><div class="phase__progress-fill" style="width:' + phasePct + '%"></div></div>' +
                 '<span class="phase__progress-label">' + p.done + "/" + p.total + "</span>" +
@@ -426,10 +594,11 @@
           "</div>" +
           '<div class="phase__body">' +
             '<div class="phase__body-inner">' +
-              '<p class="phase__desc">' + fase.descricao + "</p>" +
+              '<p class="phase__desc">' + escapeHtml(fase.descricao) + "</p>" +
               '<div class="phase__tasks">' + (tasksHtml || '<p class="phase__empty">Todas as tarefas desta fase foram removidas para este cliente.</p>') + "</div>" +
+              addTaskControlHtml(i) +
               removedHtml +
-              '<p class="phase__owner">Responsável: ' + fase.responsavel + "</p>" +
+              '<p class="phase__owner">Responsável pela fase: ' + escapeHtml(fase.responsavel) + "</p>" +
             "</div>" +
           "</div>" +
         "</div>";
@@ -442,25 +611,47 @@
     footer.textContent = "Este link é exclusivo e não requer login. Guarde-o para acompanhar seu onboarding a qualquer momento.";
 
     app.innerHTML = "";
+    app.appendChild(backWrap.firstElementChild);
     app.appendChild(header);
     app.appendChild(timeline);
     app.appendChild(footer);
   }
 
+  // ---------- Roteamento ----------
+
+  function getView() {
+    var params = new URLSearchParams(window.location.search);
+    var slug = params.get("cliente");
+    if (slug) return { type: "client", slug: slug };
+    if (params.get("view") === "analytics") return { type: "analytics" };
+    return { type: "picker" };
+  }
+
   function render() {
-    var slug = getClienteSlug();
-    currentSlug = slug;
-    if (!slug) {
-      openPhases = new Set();
+    var view = getView();
+    updateProfileButton();
+
+    if (view.type === "client") {
+      currentSlug = view.slug;
+      if (!store[view.slug]) {
+        openPhases = new Set();
+        renderNotFound();
+        return;
+      }
+      renderClient(view.slug);
+      return;
+    }
+
+    currentSlug = null;
+    if (!currentUser) {
+      renderProfileGate();
+      return;
+    }
+    if (view.type === "analytics") {
+      renderAnalytics();
+    } else {
       renderPicker();
-      return;
     }
-    if (!store[slug]) {
-      openPhases = new Set();
-      renderNotFound();
-      return;
-    }
-    renderClient(slug);
   }
 
   function refresh() {
@@ -469,17 +660,32 @@
     window.scrollTo(0, y);
   }
 
-  function navigateTo(slug) {
+  function setParams(obj) {
     var url = new URL(window.location.href);
-    url.searchParams.set("cliente", slug);
+    Object.keys(obj).forEach(function (k) {
+      if (obj[k] === null) url.searchParams.delete(k);
+      else url.searchParams.set(k, obj[k]);
+    });
     window.history.pushState(null, "", url);
     openPhases = new Set();
+    addingTaskFor = new Set();
     refresh();
   }
+
+  function goToPicker() { setParams({ cliente: null, view: null }); }
+  function goToAnalytics() { setParams({ cliente: null, view: "analytics" }); }
+  function goToClient(slug) { setParams({ cliente: slug, view: null }); }
 
   // ---------- Eventos ----------
 
   app.addEventListener("click", function (e) {
+    var backEl = e.target.closest('[data-action="nav-back"]');
+    if (backEl) {
+      e.preventDefault();
+      goToPicker();
+      return;
+    }
+
     var target = e.target.closest("[data-action]");
     if (!target) return;
     var action = target.getAttribute("data-action");
@@ -500,6 +706,26 @@
       removeTask(slug, faseIdx, taskId);
     } else if (action === "restore-task") {
       restoreTask(slug, faseIdx, taskId);
+    } else if (action === "show-add-task") {
+      addingTaskFor.add(faseIdx);
+      refresh();
+    } else if (action === "cancel-add-task") {
+      addingTaskFor.delete(faseIdx);
+      refresh();
+    }
+  });
+
+  app.addEventListener("submit", function (e) {
+    var form = e.target;
+    if (form.classList.contains("add-task-form")) {
+      e.preventDefault();
+      var faseIdx = +form.getAttribute("data-fase");
+      var input = form.querySelector('input[name="nome"]');
+      var nome = input.value.trim();
+      if (!nome) return;
+      addTask(currentSlug, faseIdx, nome);
+      addingTaskFor.delete(faseIdx);
+      refresh();
     }
   });
 
@@ -537,11 +763,16 @@
     URL.revokeObjectURL(url);
   });
 
+  analyticsBtn.addEventListener("click", goToAnalytics);
+  profileBtn.addEventListener("click", switchProfile);
+
   function openModal() {
     addClientError.hidden = true;
     addClientForm.reset();
     modal.classList.add("is-open");
     modal.setAttribute("aria-hidden", "false");
+    var respSelect = addClientForm.querySelector('select[name="responsavelCliente"]');
+    if (respSelect && ASSIGNABLE.indexOf(currentUser) !== -1) respSelect.value = currentUser;
     var firstInput = addClientForm.querySelector('input[name="nome"]');
     if (firstInput) firstInput.focus();
   }
@@ -565,8 +796,14 @@
     e.preventDefault();
     var formData = new FormData(addClientForm);
     var nome = (formData.get("nome") || "").toString().trim();
+    var responsavelCliente = (formData.get("responsavelCliente") || "").toString().trim();
     if (!nome) {
       addClientError.textContent = "Informe o nome do cliente.";
+      addClientError.hidden = false;
+      return;
+    }
+    if (ASSIGNABLE.indexOf(responsavelCliente) === -1) {
+      addClientError.textContent = "Selecione um responsável.";
       addClientError.hidden = false;
       return;
     }
@@ -574,10 +811,11 @@
       nome: nome,
       empresa: (formData.get("empresa") || "").toString().trim(),
       idConta: (formData.get("idConta") || "").toString().trim(),
+      responsavelCliente: responsavelCliente,
       dataInicio: (formData.get("dataInicio") || "").toString().trim()
     });
     closeModal();
-    navigateTo(slug);
+    goToClient(slug);
   });
 
   window.addEventListener("popstate", refresh);

@@ -24,6 +24,24 @@ cronograma através de um **link único** — não há autenticação nem senha.
 - Não existe login: a "segurança" é o link ser único e não listado publicamente. Não
   cadastre dados sensíveis nele.
 
+## Perfis (Ilana, Pedro, Josiane, Madu, Amanda)
+
+- Cada cliente tem um campo **Responsável** (Ilana, Pedro, Josiane ou Madu).
+- Ao abrir a tela inicial ou o Analytics pela primeira vez, a página pergunta **"Quem é
+  você?"** — a pessoa escolhe seu nome numa lista (sem senha) e isso fica salvo no
+  `localStorage` daquele navegador. A partir daí, a lista de clientes e o Analytics
+  mostram só os clientes daquele responsável.
+- **Amanda** é a coordenadora: ao selecioná-la, a lista e o Analytics mostram **todos**
+  os clientes, de todos os responsáveis, sem filtro.
+- Isso é uma preferência de UI, não autenticação de verdade — qualquer pessoa pode abrir
+  o seletor e escolher "Amanda" ou qualquer outro nome. Não use isso como controle de
+  acesso a dados sensíveis.
+- Um **link direto de cliente** (`?cliente=slug`) nunca passa por esse filtro — continua
+  abrindo normalmente para quem tiver o link, mesmo que a pessoa nunca tenha escolhido um
+  perfil. O filtro de perfil só afeta a lista/Analytics internos da equipe.
+- Para trocar de perfil (ex.: outra pessoa usando o mesmo navegador), use o botão com o
+  nome atual no canto superior direito ("👤 Nome · trocar").
+
 ## As 8 fases
 
 1. Setup de Conta
@@ -37,6 +55,10 @@ cronograma através de um **link único** — não há autenticação nem senha.
 
 A fase "em andamento" é sempre a primeira que ainda não tem 100% das tarefas ativas
 concluídas — não precisa ser marcada manualmente, ela é recalculada a cada mudança.
+
+Dentro de cada fase, o botão **"+ Adicionar tarefa"** cria uma tarefa extra só para
+aquele cliente (com checkbox, data e remover, iguais às tarefas padrão) — útil para
+casos específicos que não estão no modelo.
 
 ## Adicionar um novo cliente
 
@@ -52,10 +74,14 @@ no `localStorage` de quem já visitou a página):
   "empresa": "Nome da Empresa",
   "inicial": "NC",
   "idConta": "HM-00000",
+  "responsavelCliente": "Ilana",
   "dataInicio": "AAAA-MM-DD",
   "fases": [ ... 8 objetos, um por fase ... ]
 }
 ```
+
+- `responsavelCliente` aceita `"Ilana"`, `"Pedro"`, `"Josiane"` ou `"Madu"` — define quem
+  vê esse cliente na lista/Analytics quando filtrado por perfil.
 
 - Cada fase tem `titulo`, `descricao`, `responsavel` e uma lista de `tarefas`.
 - Cada tarefa tem `id` (estável, usado pelos controles de UI), `nome`, `concluida`,
@@ -65,6 +91,14 @@ no `localStorage` de quem já visitou a página):
   qualquer momento pela interface (seção "Tarefas removidas" dentro de cada fase).
 
 Não é necessário nenhum passo de build — é só editar o JSON e publicar.
+
+## Analytics
+
+O botão **"Analytics"** na barra superior mostra um gráfico de barras com o % de
+progresso de cada cliente (mais um resumo: total de clientes e progresso médio). O
+escopo segue o mesmo filtro de perfil da tela inicial: cada onboarding vê o gráfico só
+dos próprios clientes; Amanda vê o gráfico de todos. Cada barra é um link direto para o
+cronograma daquele cliente.
 
 ## Rodar localmente
 

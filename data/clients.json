@@ -1,10 +1,11 @@
 {
-  "_readme": "Cada chave de nível superior é o slug do cliente, usado na URL como ?cliente=slug. Este arquivo é o conjunto de dados-semente: ao abrir a página pela primeira vez em um navegador, ele é copiado para o localStorage e passa a ser a fonte de verdade local (edições feitas na interface — concluir/remover/restaurar tarefas, datas, novos clientes — não alteram este arquivo automaticamente). Use o botão \"Exportar dados\" na barra superior para baixar o clients.json atualizado e substituir este arquivo quando quiser publicar as mudanças para todos.",
+  "_readme": "Cada chave de nivel superior e o slug do cliente, usado na URL como ?cliente=slug. Este arquivo e o conjunto de dados-semente: ao abrir a pagina pela primeira vez em um navegador, ele e copiado para o localStorage e passa a ser a fonte de verdade local (edicoes feitas na interface nao alteram este arquivo automaticamente). Use o botao \"Exportar dados\" na barra superior para baixar o clients.json atualizado. Campo responsavelCliente aceita: Ilana, Pedro, Josiane ou Madu (usado para filtrar a lista por perfil; Amanda, a coordenadora, ve todos os clientes).",
   "acme-cursos": {
     "nome": "Ana Ferreira",
     "empresa": "Acme Cursos Online",
     "inicial": "AF",
     "idConta": "HM-48213",
+    "responsavelCliente": "Ilana",
     "dataInicio": "2026-06-01",
     "fases": [
       {
@@ -238,6 +239,7 @@
     "empresa": "Vida Fit Treinamentos",
     "inicial": "BC",
     "idConta": "HM-51092",
+    "responsavelCliente": "Pedro",
     "dataInicio": "2026-07-20",
     "fases": [
       {
@@ -471,6 +473,7 @@
     "empresa": "Mente Criativa Design",
     "inicial": "CN",
     "idConta": "HM-33765",
+    "responsavelCliente": "Josiane",
     "dataInicio": "2026-05-04",
     "fases": [
       {
