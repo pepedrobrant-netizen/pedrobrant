@@ -73,12 +73,36 @@ assets/js/app.js       leitura da URL, cálculo de progresso e renderização
 data/clients.json      dados de todos os clientes (editar para adicionar/atualizar)
 ```
 
-## Paleta de cores
+## Brandbook Hotmart
 
-| Uso              | Cor                     |
-| ----------------- | ----------------------- |
-| Laranja principal  | `#FF4000`               |
-| Laranja escuro     | `#C93400`               |
-| Laranja claro      | `#FF7A45`                |
-| Fundo laranja suave| `#FFF1EB`               |
-| Navy (cabeçalho)   | `#191A2E` → `#2C2D47`   |
+Cores e tipografia seguem o brandbook oficial (`data/clients.json` e o restante do
+conteúdo permanecem livres para edição; o visual não).
+
+**Paleta primária**
+
+| Nome       | Cor       | Uso no site                                   |
+| ---------- | --------- | ---------------------------------------------- |
+| Orange     | `#FF4000` | Ações, marcador/badge da fase concluída ou atual |
+| Black      | `#0D0D0D` | Topbar, texto principal, base do cabeçalho do cliente |
+| Off-White  | `#F5F3EF` | Fundo da página                                 |
+
+**Paleta secundária**
+
+| Nome   | Cor       | Uso no site                                             |
+| ------ | --------- | -------------------------------------------------------- |
+| Maroon | `#3E0F1D` | Gradiente do cabeçalho do cliente (Black → Maroon)        |
+| Yellow | `#FFD450` | Gradiente da barra de progresso, texto de destaque no cabeçalho |
+| Grey   | `#C3BFB8` | Bordas, marcadores pendentes, elementos neutros           |
+| White  | `#FFFFFF` | Fundo dos cards                                           |
+
+Ícones (chevron, checkmarks) ficam restritos a laranja, off-white, preto e branco,
+conforme o brandbook — as cores secundárias aparecem apenas em fundos, bordas e textos
+de apoio, nunca em ícones.
+
+**Tipografia**
+
+- Títulos (`h1`/`h2`/`h3`, nome do cliente, título de cada fase): fonte serifada bold
+  — `Bitter` via Google Fonts, com fallback para `Georgia`/`Times New Roman` caso a
+  fonte não carregue (substituindo a "Hotmart Display" oficial, que não está disponível
+  publicamente).
+- Corpo de texto: `Inter`, com fallback para fontes sans-serif do sistema.

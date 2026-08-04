@@ -1,20 +1,29 @@
 :root {
-  /* Paleta inspirada na identidade visual da Hotmart */
+  /* Paleta primária — Brandbook Hotmart */
   --hm-orange: #ff4000;
-  --hm-orange-dark: #c93400;
-  --hm-orange-light: #ff7a45;
-  --hm-orange-soft: #fff1eb;
-  --hm-navy: #191a2e;
-  --hm-navy-soft: #2c2d47;
-  --hm-gray-50: #f7f7fa;
-  --hm-gray-100: #edeef2;
-  --hm-gray-300: #d3d5dd;
-  --hm-gray-500: #8b8d9c;
-  --hm-gray-700: #4a4b5c;
+  --hm-black: #0d0d0d;
+  --hm-offwhite: #f5f3ef;
+
+  /* Paleta secundária — Brandbook Hotmart */
+  --hm-maroon: #3e0f1d;
+  --hm-yellow: #ffd450;
+  --hm-grey: #c3bfb8;
   --hm-white: #ffffff;
 
-  --shadow-sm: 0 1px 3px rgba(25, 26, 46, 0.08);
-  --shadow-md: 0 8px 24px rgba(25, 26, 46, 0.10);
+  /* Tons derivados (tints/opacidade das cores acima, para estados de UI) */
+  --hm-orange-dark: #c93400;
+  --hm-orange-soft: #ffece3;
+  --hm-grey-soft: #ecebe6;
+  --hm-text-muted: rgba(13, 13, 13, 0.6);
+  --hm-text-soft: rgba(13, 13, 13, 0.78);
+  --hm-border: rgba(13, 13, 13, 0.1);
+
+  /* Tipografia — Brandbook Hotmart */
+  --font-display: "Bitter", Georgia, "Times New Roman", serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  --shadow-sm: 0 1px 3px rgba(13, 13, 13, 0.08);
+  --shadow-md: 0 8px 24px rgba(13, 13, 13, 0.12);
   --radius: 14px;
 }
 
@@ -28,11 +37,16 @@ html, body {
 }
 
 body {
-  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background: var(--hm-gray-50);
-  color: var(--hm-navy);
+  font-family: var(--font-body);
+  background: var(--hm-offwhite);
+  color: var(--hm-black);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+  font-weight: 700;
 }
 
 a {
@@ -45,7 +59,7 @@ a {
   align-items: center;
   justify-content: space-between;
   padding: 14px 24px;
-  background: var(--hm-navy);
+  background: var(--hm-black);
   color: var(--hm-white);
   position: sticky;
   top: 0;
@@ -56,6 +70,7 @@ a {
   display: flex;
   align-items: center;
   gap: 10px;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.05rem;
   letter-spacing: 0.2px;
@@ -112,7 +127,7 @@ a {
 
 .loading {
   text-align: center;
-  color: var(--hm-gray-500);
+  color: var(--hm-text-muted);
   padding: 80px 0;
   font-size: 0.95rem;
 }
@@ -146,7 +161,7 @@ a {
 }
 
 .picker__text {
-  color: var(--hm-gray-700);
+  color: var(--hm-text-soft);
   font-size: 0.95rem;
   margin-bottom: 20px;
 }
@@ -163,10 +178,10 @@ a {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border: 1px solid var(--hm-gray-100);
+  border: 1px solid var(--hm-border);
   border-radius: 10px;
   text-decoration: none;
-  color: var(--hm-navy);
+  color: var(--hm-black);
   text-align: left;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
@@ -197,24 +212,24 @@ a {
 
 .picker__item-meta {
   font-size: 0.8rem;
-  color: var(--hm-gray-500);
+  color: var(--hm-text-muted);
 }
 
 .picker__hint {
   font-size: 0.78rem;
-  color: var(--hm-gray-500);
+  color: var(--hm-text-muted);
 }
 
 .picker__hint code {
-  background: var(--hm-gray-100);
+  background: var(--hm-grey-soft);
   padding: 2px 6px;
   border-radius: 4px;
 }
 
 /* Client header */
 .client-header {
-  background: var(--hm-navy);
-  background: linear-gradient(135deg, var(--hm-navy) 0%, var(--hm-navy-soft) 100%);
+  background: var(--hm-black);
+  background: linear-gradient(135deg, var(--hm-black) 0%, var(--hm-maroon) 100%);
   color: var(--hm-white);
   border-radius: var(--radius);
   padding: 28px 28px 24px;
@@ -244,6 +259,7 @@ a {
 
 .client-header__name {
   margin: 0;
+  font-family: var(--font-display);
   font-size: 1.3rem;
 }
 
@@ -269,7 +285,7 @@ a {
 
 .progress__fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--hm-orange) 0%, var(--hm-orange-light) 100%);
+  background: linear-gradient(90deg, var(--hm-orange) 0%, var(--hm-yellow) 100%);
   border-radius: 999px;
   transition: width 0.4s ease;
 }
@@ -278,7 +294,7 @@ a {
   font-size: 0.85rem;
   font-weight: 700;
   white-space: nowrap;
-  color: var(--hm-orange-light);
+  color: var(--hm-yellow);
 }
 
 .client-header__meta {
@@ -307,7 +323,7 @@ a {
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: var(--hm-gray-300);
+  background: var(--hm-grey);
 }
 
 .phase {
@@ -328,14 +344,14 @@ a {
   font-size: 0.85rem;
   font-weight: 700;
   background: var(--hm-white);
-  border: 2px solid var(--hm-gray-300);
-  color: var(--hm-gray-500);
+  border: 2px solid var(--hm-grey);
+  color: var(--hm-black);
   z-index: 1;
 }
 
 .phase__card {
   background: var(--hm-white);
-  border: 1px solid var(--hm-gray-100);
+  border: 1px solid var(--hm-border);
   border-radius: 12px;
   box-shadow: var(--shadow-sm);
   overflow: hidden;
@@ -358,6 +374,7 @@ a {
 }
 
 .phase__title {
+  font-family: var(--font-display);
   font-size: 0.98rem;
   font-weight: 700;
   margin: 0;
@@ -365,7 +382,7 @@ a {
 
 .phase__date {
   font-size: 0.76rem;
-  color: var(--hm-gray-500);
+  color: var(--hm-text-muted);
 }
 
 .phase__badge {
@@ -379,7 +396,8 @@ a {
 }
 
 .phase__chevron {
-  color: var(--hm-gray-500);
+  /* Ícone: restrito à paleta laranja/off-white/preto/branco do brandbook */
+  color: var(--hm-black);
   transition: transform 0.2s ease;
   flex-shrink: 0;
 }
@@ -392,12 +410,12 @@ a {
 
 .phase__body-inner {
   padding: 0 18px 18px 18px;
-  border-top: 1px solid var(--hm-gray-100);
+  border-top: 1px solid var(--hm-border);
 }
 
 .phase__desc {
   font-size: 0.87rem;
-  color: var(--hm-gray-700);
+  color: var(--hm-text-soft);
   margin: 14px 0 12px;
 }
 
@@ -421,7 +439,7 @@ a {
   width: 18px;
   height: 18px;
   border-radius: 5px;
-  border: 2px solid var(--hm-gray-300);
+  border: 2px solid var(--hm-grey);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -436,14 +454,14 @@ a {
 }
 
 .phase__task--done .phase__task-name {
-  color: var(--hm-gray-700);
+  color: var(--hm-text-muted);
   text-decoration: line-through;
-  text-decoration-color: var(--hm-gray-300);
+  text-decoration-color: var(--hm-grey);
 }
 
 .phase__owner {
   font-size: 0.76rem;
-  color: var(--hm-gray-500);
+  color: var(--hm-text-muted);
 }
 
 /* Status variants */
@@ -466,7 +484,7 @@ a {
 }
 
 .phase--atual .phase__card {
-  border-color: var(--hm-orange-light);
+  border-color: var(--hm-orange);
 }
 
 .phase--atual .phase__badge {
@@ -475,8 +493,8 @@ a {
 }
 
 .phase--pendente .phase__badge {
-  background: var(--hm-gray-100);
-  color: var(--hm-gray-500);
+  background: var(--hm-grey-soft);
+  color: var(--hm-text-muted);
 }
 
 .phase.is-open .phase__body {
@@ -491,7 +509,7 @@ a {
 .footer-note {
   text-align: center;
   font-size: 0.78rem;
-  color: var(--hm-gray-500);
+  color: var(--hm-text-muted);
   margin-top: 32px;
 }
 
