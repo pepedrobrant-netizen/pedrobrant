@@ -1,11 +1,12 @@
 {
-  "_readme": "Cada chave de nivel superior e o slug do cliente, usado na URL como ?cliente=slug. Este arquivo e o conjunto de dados-semente: ao abrir a pagina pela primeira vez em um navegador, ele e copiado para o localStorage e passa a ser a fonte de verdade local (edicoes feitas na interface nao alteram este arquivo automaticamente). Use o botao \"Exportar dados\" na barra superior para baixar o clients.json atualizado. Campo responsavelCliente aceita: Ilana, Pedro, Josiane ou Madu (usado para filtrar a lista por perfil; Amanda, a coordenadora, ve todos os clientes).",
+  "_readme": "Cada chave de nivel superior e o slug do cliente, usado na URL como ?cliente=slug. Este arquivo e o conjunto de dados-semente: ao abrir a pagina pela primeira vez em um navegador, ele e copiado para o localStorage e passa a ser a fonte de verdade local (edicoes feitas na interface nao alteram este arquivo automaticamente). Use o botao \"Exportar dados\" na barra superior para baixar o clients.json atualizado. Campo responsavelCliente aceita: Ilana, Pedro, Josiane ou Madu (usado para filtrar a lista por perfil; o perfil Administrador ve todos os clientes). Campo criadoPor e preenchido automaticamente com o perfil que criou o cliente e aparece como \"Responsavel pela fase\" no rodape de cada fase; nao e editavel pela interface.",
   "acme-cursos": {
     "nome": "Ana Ferreira",
     "empresa": "Acme Cursos Online",
     "inicial": "AF",
     "idConta": "HM-48213",
     "responsavelCliente": "Ilana",
+    "criadoPor": "Ilana",
     "dataInicio": "2026-06-01",
     "fases": [
       {
@@ -240,6 +241,7 @@
     "inicial": "BC",
     "idConta": "HM-51092",
     "responsavelCliente": "Pedro",
+    "criadoPor": "Pedro",
     "dataInicio": "2026-07-20",
     "fases": [
       {
@@ -474,6 +476,7 @@
     "inicial": "CN",
     "idConta": "HM-33765",
     "responsavelCliente": "Josiane",
+    "criadoPor": "Josiane",
     "dataInicio": "2026-05-04",
     "fases": [
       {

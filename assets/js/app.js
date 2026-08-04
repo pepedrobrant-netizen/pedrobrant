@@ -4,8 +4,9 @@
   var STORAGE_KEY = "hm_onboarding_store_v2";
   var PROFILE_KEY = "hm_current_user_v1";
 
-  var PROFILES = ["Ilana", "Pedro", "Josiane", "Madu", "Amanda"];
+  var PROFILES = ["Ilana", "Pedro", "Josiane", "Madu", "Administrador"];
   var ASSIGNABLE = ["Ilana", "Pedro", "Josiane", "Madu"];
+  var ADMIN = "Administrador";
 
   var app = document.getElementById("app");
   var copyBtn = document.getElementById("copy-link-btn");
@@ -20,9 +21,15 @@
 
   var store = null; // { [slug]: cliente }
   var currentUser = localStorage.getItem(PROFILE_KEY) || null;
+  if (currentUser === "Amanda") {
+    // migração: nome antigo do perfil de administração
+    currentUser = ADMIN;
+    localStorage.setItem(PROFILE_KEY, currentUser);
+  }
   var currentSlug = null;
   var openPhases = new Set();
   var addingTaskFor = new Set();
+  var analyticsFilter = new Set(ASSIGNABLE);
 
   // ---------- Template para novos clientes ----------
 
@@ -207,7 +214,7 @@
 
   function visibleSlugs() {
     var all = Object.keys(store);
-    if (currentUser === "Amanda") return all;
+    if (currentUser === ADMIN) return all;
     return all.filter(function (s) { return store[s].responsavelCliente === currentUser; });
   }
 
@@ -308,6 +315,15 @@
     refresh();
   }
 
+  function deleteTaskForever(slug, faseIdx, taskId) {
+    var cliente = store[slug];
+    var fase = cliente.fases[faseIdx];
+    if (!fase) return;
+    fase.tarefas = fase.tarefas.filter(function (t) { return t.id !== taskId; });
+    persist();
+    refresh();
+  }
+
   function addTask(slug, faseIdx, nome) {
     var cliente = store[slug];
     var fase = cliente.fases[faseIdx];
@@ -318,7 +334,7 @@
       idx++;
       id = "f" + (faseIdx + 1) + "-custom-" + idx;
     }
-    fase.tarefas.push({ id: id, nome: nome, concluida: false, data: null, removida: false });
+    fase.tarefas.push({ id: id, nome: nome, concluida: false, data: null, removida: false, custom: true });
     persist();
   }
 
@@ -330,6 +346,7 @@
       inicial: initials(fields.nome),
       idConta: fields.idConta || "",
       responsavelCliente: fields.responsavelCliente || "",
+      criadoPor: currentUser || "",
       dataInicio: fields.dataInicio || todayISO(),
       fases: cloneTemplateFases()
     };
@@ -348,8 +365,8 @@
     PROFILES.forEach(function (name) {
       var btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "profile-chip" + (name === "Amanda" ? " profile-chip--coord" : "");
-      btn.textContent = name + (name === "Amanda" ? " (coordenação — vê tudo)" : "");
+      btn.className = "profile-chip" + (name === ADMIN ? " profile-chip--coord" : "");
+      btn.textContent = name + (name === ADMIN ? " (vê todos os clientes)" : "");
       btn.addEventListener("click", function () {
         currentUser = name;
         localStorage.setItem(PROFILE_KEY, name);
@@ -370,8 +387,8 @@
 
     var filterNote = document.createElement("p");
     filterNote.className = "picker__filter-note";
-    filterNote.textContent = currentUser === "Amanda"
-      ? "Visão geral (coordenação): todos os clientes, de todos os responsáveis."
+    filterNote.textContent = currentUser === ADMIN
+      ? "Visão geral (administrador): todos os clientes, de todos os responsáveis."
       : "Mostrando apenas os clientes de " + currentUser + ".";
     node.getElementById("picker-example-url").parentNode.parentNode.insertBefore(filterNote, list);
 
@@ -432,10 +449,8 @@
     );
   }
 
-  function renderAnalytics() {
-    copyBtn.style.display = "none";
-    var slugs = visibleSlugs();
-    var rows = slugs
+  function rowsFor(slugs) {
+    return slugs
       .map(function (slug) {
         var c = store[slug];
         return {
@@ -447,9 +462,14 @@
         };
       })
       .sort(function (a, b) { return b.pct - a.pct; });
+  }
 
-    var avg = rows.length ? Math.round(rows.reduce(function (sum, r) { return sum + r.pct; }, 0) / rows.length) : 0;
+  function avgOf(rows) {
+    return rows.length ? Math.round(rows.reduce(function (sum, r) { return sum + r.pct; }, 0) / rows.length) : 0;
+  }
 
+  function barChartHtml(rows) {
+    if (!rows.length) return '<p class="picker__text">Nenhum cliente para mostrar.</p>';
     var barsHtml = rows.map(function (r) {
       return (
         '<a class="bar-row" href="?cliente=' + encodeURIComponent(r.slug) + '" title="' +
@@ -464,6 +484,56 @@
         "</a>"
       );
     }).join("");
+    return '<div class="chart-card"><div class="bar-chart">' + barsHtml + "</div></div>";
+  }
+
+  function renderAnalytics() {
+    copyBtn.style.display = "none";
+    var isAdmin = currentUser === ADMIN;
+
+    if (!isAdmin) {
+      var rows = rowsFor(visibleSlugs());
+      var wrap = document.createElement("section");
+      wrap.className = "analytics";
+      wrap.innerHTML =
+        backLinkHtml() +
+        '<div class="analytics__header">' +
+          '<h1 class="analytics__title">Analytics</h1>' +
+          '<p class="analytics__subtitle">Progresso dos clientes de ' + escapeHtml(currentUser) + ".</p>" +
+        "</div>" +
+        '<div class="analytics__stats">' +
+          statTileHtml(rows.length, rows.length === 1 ? "Cliente" : "Clientes") +
+          statTileHtml(avgOf(rows) + "%", "Progresso médio") +
+        "</div>" +
+        barChartHtml(rows);
+      app.innerHTML = "";
+      app.appendChild(wrap);
+      return;
+    }
+
+    // Administrador: visão geral fixa + filtro por onboarding
+    var allSlugs = Object.keys(store);
+    var overallRows = rowsFor(allSlugs);
+    var selected = ASSIGNABLE.filter(function (name) { return analyticsFilter.has(name); });
+
+    var filterChipsHtml = ASSIGNABLE.map(function (name) {
+      var active = analyticsFilter.has(name);
+      return '<button type="button" class="filter-chip' + (active ? " is-active" : "") +
+        '" data-action="toggle-onboarder-filter" data-name="' + escapeHtml(name) + '">' + escapeHtml(name) + "</button>";
+    }).join("");
+
+    var breakdownHtml = "";
+    var chartRows;
+    if (!selected.length) {
+      breakdownHtml = '<p class="picker__text">Selecione ao menos um onboarding para ver o detalhamento.</p>';
+      chartRows = [];
+    } else {
+      breakdownHtml = '<div class="analytics__stats">' + selected.map(function (name) {
+        var nameRows = rowsFor(allSlugs.filter(function (s) { return store[s].responsavelCliente === name; }));
+        return statTileHtml(avgOf(nameRows) + "%", name + " (" + nameRows.length + ")");
+      }).join("") + "</div>";
+      chartRows = rowsFor(allSlugs.filter(function (s) { return selected.indexOf(store[s].responsavelCliente) !== -1; }));
+    }
 
     var wrap = document.createElement("section");
     wrap.className = "analytics";
@@ -471,19 +541,23 @@
       backLinkHtml() +
       '<div class="analytics__header">' +
         '<h1 class="analytics__title">Analytics</h1>' +
-        '<p class="analytics__subtitle">' +
-          (currentUser === "Amanda"
-            ? "Progresso de todos os clientes, todos os responsáveis."
-            : "Progresso dos clientes de " + escapeHtml(currentUser) + ".") +
-        "</p>" +
+        '<p class="analytics__subtitle">Visão geral (administrador): todos os clientes, todos os responsáveis.</p>' +
       "</div>" +
       '<div class="analytics__stats">' +
-        statTileHtml(rows.length, rows.length === 1 ? "Cliente" : "Clientes") +
-        statTileHtml(avg + "%", "Progresso médio") +
+        statTileHtml(overallRows.length, overallRows.length === 1 ? "Cliente (todos)" : "Clientes (todos)") +
+        statTileHtml(avgOf(overallRows) + "%", "Progresso médio geral") +
       "</div>" +
-      (rows.length
-        ? '<div class="chart-card"><div class="bar-chart">' + barsHtml + "</div></div>"
-        : '<p class="picker__text">Nenhum cliente para mostrar.</p>');
+      '<div class="filter-row">' +
+        filterChipsHtml +
+        '<div class="filter-actions">' +
+          '<button type="button" class="filter-action-link" data-action="filter-select-all">Selecionar todos</button>' +
+          '<button type="button" class="filter-action-link" data-action="filter-clear">Limpar</button>' +
+        "</div>" +
+      "</div>" +
+      '<p class="analytics__section-label">Progresso médio por onboarding selecionado</p>' +
+      breakdownHtml +
+      '<p class="analytics__section-label">Clientes no filtro atual</p>' +
+      barChartHtml(chartRows);
 
     app.innerHTML = "";
     app.appendChild(wrap);
@@ -507,6 +581,9 @@
       '<div class="task-row task-row--removed">' +
         '<span class="task-name">' + escapeHtml(task.nome) + "</span>" +
         '<button type="button" class="task-restore" data-action="restore-task" data-fase="' + faseIdx + '" data-task="' + task.id + '">Restaurar</button>' +
+        (task.custom
+          ? '<button type="button" class="task-delete" data-action="delete-task-forever" data-fase="' + faseIdx + '" data-task="' + task.id + '" title="Excluir definitivamente — não pode ser desfeito">Excluir definitivamente</button>'
+          : "") +
       "</div>"
     );
   }
@@ -598,7 +675,7 @@
               '<div class="phase__tasks">' + (tasksHtml || '<p class="phase__empty">Todas as tarefas desta fase foram removidas para este cliente.</p>') + "</div>" +
               addTaskControlHtml(i) +
               removedHtml +
-              '<p class="phase__owner">Responsável pela fase: ' + escapeHtml(fase.responsavel) + "</p>" +
+              '<p class="phase__owner">Responsável pela fase: ' + escapeHtml(cliente.criadoPor || "não informado") + "</p>" +
             "</div>" +
           "</div>" +
         "</div>";
@@ -711,6 +788,21 @@
       refresh();
     } else if (action === "cancel-add-task") {
       addingTaskFor.delete(faseIdx);
+      refresh();
+    } else if (action === "delete-task-forever") {
+      if (window.confirm("Excluir esta tarefa definitivamente? Essa ação não pode ser desfeita.")) {
+        deleteTaskForever(slug, faseIdx, taskId);
+      }
+    } else if (action === "toggle-onboarder-filter") {
+      var name = target.getAttribute("data-name");
+      if (analyticsFilter.has(name)) analyticsFilter.delete(name);
+      else analyticsFilter.add(name);
+      refresh();
+    } else if (action === "filter-select-all") {
+      analyticsFilter = new Set(ASSIGNABLE);
+      refresh();
+    } else if (action === "filter-clear") {
+      analyticsFilter = new Set();
       refresh();
     }
   });

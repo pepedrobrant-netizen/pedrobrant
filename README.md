@@ -24,23 +24,27 @@ cronograma através de um **link único** — não há autenticação nem senha.
 - Não existe login: a "segurança" é o link ser único e não listado publicamente. Não
   cadastre dados sensíveis nele.
 
-## Perfis (Ilana, Pedro, Josiane, Madu, Amanda)
+## Perfis (Ilana, Pedro, Josiane, Madu, Administrador)
 
 - Cada cliente tem um campo **Responsável** (Ilana, Pedro, Josiane ou Madu).
 - Ao abrir a tela inicial ou o Analytics pela primeira vez, a página pergunta **"Quem é
   você?"** — a pessoa escolhe seu nome numa lista (sem senha) e isso fica salvo no
   `localStorage` daquele navegador. A partir daí, a lista de clientes e o Analytics
   mostram só os clientes daquele responsável.
-- **Amanda** é a coordenadora: ao selecioná-la, a lista e o Analytics mostram **todos**
-  os clientes, de todos os responsáveis, sem filtro.
+- **Administrador** é o perfil de coordenação: ao selecioná-lo, a lista e o Analytics
+  mostram **todos** os clientes, de todos os responsáveis, sem filtro.
 - Isso é uma preferência de UI, não autenticação de verdade — qualquer pessoa pode abrir
-  o seletor e escolher "Amanda" ou qualquer outro nome. Não use isso como controle de
-  acesso a dados sensíveis.
+  o seletor e escolher "Administrador" ou qualquer outro nome. Não use isso como controle
+  de acesso a dados sensíveis.
 - Um **link direto de cliente** (`?cliente=slug`) nunca passa por esse filtro — continua
   abrindo normalmente para quem tiver o link, mesmo que a pessoa nunca tenha escolhido um
   perfil. O filtro de perfil só afeta a lista/Analytics internos da equipe.
 - Para trocar de perfil (ex.: outra pessoa usando o mesmo navegador), use o botão com o
   nome atual no canto superior direito ("👤 Nome · trocar").
+- O campo **"Responsável pela fase"**, no rodapé de cada fase, é preenchido
+  automaticamente com o perfil que **criou** aquele cliente (`criadoPor`) — o mesmo nome
+  aparece em todas as 8 fases, já que é o criador do cronograma, não um dono por fase.
+  Não é editável pela interface.
 
 ## As 8 fases
 
@@ -58,7 +62,11 @@ concluídas — não precisa ser marcada manualmente, ela é recalculada a cada 
 
 Dentro de cada fase, o botão **"+ Adicionar tarefa"** cria uma tarefa extra só para
 aquele cliente (com checkbox, data e remover, iguais às tarefas padrão) — útil para
-casos específicos que não estão no modelo.
+casos específicos que não estão no modelo. Tarefas extras, depois de removidas, ganham
+uma opção a mais na seção "Tarefas removidas": **"Excluir definitivamente"** — apaga a
+tarefa de vez (pede confirmação, pois não pode ser desfeito). Tarefas do modelo padrão
+que forem removidas só podem ser restauradas, não excluídas — continuam fazendo parte da
+estrutura das 8 fases.
 
 ## Adicionar um novo cliente
 
@@ -75,6 +83,7 @@ no `localStorage` de quem já visitou a página):
   "inicial": "NC",
   "idConta": "HM-00000",
   "responsavelCliente": "Ilana",
+  "criadoPor": "Ilana",
   "dataInicio": "AAAA-MM-DD",
   "fases": [ ... 8 objetos, um por fase ... ]
 }
@@ -82,10 +91,16 @@ no `localStorage` de quem já visitou a página):
 
 - `responsavelCliente` aceita `"Ilana"`, `"Pedro"`, `"Josiane"` ou `"Madu"` — define quem
   vê esse cliente na lista/Analytics quando filtrado por perfil.
+- `criadoPor` é o que aparece como "Responsável pela fase" em todas as 8 fases (pelo
+  botão "+ Novo cliente" isso é preenchido sozinho com o perfil atual; editando o JSON à
+  mão, escreva o nome desejado diretamente).
 
-- Cada fase tem `titulo`, `descricao`, `responsavel` e uma lista de `tarefas`.
+- Cada fase tem `titulo`, `descricao`, `responsavel` (interno, não exibido na UI — ver
+  `criadoPor` acima) e uma lista de `tarefas`.
 - Cada tarefa tem `id` (estável, usado pelos controles de UI), `nome`, `concluida`,
-  `data` (agendada/realizada, por tarefa — não existe mais data por fase) e `removida`.
+  `data` (agendada/realizada, por tarefa — não existe mais data por fase), `removida` e,
+  quando criada pelo botão "+ Adicionar tarefa", `custom: true` (habilita a opção de
+  excluir definitivamente).
 - Uma tarefa com `removida: true` não conta no cálculo de progresso (nem no numerador
   nem no denominador) daquele cliente, mas continua no arquivo — dá pra restaurar a
   qualquer momento pela interface (seção "Tarefas removidas" dentro de cada fase).
@@ -95,10 +110,18 @@ Não é necessário nenhum passo de build — é só editar o JSON e publicar.
 ## Analytics
 
 O botão **"Analytics"** na barra superior mostra um gráfico de barras com o % de
-progresso de cada cliente (mais um resumo: total de clientes e progresso médio). O
-escopo segue o mesmo filtro de perfil da tela inicial: cada onboarding vê o gráfico só
-dos próprios clientes; Amanda vê o gráfico de todos. Cada barra é um link direto para o
-cronograma daquele cliente.
+progresso de cada cliente. Cada barra é um link direto para o cronograma daquele
+cliente.
+
+- Para um onboarding individual (Ilana, Pedro, Josiane ou Madu), o escopo segue o mesmo
+  filtro de perfil da tela inicial: só os próprios clientes, sem opção de filtro
+  adicional (não há outros onboardings para comparar).
+- Para o **Administrador**, a tela mostra dois níveis de informação: (1) um resumo fixo
+  no topo com o progresso médio de **todos** os clientes, de todos os responsáveis
+  (não muda com o filtro), e (2) chips para selecionar um ou mais onboardings — ao
+  selecionar, aparece o progresso médio de cada um deles e o gráfico de barras é
+  filtrado só aos clientes desses onboardings selecionados. "Selecionar todos"/"Limpar"
+  ajustam a seleção de uma vez.
 
 ## Rodar localmente
 
