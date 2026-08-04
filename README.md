@@ -6,46 +6,63 @@ cronograma através de um **link único** — não há autenticação nem senha.
 
 ## Como funciona
 
-- Todos os clientes ficam cadastrados em [`data/clients.json`](data/clients.json), um por
-  chave (`slug`).
+- `data/clients.json` é o **dado-semente**: na primeira vez que a página é aberta em um
+  navegador, ele é copiado para o `localStorage` e passa a ser a fonte de verdade
+  *local* (por navegador/dispositivo). Todas as edições feitas pela interface — marcar
+  tarefa, editar data, remover/restaurar tarefa, criar cliente — são salvas ali e
+  sobrevivem a recarregar a página, mas **não são compartilhadas automaticamente** com
+  quem abre o link em outro navegador ou dispositivo.
+- Para publicar de verdade uma mudança (ex.: um cliente novo, tarefas ajustadas) para
+  todos que acessam o site, use o botão **"Exportar dados"** na barra superior — ele
+  baixa o `clients.json` atualizado. Substitua o arquivo em `data/clients.json` no
+  repositório e publique (commit + deploy) para que o novo estado vire o padrão de
+  todo mundo.
 - Cada cliente é acessado pela URL `?cliente=<slug>`, por exemplo:
   `https://seudominio.com/?cliente=acme-cursos`
-- Sem o parâmetro `cliente`, a página mostra uma tela de seleção (útil para
-  demonstração interna); em produção, basta enviar o link direto ao cliente.
+- Sem o parâmetro `cliente`, a página mostra a tela inicial com a lista de clientes e o
+  botão **"+ Novo cliente"**.
 - Não existe login: a "segurança" é o link ser único e não listado publicamente. Não
   cadastre dados sensíveis nele.
 
 ## As 8 fases
 
-1. Boas-vindas e Kickoff
-2. Diagnóstico e Planejamento
-3. Configuração da Conta Hotmart
-4. Criação do Produto e Oferta
-5. Checkout, Preços e Pagamentos
-6. Integrações e Automações
-7. Testes e Homologação
-8. Lançamento e Acompanhamento
+1. Setup de Conta
+2. Treinamento: Configurações Básicas
+3. Treinamento: Club (Área de Membros)
+4. Acabamentos e Configurações Finais
+5. Checklist Pré-venda
+6. Ativação
+7. Relatórios Gerenciais (pós-ativação)
+8. Acompanhamento
+
+A fase "em andamento" é sempre a primeira que ainda não tem 100% das tarefas ativas
+concluídas — não precisa ser marcada manualmente, ela é recalculada a cada mudança.
 
 ## Adicionar um novo cliente
 
-Copie um bloco inteiro dentro de `data/clients.json`, troque a chave (slug) e ajuste:
+Pelo botão **"+ Novo cliente"** na barra superior: preenche nome, empresa, ID da conta e
+data de início, e o cliente já nasce com as 8 fases padrão (ver `TEMPLATE_FASES` em
+`assets/js/app.js`) prontas para ajustar. Alternativamente, copie um bloco inteiro
+dentro de `data/clients.json` (isso muda apenas o dado-semente, não o que já está salvo
+no `localStorage` de quem já visitou a página):
 
 ```json
 "novo-cliente": {
   "nome": "Nome do Cliente",
   "empresa": "Nome da Empresa",
   "inicial": "NC",
+  "idConta": "HM-00000",
   "dataInicio": "AAAA-MM-DD",
-  "faseAtual": 0,
   "fases": [ ... 8 objetos, um por fase ... ]
 }
 ```
 
-- `faseAtual` é o índice (0 a 7) da fase em andamento; fases com índice menor aparecem
-  como concluídas e as posteriores como pendentes.
-- Cada fase tem `titulo`, `descricao`, `dataPrevista`, `dataConclusao` (ou `null`),
-  `responsavel` e uma lista de `tarefas` (`nome` + `concluida`), usada também para
-  calcular a barra de progresso da fase em andamento.
+- Cada fase tem `titulo`, `descricao`, `responsavel` e uma lista de `tarefas`.
+- Cada tarefa tem `id` (estável, usado pelos controles de UI), `nome`, `concluida`,
+  `data` (agendada/realizada, por tarefa — não existe mais data por fase) e `removida`.
+- Uma tarefa com `removida: true` não conta no cálculo de progresso (nem no numerador
+  nem no denominador) daquele cliente, mas continua no arquivo — dá pra restaurar a
+  qualquer momento pela interface (seção "Tarefas removidas" dentro de cada fase).
 
 Não é necessário nenhum passo de build — é só editar o JSON e publicar.
 
@@ -67,10 +84,10 @@ hospedagem de arquivos estáticos (GitHub Pages, Netlify, Vercel, S3, etc.).
 ## Estrutura
 
 ```
-index.html            página única (seletor de demonstração + timeline do cliente)
+index.html            página única (tela inicial + timeline do cliente + modal de novo cliente)
 assets/css/styles.css estilo com a paleta de cores da Hotmart
-assets/js/app.js       leitura da URL, cálculo de progresso e renderização
-data/clients.json      dados de todos os clientes (editar para adicionar/atualizar)
+assets/js/app.js       store (localStorage), cálculo de progresso, CRUD e renderização
+data/clients.json      dado-semente (primeira carga); depois disso o localStorage manda
 ```
 
 ## Brandbook Hotmart

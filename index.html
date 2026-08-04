@@ -24,6 +24,12 @@
       <button id="copy-link-btn" class="btn btn--ghost" type="button" title="Copiar link deste cliente">
         Copiar link do cliente
       </button>
+      <button id="export-btn" class="btn btn--ghost" type="button" title="Baixar os dados atuais em clients.json">
+        Exportar dados
+      </button>
+      <button id="add-client-btn" class="btn btn--primary" type="button">
+        + Novo cliente
+      </button>
     </div>
   </header>
 
@@ -31,6 +37,40 @@
     <!-- Preenchido dinamicamente por assets/js/app.js -->
     <div class="loading" id="loading-state">Carregando cronograma…</div>
   </main>
+
+  <div class="modal" id="add-client-modal" aria-hidden="true">
+    <div class="modal__overlay" data-action="close-modal"></div>
+    <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="add-client-title">
+      <h2 class="modal__title" id="add-client-title">Novo cliente</h2>
+      <p class="modal__text">
+        Cria um cliente com as 8 fases padrão do onboarding, prontas para acompanhar. O cronograma
+        pode ser ajustado depois (remover tarefas que não se aplicam, marcar datas, etc.).
+      </p>
+      <form id="add-client-form">
+        <label class="field">
+          <span class="field__label">Nome do cliente *</span>
+          <input class="field__input" type="text" name="nome" required autocomplete="off" />
+        </label>
+        <label class="field">
+          <span class="field__label">Empresa</span>
+          <input class="field__input" type="text" name="empresa" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span class="field__label">ID da conta</span>
+          <input class="field__input" type="text" name="idConta" autocomplete="off" placeholder="Ex.: HM-00000" />
+        </label>
+        <label class="field">
+          <span class="field__label">Data de início</span>
+          <input class="field__input" type="date" name="dataInicio" />
+        </label>
+        <p class="modal__error" id="add-client-error" hidden></p>
+        <div class="modal__actions">
+          <button type="button" class="btn btn--secondary" data-action="close-modal">Cancelar</button>
+          <button type="submit" class="btn btn--primary">Criar cliente</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <template id="tpl-client-picker">
     <section class="picker">
