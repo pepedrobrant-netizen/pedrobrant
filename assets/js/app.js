@@ -14,16 +14,27 @@
     estrategia: { emoji: "🔵", nome: "Estratégia", cor: "#2F5FA8" },
     capacitacao: { emoji: "🟡", nome: "Capacitação", cor: "#FFD450" }
   };
-  var PILARES_ORDEM = ["relacionamento", "estrategia", "capacitacao"];
+  function sortedPilaresKey(arr) {
+    return arr.slice().sort().join(",");
+  }
+
+  // As 7 combinações da legenda — "keys" é a combinação exata de pilares base que
+  // define a categoria; "key" é a chave canônica usada para classificar cada tarefa.
   var PILARES_LEGEND = [
-    { emoji: "🟢", nome: "Relacionamento", objetivo: "Construir confiança" },
-    { emoji: "🔵", nome: "Estratégia", objetivo: "Direcionar" },
-    { emoji: "🟡", nome: "Capacitação", objetivo: "Desenvolver" },
-    { emoji: "🟢🔵", nome: "Inteligência do Cliente", objetivo: "Personalizar" },
-    { emoji: "🔵🟡", nome: "Enablement Estratégico", objetivo: "Preparar" },
-    { emoji: "🟢🟡", nome: "Customer Enablement", objetivo: "Engajar" },
-    { emoji: "🟢🔵🟡", nome: "Customer Success", objetivo: "Gerar resultado" }
+    { keys: ["relacionamento"], emoji: "🟢", nome: "Relacionamento", objetivo: "Construir confiança" },
+    { keys: ["estrategia"], emoji: "🔵", nome: "Estratégia", objetivo: "Direcionar" },
+    { keys: ["capacitacao"], emoji: "🟡", nome: "Capacitação", objetivo: "Desenvolver" },
+    { keys: ["relacionamento", "estrategia"], emoji: "🟢🔵", nome: "Inteligência do Cliente", objetivo: "Personalizar" },
+    { keys: ["estrategia", "capacitacao"], emoji: "🔵🟡", nome: "Enablement Estratégico", objetivo: "Preparar" },
+    { keys: ["relacionamento", "capacitacao"], emoji: "🟢🟡", nome: "Customer Enablement", objetivo: "Engajar" },
+    { keys: ["relacionamento", "estrategia", "capacitacao"], emoji: "🟢🔵🟡", nome: "Customer Success", objetivo: "Gerar resultado" }
   ];
+  PILARES_LEGEND.forEach(function (p) {
+    p.key = sortedPilaresKey(p.keys);
+    p.cor = p.keys.length === 1
+      ? PILARES_BASE[p.keys[0]].cor
+      : "linear-gradient(90deg, " + p.keys.map(function (k) { return PILARES_BASE[k].cor; }).join(", ") + ")";
+  });
 
   var app = document.getElementById("app");
   var heroBanner = document.getElementById("hero-banner");
@@ -301,16 +312,18 @@
     return total ? Math.round((done / total) * 100) : 0;
   }
 
-  // Conta, entre as tarefas ativas e concluídas, quantas envolvem cada pilar.
-  // Uma tarefa com pilares combinados (ex.: estratégia + capacitação) soma 1 para cada pilar.
-  function pilarCounts(cliente) {
-    var counts = { relacionamento: 0, estrategia: 0, capacitacao: 0 };
+  // Conta, entre as tarefas ativas e concluídas, quantas caem em cada uma das 7
+  // combinações de pilares da legenda — pela combinação EXATA de pilares da tarefa,
+  // não decompondo pilares combinados em contagens separadas por pilar base.
+  function pilarCombCounts(cliente) {
+    var counts = {};
+    PILARES_LEGEND.forEach(function (p) { counts[p.key] = 0; });
     cliente.fases.forEach(function (fase) {
       fase.tarefas.forEach(function (t) {
         if (t.removida || !t.concluida) return;
-        (t.pilares || []).forEach(function (p) {
-          if (counts.hasOwnProperty(p)) counts[p]++;
-        });
+        if (!t.pilares || !t.pilares.length) return;
+        var key = sortedPilaresKey(t.pilares);
+        if (counts.hasOwnProperty(key)) counts[key]++;
       });
     });
     return counts;
@@ -612,16 +625,16 @@
   }
 
   function pilarMiniChartHtml(cliente) {
-    var counts = pilarCounts(cliente);
-    var max = Math.max(counts.relacionamento, counts.estrategia, counts.capacitacao, 1);
-    return PILARES_ORDEM.map(function (key) {
-      var meta = PILARES_BASE[key];
-      var pct = Math.round((counts[key] / max) * 100);
+    var counts = pilarCombCounts(cliente);
+    var max = Math.max.apply(null, PILARES_LEGEND.map(function (p) { return counts[p.key]; }).concat([1]));
+    return PILARES_LEGEND.map(function (p) {
+      var val = counts[p.key];
+      var pct = Math.round((val / max) * 100);
       return (
         '<div class="pilar-bar-row">' +
-          '<span class="pilar-bar-row__label">' + meta.emoji + " " + meta.nome + "</span>" +
-          '<div class="pilar-bar-row__track"><div class="pilar-bar-row__fill" style="width:' + pct + "%;background:" + meta.cor + '"></div></div>' +
-          '<span class="pilar-bar-row__value">' + counts[key] + "</span>" +
+          '<span class="pilar-bar-row__label">' + p.emoji + " " + escapeHtml(p.nome) + "</span>" +
+          '<div class="pilar-bar-row__track"><div class="pilar-bar-row__fill" style="width:' + pct + "%;background:" + p.cor + '"></div></div>' +
+          '<span class="pilar-bar-row__value">' + val + "</span>" +
         "</div>"
       );
     }).join("");
@@ -631,8 +644,8 @@
     if (!rows.length) return "";
     var cards = rows.map(function (r) {
       var cliente = store[r.slug];
-      var counts = pilarCounts(cliente);
-      var allZero = !counts.relacionamento && !counts.estrategia && !counts.capacitacao;
+      var counts = pilarCombCounts(cliente);
+      var allZero = PILARES_LEGEND.every(function (p) { return !counts[p.key]; });
       return (
         '<div class="pilar-card">' +
           '<div class="pilar-card__header">' +

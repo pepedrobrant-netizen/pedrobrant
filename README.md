@@ -150,11 +150,14 @@ Estratégico 🔵🟡/Preparar, Customer Enablement 🟢🟡/Engajar, Customer S
 🟢🔵🟡/Gerar resultado).
 
 Abaixo do gráfico de progresso, o Analytics mostra um card por cliente (dentro do
-filtro/escopo atual) com um mini gráfico de barras dos 3 pilares base, contando apenas
-tarefas **ativas e concluídas**. Uma tarefa com pilares combinados soma 1 para cada
-pilar envolvido (ex.: uma tarefa 🔵🟡 concluída soma +1 em Estratégia e +1 em
-Capacitação, não 0,5 em cada). Tarefas extras adicionadas por "+ Adicionar tarefa" não
-têm pilar definido, então não entram nessa contagem.
+filtro/escopo atual) com um mini gráfico de barras das **7 combinações da legenda**,
+contando apenas tarefas **ativas e concluídas**. Cada tarefa concluída soma 1 para a
+combinação exata dos seus pilares — uma tarefa 🔵🟡 soma na barra "Enablement
+Estratégico", não meio ponto em "Estratégia" e meio em "Capacitação" separadamente.
+Categorias de pilar único (Relacionamento, Estratégia, Capacitação) usam a cor sólida
+do pilar; as 4 combinações usam um gradiente das cores dos pilares envolvidos, para
+diferenciar visualmente sem inventar cores novas. Tarefas extras adicionadas por "+
+Adicionar tarefa" não têm pilar definido, então não entram nessa contagem.
 
 ## Rodar localmente
 

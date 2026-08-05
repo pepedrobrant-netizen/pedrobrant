@@ -1130,7 +1130,7 @@ a {
 
 .pilar-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 12px;
 }
 
@@ -1166,7 +1166,7 @@ a {
 
 .pilar-bar-row {
   display: grid;
-  grid-template-columns: 108px 1fr 20px;
+  grid-template-columns: 172px 1fr 20px;
   align-items: center;
   gap: 8px;
   margin-bottom: 6px;
@@ -1177,7 +1177,7 @@ a {
 }
 
 .pilar-bar-row__label {
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   color: var(--hm-text-soft);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1398,6 +1398,10 @@ a {
   }
 
   .pilar-bar-row {
-    grid-template-columns: 84px 1fr 20px;
+    grid-template-columns: 118px 1fr 20px;
+  }
+
+  .pilar-bar-row__label {
+    font-size: 0.64rem;
   }
 }
