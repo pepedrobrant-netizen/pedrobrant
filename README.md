@@ -88,13 +88,27 @@ Na página de cada cliente, o botão **"CRM"** (ao lado de "Excluir cliente") ab
 formulário com dados sensíveis/internos que não fazem parte do cronograma que o cliente
 vê:
 
+- ID do cliente (identificador próprio do CRM, separado do nome/slug usados no link)
+- Telefone principal (WhatsApp)
 - Endereço completo (para envio de brindes)
 - Data de aniversário
 - Se vai participar de algum evento (sim/não + qual evento)
 - Se tem contrato assinado (sim/não)
 - Meta de faturamento
+- **Equipe do cliente**: lista de pessoas do lado do cliente, cada uma com Nome, Cargo e
+  Telefone. O botão **"+ Adicionar pessoa"** cria quantas linhas forem necessárias, e o
+  **×** ao lado de cada linha remove aquela pessoa.
 
 Cada campo salva sozinho ao sair dele (sem botão "salvar" separado).
+
+### Aniversariantes do mês
+
+Dentro da aba **Analytics**, um card lista todos os clientes com data de aniversário
+cadastrada no CRM que caia no mês atual, ordenados por dia. Como depende da mesma chave
+de `localStorage` do CRM, esse card só aparece para quem tem um perfil do time ativo —
+mesma restrição de visibilidade do CRM em si. Para o Administrador, a lista considera
+todos os clientes, sem depender dos chips de filtro de onboarding; para os demais
+perfis, considera só os clientes daquele responsável.
 
 **Como a restrição funciona de verdade, não só visualmente:**
 

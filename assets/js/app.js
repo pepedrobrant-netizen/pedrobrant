@@ -228,20 +228,63 @@
     localStorage.setItem(CRM_STORAGE_KEY, JSON.stringify(crmStore));
   }
 
-  function getCrm(slug) {
-    return crmStore[slug] || {
+  function crmDefaults() {
+    return {
+      idCliente: "",
+      telefonePrincipal: "",
       endereco: "",
       aniversario: null,
       eventoParticipa: false,
       eventoQual: "",
       contratoAssinado: false,
-      metaFaturamento: ""
+      metaFaturamento: "",
+      equipe: []
     };
   }
 
+  // Mescla com os defaults (não só substitui) para não quebrar quando o registro foi
+  // salvo antes de um campo novo existir.
+  function getCrm(slug) {
+    var defaults = crmDefaults();
+    var saved = crmStore[slug] || {};
+    var merged = Object.assign(defaults, saved);
+    merged.equipe = saved.equipe || [];
+    return merged;
+  }
+
+  // Não chama refresh(): o próprio input/textarea/date já mostra o valor digitado
+  // nativamente. Recriar o DOM a cada tecla/blur causaria uma corrida entre campos
+  // vizinhos (o próximo "fill" foca o campo seguinte, disparando o "change" do atual
+  // no meio de um refresh e perdendo valor). Quem precisa de refresh (ex.: toggles
+  // sim/não, que mudam o que é exibido) chama refresh() explicitamente depois.
   function setCrmField(slug, field, value) {
     var current = getCrm(slug);
     current[field] = value;
+    crmStore[slug] = current;
+    persistCrm();
+  }
+
+  function addTeamMember(slug) {
+    var current = getCrm(slug);
+    current.equipe.push({ nome: "", cargo: "", telefone: "" });
+    crmStore[slug] = current;
+    persistCrm();
+    refresh();
+  }
+
+  // Mesma razão do setCrmField acima: sem refresh(), para não perder valores dos
+  // outros campos da mesma linha quando o foco muda rápido entre eles.
+  function setTeamMemberField(slug, idx, field, value) {
+    var current = getCrm(slug);
+    if (!current.equipe[idx]) return;
+    current.equipe[idx][field] = value;
+    crmStore[slug] = current;
+    persistCrm();
+  }
+
+  function removeTeamMember(slug, idx) {
+    var current = getCrm(slug);
+    current.equipe.splice(idx, 1);
     crmStore[slug] = current;
     persistCrm();
     refresh();
@@ -711,6 +754,44 @@
     );
   }
 
+  var MESES = [
+    "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+    "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
+  ];
+
+  // Baseado no CRM (localStorage próprio, ver getCrm) — só enxerga aniversários
+  // preenchidos neste mesmo navegador.
+  function birthdaysHtml(slugs) {
+    var curMonth = new Date().getMonth() + 1;
+    var items = slugs
+      .map(function (slug) {
+        var crm = crmStore[slug];
+        if (!crm || !crm.aniversario) return null;
+        var mes = +crm.aniversario.slice(5, 7);
+        if (mes !== curMonth) return null;
+        var dia = +crm.aniversario.slice(8, 10);
+        return { slug: slug, nome: store[slug].nome, dia: dia };
+      })
+      .filter(Boolean)
+      .sort(function (a, b) { return a.dia - b.dia; });
+
+    var body = items.length
+      ? '<div class="birthday-list">' + items.map(function (it) {
+          return (
+            '<a class="birthday-row" href="?cliente=' + encodeURIComponent(it.slug) + '">' +
+              '<span class="birthday-row__day">' + (it.dia < 10 ? "0" + it.dia : it.dia) + "</span>" +
+              '<span class="birthday-row__name">' + escapeHtml(it.nome) + "</span>" +
+            "</a>"
+          );
+        }).join("") + "</div>"
+      : '<p class="picker__text">Nenhum aniversariante este mês (com base no CRM preenchido neste navegador).</p>';
+
+    return (
+      '<p class="analytics__section-label">🎂 Aniversariantes de ' + MESES[curMonth - 1] + "</p>" +
+      body
+    );
+  }
+
   function renderAnalytics() {
     copyBtn.style.display = "none";
     var isAdmin = currentUser === ADMIN;
@@ -729,6 +810,8 @@
           statTileHtml(rows.length, rows.length === 1 ? "Cliente" : "Clientes") +
           statTileHtml(avgOf(rows) + "%", "Progresso médio") +
         "</div>" +
+        birthdaysHtml(rows.map(function (r) { return r.slug; })) +
+        '<p class="analytics__section-label">Clientes</p>' +
         barChartHtml(rows) +
         pilaresPorClienteHtml(rows);
       app.innerHTML = "";
@@ -772,6 +855,7 @@
         statTileHtml(overallRows.length, overallRows.length === 1 ? "Cliente (todos)" : "Clientes (todos)") +
         statTileHtml(avgOf(overallRows) + "%", "Progresso médio geral") +
       "</div>" +
+      birthdaysHtml(allSlugs) +
       '<div class="filter-row">' +
         filterChipsHtml +
         '<div class="filter-actions">' +
@@ -949,10 +1033,31 @@
     );
   }
 
+  function teamMemberRowHtml(slug, idx, pessoa) {
+    return (
+      '<div class="crm-team-row">' +
+        '<input class="field__input" type="text" data-action="crm-team-set" data-idx="' + idx + '" data-field="nome" ' +
+          'placeholder="Nome" value="' + escapeHtml(pessoa.nome) + '" />' +
+        '<input class="field__input" type="text" data-action="crm-team-set" data-idx="' + idx + '" data-field="cargo" ' +
+          'placeholder="Cargo" value="' + escapeHtml(pessoa.cargo) + '" />' +
+        '<input class="field__input" type="text" data-action="crm-team-set" data-idx="' + idx + '" data-field="telefone" ' +
+          'placeholder="Telefone" value="' + escapeHtml(pessoa.telefone) + '" />' +
+        '<button type="button" class="crm-team-remove" data-action="crm-team-remove" data-idx="' + idx + '" ' +
+          'title="Remover pessoa" aria-label="Remover pessoa">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
+        "</button>" +
+      "</div>"
+    );
+  }
+
   function renderCrm(slug) {
     copyBtn.style.display = "none";
     var cliente = store[slug];
     var crm = getCrm(slug);
+
+    var teamRowsHtml = crm.equipe.length
+      ? crm.equipe.map(function (p, i) { return teamMemberRowHtml(slug, i, p); }).join("")
+      : '<p class="crm-team-empty">Nenhuma pessoa cadastrada ainda.</p>';
 
     var wrap = document.createElement("section");
     wrap.className = "crm";
@@ -966,6 +1071,16 @@
           "aparecem para outros times/dispositivos que não tenham preenchido aqui.</p>" +
       "</div>" +
       '<div class="crm__card">' +
+        '<label class="field crm-field">' +
+          '<span class="field__label">ID do cliente</span>' +
+          '<input class="field__input" type="text" data-action="crm-set-text" data-field="idCliente" ' +
+            'placeholder="Número/identificador da conta" value="' + escapeHtml(crm.idCliente) + '" />' +
+        "</label>" +
+        '<label class="field crm-field">' +
+          '<span class="field__label">Telefone principal (WhatsApp)</span>' +
+          '<input class="field__input" type="text" data-action="crm-set-text" data-field="telefonePrincipal" ' +
+            'placeholder="(11) 91234-5678" value="' + escapeHtml(crm.telefonePrincipal) + '" />' +
+        "</label>" +
         '<label class="field crm-field">' +
           '<span class="field__label">Endereço completo (para envio de brindes)</span>' +
           '<textarea class="field__input crm-textarea" rows="3" data-action="crm-set-text" data-field="endereco" ' +
@@ -992,6 +1107,11 @@
           '<input class="field__input" type="text" data-action="crm-set-text" data-field="metaFaturamento" ' +
             'placeholder="Ex.: R$ 50.000/mês" value="' + escapeHtml(crm.metaFaturamento) + '" />' +
         "</label>" +
+      "</div>" +
+      '<div class="crm__card crm__card--team">' +
+        '<p class="crm__card-title">Equipe do cliente</p>' +
+        '<div class="crm-team-list">' + teamRowsHtml + "</div>" +
+        '<button type="button" class="add-task-btn" data-action="crm-team-add">+ Adicionar pessoa</button>' +
       "</div>";
 
     app.innerHTML = "";
@@ -1151,6 +1271,11 @@
       var boolField = target.getAttribute("data-field");
       var boolValue = target.getAttribute("data-value") === "true";
       setCrmField(slug, boolField, boolValue);
+      refresh();
+    } else if (action === "crm-team-add") {
+      addTeamMember(slug);
+    } else if (action === "crm-team-remove") {
+      removeTeamMember(slug, +target.getAttribute("data-idx"));
     }
   });
 
@@ -1188,6 +1313,10 @@
     } else if (targetAction === "crm-set-text") {
       var field = target.getAttribute("data-field");
       setCrmField(currentSlug, field, target.value || (field === "aniversario" ? null : ""));
+    } else if (targetAction === "crm-team-set") {
+      var teamIdx = +target.getAttribute("data-idx");
+      var teamField = target.getAttribute("data-field");
+      setTeamMemberField(currentSlug, teamIdx, teamField, target.value);
     }
   });
 
