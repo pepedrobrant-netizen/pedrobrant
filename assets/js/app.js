@@ -3,6 +3,11 @@
 
   var STORAGE_KEY = "hm_onboarding_store_v2";
   var PROFILE_KEY = "hm_current_user_v1";
+  // Dados de CRM ficam numa chave à parte, nunca semeada a partir de data/clients.json e
+  // nunca incluída em "Exportar dados": só existe no navegador onde alguém do time digitou
+  // algo. Como este app não sincroniza nada entre navegadores, isso garante que o
+  // navegador do cliente (que nunca escreve nessa chave) nunca chega a ter essa informação.
+  var CRM_STORAGE_KEY = "hm_crm_store_v1";
 
   var PROFILES = ["Ilana", "Pedro", "Josiane", "Madu", "Administrador"];
   var ASSIGNABLE = ["Ilana", "Pedro", "Josiane", "Madu"];
@@ -55,6 +60,7 @@
   var photoInput = document.getElementById("photo-input");
 
   var store = null; // { [slug]: cliente }
+  var crmStore = loadCrmStore(); // { [slug]: { endereco, aniversario, eventoParticipa, eventoQual, contratoAssinado, metaFaturamento } }
   var currentUser = localStorage.getItem(PROFILE_KEY) || null;
   if (currentUser === "Amanda") {
     // migração: nome antigo do perfil de administração
@@ -203,6 +209,42 @@
 
   function persist() {
     saveStore(store);
+  }
+
+  // Store de CRM: nunca tem semente (não existe fetch de fallback). Se a chave não
+  // existir neste navegador, começa vazio — só passa a existir quando alguém do time
+  // digita algo, e só naquele navegador.
+  function loadCrmStore() {
+    var raw = localStorage.getItem(CRM_STORAGE_KEY);
+    if (!raw) return {};
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function persistCrm() {
+    localStorage.setItem(CRM_STORAGE_KEY, JSON.stringify(crmStore));
+  }
+
+  function getCrm(slug) {
+    return crmStore[slug] || {
+      endereco: "",
+      aniversario: null,
+      eventoParticipa: false,
+      eventoQual: "",
+      contratoAssinado: false,
+      metaFaturamento: ""
+    };
+  }
+
+  function setCrmField(slug, field, value) {
+    var current = getCrm(slug);
+    current[field] = value;
+    crmStore[slug] = current;
+    persistCrm();
+    refresh();
   }
 
   // ---------- Utilidades ----------
@@ -564,6 +606,11 @@
     return '<a href="?" class="back-link" data-action="nav-back">← Voltar para clientes</a>';
   }
 
+  function backToClientLinkHtml(slug) {
+    return '<a href="?cliente=' + encodeURIComponent(slug) +
+      '" class="back-link" data-action="nav-back-client" data-slug="' + encodeURIComponent(slug) + '">← Voltar para o cliente</a>';
+  }
+
   function statTileHtml(value, label) {
     return (
       '<div class="stat-tile">' +
@@ -797,7 +844,12 @@
     topRow.className = "client-top-row";
     topRow.innerHTML =
       backLinkHtml() +
-      '<button type="button" class="btn btn--danger btn--small" data-action="delete-client">Excluir cliente</button>';
+      '<div class="client-top-row__actions">' +
+        (currentUser
+          ? '<button type="button" class="btn btn--secondary btn--small" data-action="go-crm">CRM</button>'
+          : "") +
+        '<button type="button" class="btn btn--danger btn--small" data-action="delete-client">Excluir cliente</button>' +
+      "</div>";
 
     var header = document.createElement("section");
     header.className = "client-header";
@@ -886,12 +938,78 @@
     app.appendChild(footer);
   }
 
+  function yesNoToggleHtml(field, value, slug) {
+    return (
+      '<div class="yesno-toggle">' +
+        '<button type="button" class="yesno-chip' + (value ? " is-active" : "") +
+          '" data-action="crm-set-bool" data-field="' + field + '" data-value="true">Sim</button>' +
+        '<button type="button" class="yesno-chip' + (!value ? " is-active" : "") +
+          '" data-action="crm-set-bool" data-field="' + field + '" data-value="false">Não</button>' +
+      "</div>"
+    );
+  }
+
+  function renderCrm(slug) {
+    copyBtn.style.display = "none";
+    var cliente = store[slug];
+    var crm = getCrm(slug);
+
+    var wrap = document.createElement("section");
+    wrap.className = "crm";
+    wrap.innerHTML =
+      backToClientLinkHtml(slug) +
+      '<div class="crm__header">' +
+        '<h1 class="crm__title">CRM · ' + escapeHtml(cliente.nome) + "</h1>" +
+        '<p class="crm__subtitle">Dados internos e sensíveis — visíveis só para o time (Ilana, Pedro, Josiane, ' +
+          "Madu, Administrador). Guardados apenas neste navegador: não entram no " +
+          '"Exportar dados" nem em nenhuma versão pública do link deste cliente, e não ' +
+          "aparecem para outros times/dispositivos que não tenham preenchido aqui.</p>" +
+      "</div>" +
+      '<div class="crm__card">' +
+        '<label class="field crm-field">' +
+          '<span class="field__label">Endereço completo (para envio de brindes)</span>' +
+          '<textarea class="field__input crm-textarea" rows="3" data-action="crm-set-text" data-field="endereco" ' +
+            'placeholder="Rua, número, complemento, bairro, cidade, estado, CEP">' + escapeHtml(crm.endereco) + "</textarea>" +
+        "</label>" +
+        '<label class="field crm-field">' +
+          '<span class="field__label">Data de aniversário</span>' +
+          '<input class="field__input" type="date" data-action="crm-set-text" data-field="aniversario" value="' + (crm.aniversario || "") + '" />' +
+        "</label>" +
+        '<div class="field crm-field">' +
+          '<span class="field__label">Vai participar de algum evento?</span>' +
+          yesNoToggleHtml("eventoParticipa", crm.eventoParticipa, slug) +
+          (crm.eventoParticipa
+            ? '<input class="field__input crm-followup" type="text" data-action="crm-set-text" data-field="eventoQual" ' +
+                'placeholder="Qual evento?" value="' + escapeHtml(crm.eventoQual) + '" />'
+            : "") +
+        "</div>" +
+        '<div class="field crm-field">' +
+          '<span class="field__label">Tem contrato assinado?</span>' +
+          yesNoToggleHtml("contratoAssinado", crm.contratoAssinado, slug) +
+        "</div>" +
+        '<label class="field crm-field">' +
+          '<span class="field__label">Meta de faturamento</span>' +
+          '<input class="field__input" type="text" data-action="crm-set-text" data-field="metaFaturamento" ' +
+            'placeholder="Ex.: R$ 50.000/mês" value="' + escapeHtml(crm.metaFaturamento) + '" />' +
+        "</label>" +
+      "</div>";
+
+    app.innerHTML = "";
+    app.appendChild(wrap);
+  }
+
   // ---------- Roteamento ----------
 
   function getView() {
     var params = new URLSearchParams(window.location.search);
     var slug = params.get("cliente");
-    if (slug) return { type: "client", slug: slug };
+    if (slug) {
+      // A rota do CRM só existe de verdade quando há um perfil do time ativo neste
+      // navegador — sem isso, o parâmetro "view=crm" é ignorado silenciosamente e cai
+      // na tela normal do cliente (não expõe nem a existência da aba).
+      if (params.get("view") === "crm" && currentUser) return { type: "crm", slug: slug };
+      return { type: "client", slug: slug };
+    }
     if (params.get("view") === "analytics") return { type: "analytics" };
     return { type: "picker" };
   }
@@ -900,7 +1018,7 @@
     var view = getView();
     updateProfileButton();
 
-    if (view.type === "client") {
+    if (view.type === "client" || view.type === "crm") {
       heroBanner.hidden = true;
       currentSlug = view.slug;
       if (!store[view.slug]) {
@@ -908,7 +1026,11 @@
         renderNotFound();
         return;
       }
-      renderClient(view.slug);
+      if (view.type === "crm") {
+        renderCrm(view.slug);
+      } else {
+        renderClient(view.slug);
+      }
       return;
     }
 
@@ -948,6 +1070,7 @@
   function goToPicker() { setParams({ cliente: null, view: null }); }
   function goToAnalytics() { setParams({ cliente: null, view: "analytics" }); }
   function goToClient(slug) { setParams({ cliente: slug, view: null }); }
+  function goToCrm(slug) { setParams({ cliente: slug, view: "crm" }); }
 
   // ---------- Eventos ----------
 
@@ -956,6 +1079,13 @@
     if (backEl) {
       e.preventDefault();
       goToPicker();
+      return;
+    }
+
+    var backClientEl = e.target.closest('[data-action="nav-back-client"]');
+    if (backClientEl) {
+      e.preventDefault();
+      goToClient(backClientEl.getAttribute("data-slug"));
       return;
     }
 
@@ -1015,6 +1145,12 @@
       photoInput.click();
     } else if (action === "remove-photo") {
       removeClientPhoto(slug);
+    } else if (action === "go-crm") {
+      if (currentUser) goToCrm(slug);
+    } else if (action === "crm-set-bool") {
+      var boolField = target.getAttribute("data-field");
+      var boolValue = target.getAttribute("data-value") === "true";
+      setCrmField(slug, boolField, boolValue);
     }
   });
 
@@ -1044,10 +1180,14 @@
 
   app.addEventListener("change", function (e) {
     var target = e.target;
-    if (target.getAttribute("data-action") === "set-date") {
+    var targetAction = target.getAttribute("data-action");
+    if (targetAction === "set-date") {
       var faseIdx = +target.getAttribute("data-fase");
       var taskId = target.getAttribute("data-task");
       setTaskDate(currentSlug, faseIdx, taskId, target.value);
+    } else if (targetAction === "crm-set-text") {
+      var field = target.getAttribute("data-field");
+      setCrmField(currentSlug, field, target.value || (field === "aniversario" ? null : ""));
     }
   });
 

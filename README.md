@@ -82,6 +82,43 @@ cadastrada, o círculo mostra as iniciais do nome (como já era). Com foto, apar
 um link **"Remover foto"** para voltar às iniciais. A mesma lógica (foto ou iniciais)
 aparece no avatar da lista de clientes na tela inicial.
 
+## CRM (dados internos, restrito ao time)
+
+Na página de cada cliente, o botão **"CRM"** (ao lado de "Excluir cliente") abre um
+formulário com dados sensíveis/internos que não fazem parte do cronograma que o cliente
+vê:
+
+- Endereço completo (para envio de brindes)
+- Data de aniversário
+- Se vai participar de algum evento (sim/não + qual evento)
+- Se tem contrato assinado (sim/não)
+- Meta de faturamento
+
+Cada campo salva sozinho ao sair dele (sem botão "salvar" separado).
+
+**Como a restrição funciona de verdade, não só visualmente:**
+
+- O botão "CRM" só aparece quando existe um perfil do time ativo neste navegador
+  (Ilana, Pedro, Josiane, Madu ou Administrador). Sem perfil ativo — que é sempre o caso
+  de quem abre o link do cliente direto, já que esse link nunca passa pela tela "Quem é
+  você?" — o botão não é renderizado.
+- A rota (`?cliente=slug&view=crm`) também é protegida no roteamento: sem perfil ativo,
+  esse parâmetro é ignorado e a página cai na tela normal do cliente, sem revelar que a
+  aba existe.
+- Mais importante: os dados de CRM ficam numa chave de `localStorage` **separada**
+  (`hm_crm_store_v1`), que **nunca** é semeada a partir de `data/clients.json`, nunca é
+  incluída no botão "Exportar dados" e nunca é lida pelo código que renderiza a tela do
+  cliente. Como este app não sincroniza nada entre navegadores, isso significa que o
+  navegador de quem abre o link do cliente **nunca chega a receber esses dados** — não é
+  uma questão de UI escondida, a informação literalmente não trafega para lá. Testado:
+  abrindo o link do cliente num navegador que nunca teve um perfil do time selecionado,
+  a chave `hm_crm_store_v1` nem existe no `localStorage` (retorna `null`).
+- A limitação inversa, decorrente da mesma arquitetura sem backend: CRM preenchido por
+  alguém do time num navegador **não aparece** para outra pessoa do time em outro
+  navegador/dispositivo — cada um só vê o que foi digitado ali. Se for necessário CRM
+  compartilhado de verdade entre todo o time, isso exige um banco de dados real
+  (a mesma mudança de arquitetura discutida e adiada para o cronograma principal).
+
 ## Adicionar um novo cliente
 
 Pelo botão **"+ Novo cliente"** na barra superior: preenche nome, empresa, ID da conta e
