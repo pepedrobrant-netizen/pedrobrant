@@ -77,7 +77,10 @@ a {
 }
 
 .topbar__logo {
-  font-size: 1.3rem;
+  width: 18px;
+  height: 23px;
+  fill: var(--hm-orange);
+  flex-shrink: 0;
 }
 
 .topbar__actions {

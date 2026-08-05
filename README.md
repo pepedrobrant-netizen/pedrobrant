@@ -190,10 +190,16 @@ O banner **"Hotmart. Aqui acontece."** aparece no topo, largura total, fundo lar
 de clientes e seleção de perfil "Quem é você?"), não nas páginas de cliente/Analytics.
 Ele é HTML/CSS (não uma imagem), o que mantém nitidez em qualquer tamanho de tela.
 
-> **Pendente:** o ícone da chama (🔥) usado na barra superior (todas as telas) ainda é
-> um emoji genérico — será trocado pela logo oficial da Hotmart assim que os arquivos de
-> imagem do brandbook forem enviados como arquivo (não é possível extrair a imagem
-> exata a partir de uma captura colada no chat).
+O ícone da chama (barra superior e favicon) é um redesenho vetorial (SVG inline,
+`fill: currentColor`) baseado na referência visual da chama oficial da Hotmart — símbolo
+isolado, sem o texto "hotmart" ao lado, para caber no espaço pequeno da topbar. Não foi
+possível extrair o arquivo de imagem original a partir do que foi colado no chat (sem um
+arquivo anexado de verdade não há como incorporar os pixels exatos), então o traço foi
+recriado visualmente. Duas variantes de cor, escolhidas por contraste:
+
+- Fundo off-white ou preto (topbar, favicon): chama em laranja `#FF4000`.
+- Fundo laranja: chama em branco (testei preto também — o branco lê muito melhor em
+  tamanho pequeno).
 
 **Paleta primária**
 
