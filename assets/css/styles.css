@@ -100,7 +100,9 @@ a {
 .hero-banner__inner {
   max-width: 920px;
   margin: 0 auto;
-  padding: 56px 20px 40px;
+  padding: 52px 20px;
+  display: flex;
+  justify-content: center;
 }
 
 .hero-banner__text {
@@ -111,6 +113,7 @@ a {
   font-size: clamp(1.9rem, 5.5vw, 3.4rem);
   line-height: 1.05;
   letter-spacing: -0.01em;
+  text-align: center;
 }
 
 .hero-banner__text span {
