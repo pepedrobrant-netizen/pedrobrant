@@ -88,6 +88,35 @@ a {
   justify-content: flex-end;
 }
 
+/* Banner "Hotmart. Aqui acontece." — só nas telas de lista de clientes e seleção de perfil */
+.hero-banner {
+  background: var(--hm-orange);
+}
+
+.hero-banner[hidden] {
+  display: none;
+}
+
+.hero-banner__inner {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 56px 20px 40px;
+}
+
+.hero-banner__text {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--hm-black);
+  font-size: clamp(1.9rem, 5.5vw, 3.4rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+
+.hero-banner__text span {
+  display: inline;
+}
+
 .btn {
   border: none;
   border-radius: 999px;
@@ -281,6 +310,7 @@ a {
   font-weight: 700;
   font-size: 0.85rem;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .picker__item-body {
@@ -382,6 +412,11 @@ a {
   margin-bottom: 20px;
 }
 
+.client-header__avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
 .client-header__avatar {
   width: 52px;
   height: 52px;
@@ -392,7 +427,37 @@ a {
   justify-content: center;
   font-weight: 700;
   font-size: 1.1rem;
-  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.avatar-upload-btn {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--hm-white);
+  color: var(--hm-black);
+  border: 2px solid var(--hm-maroon);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.avatar-upload-btn:hover {
+  background: var(--hm-orange);
+  color: var(--hm-white);
+  border-color: var(--hm-orange);
 }
 
 .client-header__name {
@@ -416,6 +481,16 @@ a {
 .client-header__account strong {
   color: var(--hm-white);
   font-weight: 600;
+}
+
+.client-header__remove-photo {
+  display: block;
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.client-header__remove-photo:hover {
+  color: var(--hm-yellow) !important;
 }
 
 .progress {
@@ -663,7 +738,6 @@ a {
   width: 132px;
 }
 
-.task-remove,
 .task-restore,
 .task-delete {
   flex-shrink: 0;
@@ -678,9 +752,24 @@ a {
   color: var(--hm-text-muted);
 }
 
+.task-remove {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  color: var(--hm-text-muted);
+  padding: 0;
+}
+
 .task-remove:hover {
-  color: var(--hm-maroon);
-  background: rgba(62, 15, 29, 0.08);
+  color: var(--hm-black);
+  background: var(--hm-grey-soft);
 }
 
 .task-restore {

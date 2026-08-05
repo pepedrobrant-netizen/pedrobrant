@@ -39,10 +39,18 @@
     </div>
   </header>
 
+  <div class="hero-banner" id="hero-banner" hidden>
+    <div class="hero-banner__inner">
+      <p class="hero-banner__text">Hotmart. <span>Aqui acontece.</span></p>
+    </div>
+  </div>
+
   <main id="app" class="app">
     <!-- Preenchido dinamicamente por assets/js/app.js -->
     <div class="loading" id="loading-state">Carregando cronograma…</div>
   </main>
+
+  <input type="file" id="photo-input" accept="image/*" hidden />
 
   <div class="modal" id="add-client-modal" aria-hidden="true">
     <div class="modal__overlay" data-action="close-modal"></div>
@@ -103,7 +111,6 @@
   <template id="tpl-profile-gate">
     <section class="picker">
       <div class="picker__card">
-        <span class="picker__logo" aria-hidden="true">👋</span>
         <h1 class="picker__heading">Quem é você?</h1>
         <p class="picker__text">
           Selecione seu perfil para ver os clientes sob sua responsabilidade. Isso não é um
@@ -117,7 +124,6 @@
   <template id="tpl-client-picker">
     <section class="picker">
       <div class="picker__card">
-        <span class="picker__logo" aria-hidden="true">🔥</span>
         <h1 class="picker__heading">Cronograma de Onboarding</h1>
         <p class="picker__text">
           Nenhum cliente foi informado na URL. Cada cliente acessa o próprio cronograma por meio

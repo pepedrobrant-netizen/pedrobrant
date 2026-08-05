@@ -26,6 +26,7 @@
   ];
 
   var app = document.getElementById("app");
+  var heroBanner = document.getElementById("hero-banner");
   var copyBtn = document.getElementById("copy-link-btn");
   var exportBtn = document.getElementById("export-btn");
   var addClientBtn = document.getElementById("add-client-btn");
@@ -40,6 +41,7 @@
   var confirmModalMessage = document.getElementById("confirm-modal-message");
   var confirmModalConfirmBtn = document.getElementById("confirm-modal-confirm");
   var confirmModalCallback = null;
+  var photoInput = document.getElementById("photo-input");
 
   var store = null; // { [slug]: cliente }
   var currentUser = localStorage.getItem(PROFILE_KEY) || null;
@@ -239,6 +241,21 @@
     });
   }
 
+  function avatarInnerHtml(cliente) {
+    if (cliente.foto) {
+      return '<img class="avatar-img" src="' + cliente.foto + '" alt="" />';
+    }
+    return escapeHtml(cliente.inicial);
+  }
+
+  function cameraIconSvg() {
+    return (
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="14" r="3.2"/>' +
+      "</svg>"
+    );
+  }
+
   // ---------- Perfil / permissões ----------
   // Não é autenticação: é uma preferência local (localStorage) para filtrar a lista de
   // clientes por responsável. Um link direto de cliente (?cliente=slug) nunca é
@@ -406,6 +423,48 @@
     persist();
   }
 
+  function setClientPhoto(slug, dataUrl) {
+    var cliente = store[slug];
+    if (!cliente) return;
+    cliente.foto = dataUrl;
+    persist();
+    refresh();
+  }
+
+  function removeClientPhoto(slug) {
+    var cliente = store[slug];
+    if (!cliente) return;
+    cliente.foto = null;
+    persist();
+    refresh();
+  }
+
+  // Redimensiona a imagem no cliente (canvas) antes de salvar como data URL,
+  // para não inflar o localStorage com fotos em resolução alta.
+  function resizeImageFile(file, maxSize) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          var scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+          var w = Math.max(1, Math.round(img.width * scale));
+          var h = Math.max(1, Math.round(img.height * scale));
+          var canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          var ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", 0.85));
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
   // ---------- Renderização ----------
 
   function renderProfileGate() {
@@ -458,7 +517,7 @@
       a.className = "picker__item";
       a.href = "?cliente=" + encodeURIComponent(slug);
       a.innerHTML =
-        '<span class="picker__item-avatar">' + escapeHtml(c.inicial) + "</span>" +
+        '<span class="picker__item-avatar">' + avatarInnerHtml(c) + "</span>" +
         '<span class="picker__item-body">' +
           '<span class="picker__item-name">' + escapeHtml(c.nome) + "</span><br>" +
           '<span class="picker__item-meta">' + escapeHtml(c.empresa || "Sem empresa informada") +
@@ -678,7 +737,9 @@
         "</button>" +
         '<span class="task-name">' + escapeHtml(task.nome) + "</span>" +
         '<input type="date" class="task-date" data-action="set-date" data-fase="' + faseIdx + '" data-task="' + task.id + '" value="' + (task.data || "") + '" />' +
-        '<button type="button" class="task-remove" data-action="remove-task" data-fase="' + faseIdx + '" data-task="' + task.id + '" title="Remover (não se aplica a este cliente)">Remover</button>' +
+        '<button type="button" class="task-remove" data-action="remove-task" data-fase="' + faseIdx + '" data-task="' + task.id + '" title="Remover (não se aplica a este cliente)" aria-label="Remover tarefa">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
+        "</button>" +
       "</div>"
     );
   }
@@ -729,12 +790,20 @@
     header.className = "client-header";
     header.innerHTML =
       '<div class="client-header__top">' +
-        '<div class="client-header__avatar">' + escapeHtml(cliente.inicial) + "</div>" +
+        '<div class="client-header__avatar-wrap">' +
+          '<div class="client-header__avatar">' + avatarInnerHtml(cliente) + "</div>" +
+          '<button type="button" class="avatar-upload-btn" data-action="upload-photo" title="Alterar foto" aria-label="Alterar foto">' +
+            cameraIconSvg() +
+          "</button>" +
+        "</div>" +
         "<div>" +
           '<h1 class="client-header__name">' + escapeHtml(cliente.nome) + "</h1>" +
           '<p class="client-header__company">' + escapeHtml(cliente.empresa || "Sem empresa informada") + "</p>" +
           '<p class="client-header__account">ID da conta: <strong>' + escapeHtml(cliente.idConta || "não informado") +
             "</strong> · Responsável: <strong>" + escapeHtml(cliente.responsavelCliente || "não atribuído") + "</strong></p>" +
+          (cliente.foto
+            ? '<button type="button" class="filter-action-link client-header__remove-photo" data-action="remove-photo">Remover foto</button>'
+            : "") +
         "</div>" +
       "</div>" +
       '<div class="progress">' +
@@ -819,6 +888,7 @@
     updateProfileButton();
 
     if (view.type === "client") {
+      heroBanner.hidden = true;
       currentSlug = view.slug;
       if (!store[view.slug]) {
         openPhases = new Set();
@@ -831,12 +901,15 @@
 
     currentSlug = null;
     if (!currentUser) {
+      heroBanner.hidden = false;
       renderProfileGate();
       return;
     }
     if (view.type === "analytics") {
+      heroBanner.hidden = true;
       renderAnalytics();
     } else {
+      heroBanner.hidden = false;
       renderPicker();
     }
   }
@@ -925,7 +998,21 @@
           goToPicker();
         }
       );
+    } else if (action === "upload-photo") {
+      photoInput.click();
+    } else if (action === "remove-photo") {
+      removeClientPhoto(slug);
     }
+  });
+
+  photoInput.addEventListener("change", function (e) {
+    var file = e.target.files && e.target.files[0];
+    var slugParaFoto = currentSlug;
+    photoInput.value = "";
+    if (!file || !slugParaFoto) return;
+    resizeImageFile(file, 240).then(function (dataUrl) {
+      setClientPhoto(slugParaFoto, dataUrl);
+    });
   });
 
   app.addEventListener("submit", function (e) {

@@ -61,16 +61,26 @@ A fase "em andamento" é sempre a primeira que ainda não tem 100% das tarefas a
 concluídas — não precisa ser marcada manualmente, ela é recalculada a cada mudança.
 
 Dentro de cada fase, o botão **"+ Adicionar tarefa"** cria uma tarefa extra só para
-aquele cliente (com checkbox, data e remover, iguais às tarefas padrão) — útil para
-casos específicos que não estão no modelo. Tarefas extras, depois de removidas, ganham
-uma opção a mais na seção "Tarefas removidas": **"Excluir definitivamente"** — apaga a
-tarefa de vez (pede confirmação, pois não pode ser desfeito). Tarefas do modelo padrão
-que forem removidas só podem ser restauradas, não excluídas — continuam fazendo parte da
-estrutura das 8 fases.
+aquele cliente (com checkbox, data e um ícone **×** para remover, igual às tarefas
+padrão) — útil para casos específicos que não estão no modelo. Tarefas extras, depois de
+removidas, ganham uma opção a mais na seção "Tarefas removidas": **"Excluir
+definitivamente"** — apaga a tarefa de vez (pede confirmação, pois não pode ser
+desfeito). Tarefas do modelo padrão que forem removidas só podem ser restauradas, não
+excluídas — continuam fazendo parte da estrutura das 8 fases.
 
 Na própria página do cliente, ao lado de "← Voltar para clientes", o botão **"Excluir
 cliente"** apaga o cliente inteiro (pede confirmação explícita antes, com o nome do
 cliente na mensagem — ação irreversível).
+
+## Foto do cliente
+
+No avatar do cabeçalho do cliente, o ícone de câmera (canto inferior direito do círculo)
+abre o seletor de arquivo do sistema. A imagem escolhida é redimensionada no próprio
+navegador (canvas, ~240px no lado maior, JPEG) antes de ser salva como `foto` (data URL)
+no cliente — isso evita inflar o `localStorage` com fotos em resolução alta. Sem foto
+cadastrada, o círculo mostra as iniciais do nome (como já era). Com foto, aparece também
+um link **"Remover foto"** para voltar às iniciais. A mesma lógica (foto ou iniciais)
+aparece no avatar da lista de clientes na tela inicial.
 
 ## Adicionar um novo cliente
 
@@ -175,9 +185,15 @@ data/clients.json      dado-semente (primeira carga); depois disso o localStorag
 Cores e tipografia seguem o brandbook oficial (`data/clients.json` e o restante do
 conteúdo permanecem livres para edição; o visual não).
 
-> **Pendente:** o ícone da chama (🔥) usado no topo e nas telas de estado ainda é um
-> emoji genérico — será trocado pela logo oficial da Hotmart assim que os arquivos de
-> imagem do brandbook forem enviados.
+O banner **"Hotmart. Aqui acontece."** aparece no topo, largura total, fundo laranja
+(`#FF4000`) e texto preto em `Bitter` bold — nas duas telas internas de navegação (lista
+de clientes e seleção de perfil "Quem é você?"), não nas páginas de cliente/Analytics.
+Ele é HTML/CSS (não uma imagem), o que mantém nitidez em qualquer tamanho de tela.
+
+> **Pendente:** o ícone da chama (🔥) usado na barra superior (todas as telas) ainda é
+> um emoji genérico — será trocado pela logo oficial da Hotmart assim que os arquivos de
+> imagem do brandbook forem enviados como arquivo (não é possível extrair a imagem
+> exata a partir de uma captura colada no chat).
 
 **Paleta primária**
 
