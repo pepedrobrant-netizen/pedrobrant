@@ -1326,23 +1326,35 @@ a {
   color: var(--hm-white);
 }
 
-.crm-team-list {
+/* Entradas repetíveis do CRM (equipe do cliente, ações de relacionamento) —
+   cada entrada é um cartão próprio, com o X de remover no canto. */
+.crm-entry-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin-bottom: 14px;
 }
 
-.crm-team-row {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr 24px;
-  gap: 8px;
-  align-items: center;
+.crm-entry-card {
+  position: relative;
+  border: 1px solid var(--hm-border);
+  border-radius: 10px;
+  padding: 12px 34px 12px 12px;
+  background: var(--hm-offwhite);
 }
 
-.crm-team-remove {
-  width: 24px;
-  height: 24px;
+.crm-entry-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.crm-entry-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1354,16 +1366,27 @@ a {
   padding: 0;
 }
 
-.crm-team-remove:hover {
+.crm-entry-remove:hover {
   color: var(--hm-black);
   background: var(--hm-grey-soft);
 }
 
-.crm-team-empty {
+.crm-entry-empty {
   font-size: 0.82rem;
   color: var(--hm-text-muted);
   font-style: italic;
   margin: 0 0 14px;
+}
+
+.crm-action-date {
+  width: 160px;
+  margin-bottom: 8px;
+}
+
+.crm-action-desc {
+  display: block;
+  width: 100%;
+  resize: vertical;
 }
 
 /* Aniversariantes do mês */
@@ -1609,14 +1632,11 @@ a {
     font-size: 0.64rem;
   }
 
-  .crm-team-row {
+  .crm-entry-grid {
     grid-template-columns: 1fr;
-    gap: 6px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--hm-border);
   }
 
-  .crm-team-remove {
-    justify-self: end;
+  .crm-action-date {
+    width: 100%;
   }
 }

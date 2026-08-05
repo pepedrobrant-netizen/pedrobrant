@@ -232,13 +232,16 @@
     return {
       idCliente: "",
       telefonePrincipal: "",
+      emailCliente: "",
       endereco: "",
       aniversario: null,
       eventoParticipa: false,
       eventoQual: "",
       contratoAssinado: false,
+      brindeEnviado: false,
       metaFaturamento: "",
-      equipe: []
+      equipe: [],
+      acoes: []
     };
   }
 
@@ -249,6 +252,7 @@
     var saved = crmStore[slug] || {};
     var merged = Object.assign(defaults, saved);
     merged.equipe = saved.equipe || [];
+    merged.acoes = saved.acoes || [];
     return merged;
   }
 
@@ -266,7 +270,7 @@
 
   function addTeamMember(slug) {
     var current = getCrm(slug);
-    current.equipe.push({ nome: "", cargo: "", telefone: "" });
+    current.equipe.push({ nome: "", cargo: "", telefone: "", email: "" });
     crmStore[slug] = current;
     persistCrm();
     refresh();
@@ -285,6 +289,32 @@
   function removeTeamMember(slug, idx) {
     var current = getCrm(slug);
     current.equipe.splice(idx, 1);
+    crmStore[slug] = current;
+    persistCrm();
+    refresh();
+  }
+
+  function addRelationshipAction(slug) {
+    var current = getCrm(slug);
+    current.acoes.push({ data: todayISO(), descricao: "" });
+    crmStore[slug] = current;
+    persistCrm();
+    refresh();
+  }
+
+  // Mesma razão do setCrmField acima: sem refresh(), para não perder valores dos
+  // outros campos da mesma entrada quando o foco muda rápido entre eles.
+  function setRelationshipActionField(slug, idx, field, value) {
+    var current = getCrm(slug);
+    if (!current.acoes[idx]) return;
+    current.acoes[idx][field] = value;
+    crmStore[slug] = current;
+    persistCrm();
+  }
+
+  function removeRelationshipAction(slug, idx) {
+    var current = getCrm(slug);
+    current.acoes.splice(idx, 1);
     crmStore[slug] = current;
     persistCrm();
     refresh();
@@ -1047,19 +1077,41 @@
     );
   }
 
+  var removeIconSvg =
+    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+
   function teamMemberRowHtml(slug, idx, pessoa) {
     return (
-      '<div class="crm-team-row">' +
-        '<input class="field__input" type="text" data-action="crm-team-set" data-idx="' + idx + '" data-field="nome" ' +
-          'placeholder="Nome" value="' + escapeHtml(pessoa.nome) + '" />' +
-        '<input class="field__input" type="text" data-action="crm-team-set" data-idx="' + idx + '" data-field="cargo" ' +
-          'placeholder="Cargo" value="' + escapeHtml(pessoa.cargo) + '" />' +
-        '<input class="field__input" type="text" data-action="crm-team-set" data-idx="' + idx + '" data-field="telefone" ' +
-          'placeholder="Telefone" value="' + escapeHtml(pessoa.telefone) + '" />' +
-        '<button type="button" class="crm-team-remove" data-action="crm-team-remove" data-idx="' + idx + '" ' +
-          'title="Remover pessoa" aria-label="Remover pessoa">' +
-          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
-        "</button>" +
+      '<div class="crm-entry-card">' +
+        '<button type="button" class="crm-entry-remove" data-action="crm-team-remove" data-idx="' + idx + '" ' +
+          'title="Remover pessoa" aria-label="Remover pessoa">' + removeIconSvg + "</button>" +
+        '<div class="crm-entry-grid">' +
+          '<input class="field__input" type="text" data-action="crm-team-set" data-idx="' + idx + '" data-field="nome" ' +
+            'placeholder="Nome" value="' + escapeHtml(pessoa.nome) + '" />' +
+          '<input class="field__input" type="text" data-action="crm-team-set" data-idx="' + idx + '" data-field="cargo" ' +
+            'placeholder="Cargo" value="' + escapeHtml(pessoa.cargo) + '" />' +
+          '<input class="field__input" type="text" data-action="crm-team-set" data-idx="' + idx + '" data-field="telefone" ' +
+            'placeholder="Telefone" value="' + escapeHtml(pessoa.telefone) + '" />' +
+          '<input class="field__input" type="email" data-action="crm-team-set" data-idx="' + idx + '" data-field="email" ' +
+            'placeholder="E-mail" value="' + escapeHtml(pessoa.email || "") + '" />' +
+        "</div>" +
+      "</div>"
+    );
+  }
+
+  // Exibidas mais recente primeiro (histórico), mas o data-idx aponta sempre para a
+  // posição real no array (ordem de criação), usada por setRelationshipActionField/
+  // removeRelationshipAction.
+  function relationshipActionRowHtml(idx, acao) {
+    return (
+      '<div class="crm-entry-card">' +
+        '<button type="button" class="crm-entry-remove" data-action="crm-action-remove" data-idx="' + idx + '" ' +
+          'title="Remover ação" aria-label="Remover ação">' + removeIconSvg + "</button>" +
+        '<input class="field__input crm-action-date" type="date" data-action="crm-action-set" data-idx="' + idx + '" ' +
+          'data-field="data" value="' + (acao.data || "") + '" />' +
+        '<textarea class="field__input crm-textarea crm-action-desc" rows="2" data-action="crm-action-set" data-idx="' + idx + '" ' +
+          'data-field="descricao" placeholder="Ex.: almoço com o cliente, visita presencial ao escritório...">' +
+          escapeHtml(acao.descricao) + "</textarea>" +
       "</div>"
     );
   }
@@ -1071,7 +1123,13 @@
 
     var teamRowsHtml = crm.equipe.length
       ? crm.equipe.map(function (p, i) { return teamMemberRowHtml(slug, i, p); }).join("")
-      : '<p class="crm-team-empty">Nenhuma pessoa cadastrada ainda.</p>';
+      : '<p class="crm-entry-empty">Nenhuma pessoa cadastrada ainda.</p>';
+
+    var actionRowsHtml = crm.acoes.length
+      ? crm.acoes.map(function (a, i) { return { idx: i, acao: a }; })
+          .slice().reverse()
+          .map(function (entry) { return relationshipActionRowHtml(entry.idx, entry.acao); }).join("")
+      : '<p class="crm-entry-empty">Nenhuma ação registrada ainda.</p>';
 
     var wrap = document.createElement("section");
     wrap.className = "crm";
@@ -1097,6 +1155,11 @@
             'placeholder="(11) 91234-5678" value="' + escapeHtml(crm.telefonePrincipal) + '" />' +
         "</label>" +
         '<label class="field crm-field">' +
+          '<span class="field__label">E-mail do cliente</span>' +
+          '<input class="field__input" type="email" data-action="crm-set-text" data-field="emailCliente" ' +
+            'placeholder="cliente@empresa.com" value="' + escapeHtml(crm.emailCliente) + '" />' +
+        "</label>" +
+        '<label class="field crm-field">' +
           '<span class="field__label">Endereço completo (para envio de brindes)</span>' +
           '<textarea class="field__input crm-textarea" rows="3" data-action="crm-set-text" data-field="endereco" ' +
             'placeholder="Rua, número, complemento, bairro, cidade, estado, CEP">' + escapeHtml(crm.endereco) + "</textarea>" +
@@ -1120,6 +1183,10 @@
           '<span class="field__label">Tem contrato assinado?</span>' +
           yesNoToggleHtml("contratoAssinado", crm.contratoAssinado, slug) +
         "</div>" +
+        '<div class="field crm-field">' +
+          '<span class="field__label">Brinde enviado?</span>' +
+          yesNoToggleHtml("brindeEnviado", crm.brindeEnviado, slug) +
+        "</div>" +
         '<label class="field crm-field">' +
           '<span class="field__label">Meta de faturamento</span>' +
           '<input class="field__input" type="text" data-action="crm-set-text" data-field="metaFaturamento" ' +
@@ -1128,8 +1195,13 @@
       "</div>" +
       '<div class="crm__card crm__card--team">' +
         '<p class="crm__card-title">Equipe do cliente</p>' +
-        '<div class="crm-team-list">' + teamRowsHtml + "</div>" +
+        '<div class="crm-entry-list">' + teamRowsHtml + "</div>" +
         '<button type="button" class="add-task-btn" data-action="crm-team-add">+ Adicionar pessoa</button>' +
+      "</div>" +
+      '<div class="crm__card crm__card--team">' +
+        '<p class="crm__card-title">Ações de relacionamento</p>' +
+        '<div class="crm-entry-list">' + actionRowsHtml + "</div>" +
+        '<button type="button" class="add-task-btn" data-action="crm-action-add">+ Registrar ação</button>' +
       "</div>";
 
     app.innerHTML = "";
@@ -1294,6 +1366,10 @@
       addTeamMember(slug);
     } else if (action === "crm-team-remove") {
       removeTeamMember(slug, +target.getAttribute("data-idx"));
+    } else if (action === "crm-action-add") {
+      addRelationshipAction(slug);
+    } else if (action === "crm-action-remove") {
+      removeRelationshipAction(slug, +target.getAttribute("data-idx"));
     }
   });
 
@@ -1335,6 +1411,10 @@
       var teamIdx = +target.getAttribute("data-idx");
       var teamField = target.getAttribute("data-field");
       setTeamMemberField(currentSlug, teamIdx, teamField, target.value);
+    } else if (targetAction === "crm-action-set") {
+      var actionIdx = +target.getAttribute("data-idx");
+      var actionField = target.getAttribute("data-field");
+      setRelationshipActionField(currentSlug, actionIdx, actionField, target.value);
     }
   });
 

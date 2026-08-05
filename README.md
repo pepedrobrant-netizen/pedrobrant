@@ -90,14 +90,21 @@ vê:
 
 - ID do cliente (identificador próprio do CRM, separado do nome/slug usados no link)
 - Telefone principal (WhatsApp)
+- E-mail do cliente (separado do e-mail de cada pessoa da equipe, ver abaixo)
 - Endereço completo (para envio de brindes)
 - Data de aniversário
 - Se vai participar de algum evento (sim/não + qual evento)
 - Se tem contrato assinado (sim/não)
+- Se o brinde já foi enviado (sim/não)
 - Meta de faturamento
-- **Equipe do cliente**: lista de pessoas do lado do cliente, cada uma com Nome, Cargo e
-  Telefone. O botão **"+ Adicionar pessoa"** cria quantas linhas forem necessárias, e o
-  **×** ao lado de cada linha remove aquela pessoa.
+- **Equipe do cliente**: lista de pessoas do lado do cliente, cada uma com Nome, Cargo,
+  Telefone e E-mail. O botão **"+ Adicionar pessoa"** cria quantos cartões forem
+  necessários, e o **×** no canto de cada um remove aquela pessoa.
+- **Ações de relacionamento**: histórico de interações com o cliente (ex.: "almoço com
+  o cliente", "visita presencial ao escritório"), cada entrada com Data e Descrição
+  livre. O botão **"+ Registrar ação"** adiciona quantas entradas forem necessárias ao
+  longo do tempo; a lista é exibida da mais recente para a mais antiga, e o **×** remove
+  uma entrada específica.
 
 Cada campo salva sozinho ao sair dele (sem botão "salvar" separado).
 
