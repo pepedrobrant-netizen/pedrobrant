@@ -111,11 +111,17 @@ Cada campo salva sozinho ao sair dele (sem botão "salvar" separado).
 ### Aniversariantes do mês
 
 Dentro da aba **Analytics**, um card lista todos os clientes com data de aniversário
-cadastrada no CRM que caia no mês atual, ordenados por dia. Como depende da mesma chave
-de `localStorage` do CRM, esse card só aparece para quem tem um perfil do time ativo —
-mesma restrição de visibilidade do CRM em si. Para o Administrador, a lista considera
-todos os clientes, sem depender dos chips de filtro de onboarding; para os demais
-perfis, considera só os clientes daquele responsável.
+cadastrada no CRM que caia no mês selecionado, ordenados por dia. Como depende da mesma
+chave de `localStorage` do CRM, esse card só aparece para quem tem um perfil do time
+ativo — mesma restrição de visibilidade do CRM em si. Para o Administrador, a lista
+considera todos os clientes, sem depender dos chips de filtro de onboarding; para os
+demais perfis, considera só os clientes daquele responsável.
+
+Por padrão o card mostra o **mês vigente**. As setas ao lado do título navegam para
+outros meses (para frente ou para trás), e um link **"Mês atual"** aparece assim que
+você sai do mês vigente, para voltar direto a ele. Essa navegação fica só na memória da
+página — ao sair da tela de Analytics e voltar (ou recarregar a página), o card sempre
+volta a mostrar o mês vigente; nada disso é salvo no `localStorage`.
 
 **Como a restrição funciona de verdade, não só visualmente:**
 

@@ -71,6 +71,12 @@
   var openPhases = new Set();
   var addingTaskFor = new Set();
   var analyticsFilter = new Set(ASSIGNABLE);
+  // Deslocamento (em meses) do card "Aniversariantes do mês" em relação ao mês atual —
+  // 0 é sempre o mês vigente. Fica só em memória (não é salvo no localStorage) e é
+  // resetado toda vez que se entra na tela de Analytics vindo de outra tela, para nunca
+  // "lembrar" o último mês navegado.
+  var birthdayMonthOffset = 0;
+  var lastViewKey = null;
 
   // ---------- Template para novos clientes ----------
 
@@ -793,20 +799,30 @@
   ];
 
   // Baseado no CRM (localStorage próprio, ver getCrm) — só enxerga aniversários
-  // preenchidos neste mesmo navegador.
+  // preenchidos neste mesmo navegador. O mês exibido segue birthdayMonthOffset (0 =
+  // mês vigente); as setas só mudam esse deslocamento em memória, nunca o mês padrão.
   function birthdaysHtml(slugs) {
-    var curMonth = new Date().getMonth() + 1;
+    var now = new Date();
+    var base = new Date(now.getFullYear(), now.getMonth() + birthdayMonthOffset, 1);
+    var targetMonth = base.getMonth() + 1;
+    var targetYear = base.getFullYear();
+    var isCurrentMonth = birthdayMonthOffset === 0;
+
     var items = slugs
       .map(function (slug) {
         var crm = crmStore[slug];
         if (!crm || !crm.aniversario) return null;
         var mes = +crm.aniversario.slice(5, 7);
-        if (mes !== curMonth) return null;
+        if (mes !== targetMonth) return null;
         var dia = +crm.aniversario.slice(8, 10);
         return { slug: slug, nome: store[slug].nome, dia: dia };
       })
       .filter(Boolean)
       .sort(function (a, b) { return a.dia - b.dia; });
+
+    var emptyMsg = isCurrentMonth
+      ? "Nenhum aniversariante este mês (com base no CRM preenchido neste navegador)."
+      : "Nenhum aniversariante em " + MESES[targetMonth - 1] + " (com base no CRM preenchido neste navegador).";
 
     var body = items.length
       ? '<div class="birthday-list">' + items.map(function (it) {
@@ -817,7 +833,7 @@
             "</a>"
           );
         }).join("") + "</div>"
-      : '<p class="picker__text">Nenhum aniversariante este mês (com base no CRM preenchido neste navegador).</p>';
+      : '<p class="picker__text">' + emptyMsg + "</p>";
 
     var cakeIcon =
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
@@ -828,10 +844,28 @@
         '<path d="M12 7c-1 0-1.5-.7-1.5-1.5S12 3 12 3s1.5.7 1.5 1.5S13 7 12 7z" />' +
       "</svg>";
 
+    var chevronLeft =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>';
+    var chevronRight =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>';
+
+    var monthLabel = MESES[targetMonth - 1] + (targetYear !== now.getFullYear() ? " de " + targetYear : "");
+
     return (
-      '<p class="analytics__section-label analytics__section-label--icon">' +
-        cakeIcon + "Aniversariantes de " + MESES[curMonth - 1] +
-      "</p>" +
+      '<div class="birthday-header">' +
+        '<p class="analytics__section-label analytics__section-label--icon">' +
+          cakeIcon + "Aniversariantes de " + monthLabel +
+        "</p>" +
+        '<div class="birthday-month-nav">' +
+          '<button type="button" class="birthday-month-nav__btn" data-action="birthday-month-prev" aria-label="Mês anterior">' + chevronLeft + "</button>" +
+          (isCurrentMonth
+            ? ""
+            : '<button type="button" class="filter-action-link" data-action="birthday-month-reset">Mês atual</button>') +
+          '<button type="button" class="birthday-month-nav__btn" data-action="birthday-month-next" aria-label="Próximo mês">' + chevronRight + "</button>" +
+        "</div>" +
+      "</div>" +
       body
     );
   }
@@ -1228,6 +1262,12 @@
     var view = getView();
     updateProfileButton();
 
+    var viewKey = view.type + (view.slug ? ":" + view.slug : "");
+    if (view.type === "analytics" && lastViewKey !== "analytics") {
+      birthdayMonthOffset = 0;
+    }
+    lastViewKey = viewKey;
+
     if (view.type === "client" || view.type === "crm") {
       heroBanner.hidden = true;
       currentSlug = view.slug;
@@ -1370,6 +1410,15 @@
       addRelationshipAction(slug);
     } else if (action === "crm-action-remove") {
       removeRelationshipAction(slug, +target.getAttribute("data-idx"));
+    } else if (action === "birthday-month-prev") {
+      birthdayMonthOffset -= 1;
+      refresh();
+    } else if (action === "birthday-month-next") {
+      birthdayMonthOffset += 1;
+      refresh();
+    } else if (action === "birthday-month-reset") {
+      birthdayMonthOffset = 0;
+      refresh();
     }
   });
 

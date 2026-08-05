@@ -1390,6 +1390,45 @@ a {
 }
 
 /* Aniversariantes do mês */
+.birthday-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 420px;
+  margin-bottom: 4px;
+}
+
+.birthday-header .analytics__section-label {
+  margin: 0;
+}
+
+.birthday-month-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.birthday-month-nav__btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--hm-grey);
+  border-radius: 50%;
+  background: var(--hm-white);
+  color: var(--hm-black);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.birthday-month-nav__btn:hover {
+  border-color: var(--hm-orange);
+  color: var(--hm-orange-dark);
+}
+
 .birthday-list {
   display: flex;
   flex-direction: column;
