@@ -68,6 +68,10 @@ tarefa de vez (pede confirmação, pois não pode ser desfeito). Tarefas do mode
 que forem removidas só podem ser restauradas, não excluídas — continuam fazendo parte da
 estrutura das 8 fases.
 
+Na própria página do cliente, ao lado de "← Voltar para clientes", o botão **"Excluir
+cliente"** apaga o cliente inteiro (pede confirmação explícita antes, com o nome do
+cliente na mensagem — ação irreversível).
+
 ## Adicionar um novo cliente
 
 Pelo botão **"+ Novo cliente"** na barra superior: preenche nome, empresa, ID da conta e
@@ -97,8 +101,10 @@ no `localStorage` de quem já visitou a página):
 
 - Cada fase tem `titulo`, `descricao`, `responsavel` (interno, não exibido na UI — ver
   `criadoPor` acima) e uma lista de `tarefas`.
-- Cada tarefa tem `id` (estável, usado pelos controles de UI), `nome`, `concluida`,
-  `data` (agendada/realizada, por tarefa — não existe mais data por fase), `removida` e,
+- Cada tarefa tem `id` (estável, usado pelos controles de UI), `nome`, `pilares`
+  (array com `"relacionamento"`, `"estrategia"` e/ou `"capacitacao"` — usado no gráfico
+  de pilares do Analytics; tarefas extras não têm esse campo), `concluida`, `data`
+  (agendada/realizada, por tarefa — não existe mais data por fase), `removida` e,
   quando criada pelo botão "+ Adicionar tarefa", `custom: true` (habilita a opção de
   excluir definitivamente).
 - Uma tarefa com `removida: true` não conta no cálculo de progresso (nem no numerador
@@ -122,6 +128,23 @@ cliente.
   selecionar, aparece o progresso médio de cada um deles e o gráfico de barras é
   filtrado só aos clientes desses onboardings selecionados. "Selecionar todos"/"Limpar"
   ajustam a seleção de uma vez.
+
+### Pilares
+
+Cada tarefa do modelo padrão é classificada com um ou mais dos 3 pilares base —
+🟢 Relacionamento, 🔵 Estratégia, 🟡 Capacitação — e a combinação deles forma 7
+categorias (legenda completa mostrada na própria aba Analytics, com nome e objetivo de
+cada uma: Relacionamento/Construir confiança, Estratégia/Direcionar,
+Capacitação/Desenvolver, Inteligência do Cliente 🟢🔵/Personalizar, Enablement
+Estratégico 🔵🟡/Preparar, Customer Enablement 🟢🟡/Engajar, Customer Success
+🟢🔵🟡/Gerar resultado).
+
+Abaixo do gráfico de progresso, o Analytics mostra um card por cliente (dentro do
+filtro/escopo atual) com um mini gráfico de barras dos 3 pilares base, contando apenas
+tarefas **ativas e concluídas**. Uma tarefa com pilares combinados soma 1 para cada
+pilar envolvido (ex.: uma tarefa 🔵🟡 concluída soma +1 em Estratégia e +1 em
+Capacitação, não 0,5 em cada). Tarefas extras adicionadas por "+ Adicionar tarefa" não
+têm pilar definido, então não entram nessa contagem.
 
 ## Rodar localmente
 
@@ -151,6 +174,10 @@ data/clients.json      dado-semente (primeira carga); depois disso o localStorag
 
 Cores e tipografia seguem o brandbook oficial (`data/clients.json` e o restante do
 conteúdo permanecem livres para edição; o visual não).
+
+> **Pendente:** o ícone da chama (🔥) usado no topo e nas telas de estado ainda é um
+> emoji genérico — será trocado pela logo oficial da Hotmart assim que os arquivos de
+> imagem do brandbook forem enviados.
 
 **Paleta primária**
 

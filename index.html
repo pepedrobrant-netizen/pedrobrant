@@ -88,6 +88,18 @@
     </div>
   </div>
 
+  <div class="modal" id="confirm-modal" aria-hidden="true">
+    <div class="modal__overlay" data-action="close-confirm-modal"></div>
+    <div class="modal__dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+      <h2 class="modal__title" id="confirm-modal-title">Confirmar ação</h2>
+      <p class="modal__text" id="confirm-modal-message"></p>
+      <div class="modal__actions">
+        <button type="button" class="btn btn--secondary" data-action="close-confirm-modal">Cancelar</button>
+        <button type="button" class="btn btn--danger" id="confirm-modal-confirm">Excluir</button>
+      </div>
+    </div>
+  </div>
+
   <template id="tpl-profile-gate">
     <section class="picker">
       <div class="picker__card">

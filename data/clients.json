@@ -1,5 +1,5 @@
 {
-  "_readme": "Cada chave de nivel superior e o slug do cliente, usado na URL como ?cliente=slug. Este arquivo e o conjunto de dados-semente: ao abrir a pagina pela primeira vez em um navegador, ele e copiado para o localStorage e passa a ser a fonte de verdade local (edicoes feitas na interface nao alteram este arquivo automaticamente). Use o botao \"Exportar dados\" na barra superior para baixar o clients.json atualizado. Campo responsavelCliente aceita: Ilana, Pedro, Josiane ou Madu (usado para filtrar a lista por perfil; o perfil Administrador ve todos os clientes). Campo criadoPor e preenchido automaticamente com o perfil que criou o cliente e aparece como \"Responsavel pela fase\" no rodape de cada fase; nao e editavel pela interface.",
+  "_readme": "Cada chave de nivel superior e o slug do cliente, usado na URL como ?cliente=slug. Este arquivo e o conjunto de dados-semente: ao abrir a pagina pela primeira vez em um navegador, ele e copiado para o localStorage e passa a ser a fonte de verdade local (edicoes feitas na interface nao alteram este arquivo automaticamente). Use o botao \"Exportar dados\" na barra superior para baixar o clients.json atualizado. Campo responsavelCliente aceita: Ilana, Pedro, Josiane ou Madu (usado para filtrar a lista por perfil; o perfil Administrador ve todos os clientes). Campo criadoPor e preenchido automaticamente com o perfil que criou o cliente e aparece como \"Responsavel pela fase\" no rodape de cada fase; nao e editavel pela interface. Cada tarefa tem um campo pilares (relacionamento/estrategia/capacitacao, um ou mais) usado no grafico de pilares por cliente na aba Analytics.",
   "acme-cursos": {
     "nome": "Ana Ferreira",
     "empresa": "Acme Cursos Online",
@@ -16,21 +16,20 @@
         "tarefas": [
           {
             "id": "f1t1",
-            "nome": "Conta criada e verificada",
+            "nome": "Envio de dados de migração",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": true,
             "data": "2026-06-01",
             "removida": false
           },
           {
             "id": "f1t2",
-            "nome": "Dados bancários e fiscais configurados",
-            "concluida": true,
-            "data": "2026-06-02",
-            "removida": false
-          },
-          {
-            "id": "f1t3",
-            "nome": "Usuários e permissões de acesso definidos",
+            "nome": "Completar cadastro da conta",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": true,
             "data": "2026-06-02",
             "removida": false
@@ -44,23 +43,53 @@
         "tarefas": [
           {
             "id": "f2t1",
-            "nome": "Treinamento de configurações gerais realizado",
+            "nome": "Overview e navegação",
+            "pilares": [
+              "capacitacao"
+            ],
+            "concluida": true,
+            "data": "2026-06-05",
+            "removida": false
+          },
+          {
+            "id": "f2t2",
+            "nome": "Cadastro de produtos e formatos",
+            "pilares": [
+              "capacitacao"
+            ],
             "concluida": true,
             "data": "2026-06-06",
             "removida": false
           },
           {
-            "id": "f2t2",
-            "nome": "Identidade visual (logo e cores) configurada",
+            "id": "f2t3",
+            "nome": "Configurações de checkout",
+            "pilares": [
+              "capacitacao"
+            ],
             "concluida": true,
             "data": "2026-06-08",
             "removida": false
           },
           {
-            "id": "f2t3",
-            "nome": "Domínio, idioma e moeda configurados",
+            "id": "f2t4",
+            "nome": "Otimização do checkout",
+            "pilares": [
+              "estrategia",
+              "capacitacao"
+            ],
             "concluida": true,
-            "data": "2026-06-08",
+            "data": "2026-06-09",
+            "removida": false
+          },
+          {
+            "id": "f2t5",
+            "nome": "Integrações",
+            "pilares": [
+              "capacitacao"
+            ],
+            "concluida": true,
+            "data": "2026-06-10",
             "removida": false
           }
         ]
@@ -72,23 +101,73 @@
         "tarefas": [
           {
             "id": "f3t1",
-            "nome": "Treinamento do Club realizado",
+            "nome": "Navegação básica e ocultar produtos",
+            "pilares": [
+              "capacitacao"
+            ],
             "concluida": true,
-            "data": "2026-06-12",
+            "data": "2026-06-13",
             "removida": false
           },
           {
             "id": "f3t2",
-            "nome": "Estrutura de módulos e conteúdo criada",
+            "nome": "Gestão de conteúdo",
+            "pilares": [
+              "capacitacao"
+            ],
             "concluida": true,
-            "data": "2026-06-13",
+            "data": "2026-06-14",
             "removida": false
           },
           {
             "id": "f3t3",
-            "nome": "Regras de liberação de acesso configuradas",
+            "nome": "Club Sales",
+            "pilares": [
+              "estrategia",
+              "capacitacao"
+            ],
             "concluida": true,
-            "data": "2026-06-13",
+            "data": "2026-06-15",
+            "removida": false
+          },
+          {
+            "id": "f3t4",
+            "nome": "Gestão de turmas e agendamento",
+            "pilares": [
+              "capacitacao"
+            ],
+            "concluida": false,
+            "data": "2026-06-20",
+            "removida": false
+          },
+          {
+            "id": "f3t5",
+            "nome": "Capas de módulos, aulas e trilhas",
+            "pilares": [
+              "capacitacao"
+            ],
+            "concluida": false,
+            "data": null,
+            "removida": false
+          },
+          {
+            "id": "f3t6",
+            "nome": "Personalizações",
+            "pilares": [
+              "capacitacao"
+            ],
+            "concluida": false,
+            "data": null,
+            "removida": false
+          },
+          {
+            "id": "f3t7",
+            "nome": "Extras (tutor, PWA, insights)",
+            "pilares": [
+              "capacitacao"
+            ],
+            "concluida": false,
+            "data": null,
             "removida": false
           }
         ]
@@ -100,21 +179,20 @@
         "tarefas": [
           {
             "id": "f4t1",
-            "nome": "Checkout personalizado revisado",
-            "concluida": true,
-            "data": "2026-06-19",
-            "removida": false
-          },
-          {
-            "id": "f4t2",
-            "nome": "Cupons e ofertas configurados",
+            "nome": "Criativos e artes",
+            "pilares": [
+              "capacitacao"
+            ],
             "concluida": false,
             "data": "2026-06-25",
             "removida": false
           },
           {
-            "id": "f4t3",
-            "nome": "Integrações finais validadas",
+            "id": "f4t2",
+            "nome": "Configurações gerais da plataforma",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": false,
             "data": null,
             "removida": true
@@ -128,21 +206,31 @@
         "tarefas": [
           {
             "id": "f5t1",
-            "nome": "Compra de teste realizada com sucesso",
+            "nome": "Relatórios essenciais",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": false,
-            "data": "2026-07-02",
+            "data": null,
             "removida": false
           },
           {
             "id": "f5t2",
-            "nome": "Acesso ao conteúdo validado",
+            "nome": "Check do Produto",
+            "pilares": [
+              "estrategia",
+              "capacitacao"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
           },
           {
             "id": "f5t3",
-            "nome": "Checklist pré-venda aprovado pelo cliente",
+            "nome": "Definição de abertura de carrinho",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
@@ -156,21 +244,12 @@
         "tarefas": [
           {
             "id": "f6t1",
-            "nome": "Produto ativado para venda",
-            "concluida": false,
-            "data": null,
-            "removida": false
-          },
-          {
-            "id": "f6t2",
-            "nome": "Comunicação de lançamento enviada",
-            "concluida": false,
-            "data": null,
-            "removida": false
-          },
-          {
-            "id": "f6t3",
-            "nome": "Canais de suporte ao comprador configurados",
+            "nome": "Primeiros 10k após início da parceria",
+            "pilares": [
+              "relacionamento",
+              "estrategia",
+              "capacitacao"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
@@ -184,21 +263,41 @@
         "tarefas": [
           {
             "id": "f7t1",
-            "nome": "Relatório dos primeiros 7 dias enviado",
+            "nome": "Relatório de Agente IA",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
           },
           {
             "id": "f7t2",
-            "nome": "Dashboard de indicadores configurado",
+            "nome": "Gestão de vendas e relatórios de vendas",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
           },
           {
             "id": "f7t3",
-            "nome": "Reunião de apresentação de resultados realizada",
+            "nome": "Desempenho de checkout com Analytics",
+            "pilares": [
+              "estrategia"
+            ],
+            "concluida": false,
+            "data": null,
+            "removida": false
+          },
+          {
+            "id": "f7t4",
+            "nome": "Dinheiro na mesa",
+            "pilares": [
+              "estrategia",
+              "capacitacao"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
@@ -212,21 +311,34 @@
         "tarefas": [
           {
             "id": "f8t1",
-            "nome": "Check-in de 30 dias realizado",
+            "nome": "Reunião de análise 30 dias",
+            "pilares": [
+              "relacionamento",
+              "estrategia"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
           },
           {
             "id": "f8t2",
-            "nome": "Plano de otimização definido",
+            "nome": "Reunião de análise 60 dias",
+            "pilares": [
+              "relacionamento",
+              "estrategia"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
           },
           {
             "id": "f8t3",
-            "nome": "Encerramento formal do onboarding registrado",
+            "nome": "Reunião de fechamento do onboarding",
+            "pilares": [
+              "relacionamento",
+              "estrategia",
+              "capacitacao"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
@@ -251,23 +363,22 @@
         "tarefas": [
           {
             "id": "f1t1",
-            "nome": "Conta criada e verificada",
+            "nome": "Envio de dados de migração",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": true,
             "data": "2026-07-20",
             "removida": false
           },
           {
             "id": "f1t2",
-            "nome": "Dados bancários e fiscais configurados",
+            "nome": "Completar cadastro da conta",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": true,
             "data": "2026-07-21",
-            "removida": false
-          },
-          {
-            "id": "f1t3",
-            "nome": "Usuários e permissões de acesso definidos",
-            "concluida": true,
-            "data": "2026-07-22",
             "removida": false
           }
         ]
@@ -279,21 +390,51 @@
         "tarefas": [
           {
             "id": "f2t1",
-            "nome": "Treinamento de configurações gerais realizado",
-            "concluida": false,
-            "data": "2026-07-27",
+            "nome": "Overview e navegação",
+            "pilares": [
+              "capacitacao"
+            ],
+            "concluida": true,
+            "data": "2026-07-24",
             "removida": false
           },
           {
             "id": "f2t2",
-            "nome": "Identidade visual (logo e cores) configurada",
+            "nome": "Cadastro de produtos e formatos",
+            "pilares": [
+              "capacitacao"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
           },
           {
             "id": "f2t3",
-            "nome": "Domínio, idioma e moeda configurados",
+            "nome": "Configurações de checkout",
+            "pilares": [
+              "capacitacao"
+            ],
+            "concluida": false,
+            "data": null,
+            "removida": false
+          },
+          {
+            "id": "f2t4",
+            "nome": "Otimização do checkout",
+            "pilares": [
+              "estrategia",
+              "capacitacao"
+            ],
+            "concluida": false,
+            "data": null,
+            "removida": false
+          },
+          {
+            "id": "f2t5",
+            "nome": "Integrações",
+            "pilares": [
+              "capacitacao"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
@@ -307,21 +448,71 @@
         "tarefas": [
           {
             "id": "f3t1",
-            "nome": "Treinamento do Club realizado",
+            "nome": "Navegação básica e ocultar produtos",
+            "pilares": [
+              "capacitacao"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
           },
           {
             "id": "f3t2",
-            "nome": "Estrutura de módulos e conteúdo criada",
+            "nome": "Gestão de conteúdo",
+            "pilares": [
+              "capacitacao"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
           },
           {
             "id": "f3t3",
-            "nome": "Regras de liberação de acesso configuradas",
+            "nome": "Club Sales",
+            "pilares": [
+              "estrategia",
+              "capacitacao"
+            ],
+            "concluida": false,
+            "data": null,
+            "removida": false
+          },
+          {
+            "id": "f3t4",
+            "nome": "Gestão de turmas e agendamento",
+            "pilares": [
+              "capacitacao"
+            ],
+            "concluida": false,
+            "data": null,
+            "removida": false
+          },
+          {
+            "id": "f3t5",
+            "nome": "Capas de módulos, aulas e trilhas",
+            "pilares": [
+              "capacitacao"
+            ],
+            "concluida": false,
+            "data": null,
+            "removida": false
+          },
+          {
+            "id": "f3t6",
+            "nome": "Personalizações",
+            "pilares": [
+              "capacitacao"
+            ],
+            "concluida": false,
+            "data": null,
+            "removida": false
+          },
+          {
+            "id": "f3t7",
+            "nome": "Extras (tutor, PWA, insights)",
+            "pilares": [
+              "capacitacao"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
@@ -335,21 +526,20 @@
         "tarefas": [
           {
             "id": "f4t1",
-            "nome": "Checkout personalizado revisado",
+            "nome": "Criativos e artes",
+            "pilares": [
+              "capacitacao"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
           },
           {
             "id": "f4t2",
-            "nome": "Cupons e ofertas configurados",
-            "concluida": false,
-            "data": null,
-            "removida": false
-          },
-          {
-            "id": "f4t3",
-            "nome": "Integrações finais validadas",
+            "nome": "Configurações gerais da plataforma",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
@@ -363,21 +553,31 @@
         "tarefas": [
           {
             "id": "f5t1",
-            "nome": "Compra de teste realizada com sucesso",
+            "nome": "Relatórios essenciais",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
           },
           {
             "id": "f5t2",
-            "nome": "Acesso ao conteúdo validado",
+            "nome": "Check do Produto",
+            "pilares": [
+              "estrategia",
+              "capacitacao"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
           },
           {
             "id": "f5t3",
-            "nome": "Checklist pré-venda aprovado pelo cliente",
+            "nome": "Definição de abertura de carrinho",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
@@ -391,21 +591,12 @@
         "tarefas": [
           {
             "id": "f6t1",
-            "nome": "Produto ativado para venda",
-            "concluida": false,
-            "data": null,
-            "removida": false
-          },
-          {
-            "id": "f6t2",
-            "nome": "Comunicação de lançamento enviada",
-            "concluida": false,
-            "data": null,
-            "removida": false
-          },
-          {
-            "id": "f6t3",
-            "nome": "Canais de suporte ao comprador configurados",
+            "nome": "Primeiros 10k após início da parceria",
+            "pilares": [
+              "relacionamento",
+              "estrategia",
+              "capacitacao"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
@@ -419,21 +610,41 @@
         "tarefas": [
           {
             "id": "f7t1",
-            "nome": "Relatório dos primeiros 7 dias enviado",
+            "nome": "Relatório de Agente IA",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
           },
           {
             "id": "f7t2",
-            "nome": "Dashboard de indicadores configurado",
+            "nome": "Gestão de vendas e relatórios de vendas",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
           },
           {
             "id": "f7t3",
-            "nome": "Reunião de apresentação de resultados realizada",
+            "nome": "Desempenho de checkout com Analytics",
+            "pilares": [
+              "estrategia"
+            ],
+            "concluida": false,
+            "data": null,
+            "removida": false
+          },
+          {
+            "id": "f7t4",
+            "nome": "Dinheiro na mesa",
+            "pilares": [
+              "estrategia",
+              "capacitacao"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
@@ -447,21 +658,34 @@
         "tarefas": [
           {
             "id": "f8t1",
-            "nome": "Check-in de 30 dias realizado",
+            "nome": "Reunião de análise 30 dias",
+            "pilares": [
+              "relacionamento",
+              "estrategia"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
           },
           {
             "id": "f8t2",
-            "nome": "Plano de otimização definido",
+            "nome": "Reunião de análise 60 dias",
+            "pilares": [
+              "relacionamento",
+              "estrategia"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
           },
           {
             "id": "f8t3",
-            "nome": "Encerramento formal do onboarding registrado",
+            "nome": "Reunião de fechamento do onboarding",
+            "pilares": [
+              "relacionamento",
+              "estrategia",
+              "capacitacao"
+            ],
             "concluida": false,
             "data": null,
             "removida": false
@@ -486,21 +710,20 @@
         "tarefas": [
           {
             "id": "f1t1",
-            "nome": "Conta criada e verificada",
+            "nome": "Envio de dados de migração",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": true,
             "data": "2026-05-04",
             "removida": false
           },
           {
             "id": "f1t2",
-            "nome": "Dados bancários e fiscais configurados",
-            "concluida": true,
-            "data": "2026-05-05",
-            "removida": false
-          },
-          {
-            "id": "f1t3",
-            "nome": "Usuários e permissões de acesso definidos",
+            "nome": "Completar cadastro da conta",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": true,
             "data": "2026-05-05",
             "removida": false
@@ -514,24 +737,54 @@
         "tarefas": [
           {
             "id": "f2t1",
-            "nome": "Treinamento de configurações gerais realizado",
+            "nome": "Overview e navegação",
+            "pilares": [
+              "capacitacao"
+            ],
+            "concluida": true,
+            "data": "2026-05-07",
+            "removida": false
+          },
+          {
+            "id": "f2t2",
+            "nome": "Cadastro de produtos e formatos",
+            "pilares": [
+              "capacitacao"
+            ],
             "concluida": true,
             "data": "2026-05-08",
             "removida": false
           },
           {
-            "id": "f2t2",
-            "nome": "Identidade visual (logo e cores) configurada",
-            "concluida": false,
-            "data": null,
-            "removida": true
-          },
-          {
             "id": "f2t3",
-            "nome": "Domínio, idioma e moeda configurados",
+            "nome": "Configurações de checkout",
+            "pilares": [
+              "capacitacao"
+            ],
             "concluida": true,
             "data": "2026-05-09",
             "removida": false
+          },
+          {
+            "id": "f2t4",
+            "nome": "Otimização do checkout",
+            "pilares": [
+              "estrategia",
+              "capacitacao"
+            ],
+            "concluida": true,
+            "data": "2026-05-10",
+            "removida": false
+          },
+          {
+            "id": "f2t5",
+            "nome": "Integrações",
+            "pilares": [
+              "capacitacao"
+            ],
+            "concluida": false,
+            "data": null,
+            "removida": true
           }
         ]
       },
@@ -542,23 +795,73 @@
         "tarefas": [
           {
             "id": "f3t1",
-            "nome": "Treinamento do Club realizado",
+            "nome": "Navegação básica e ocultar produtos",
+            "pilares": [
+              "capacitacao"
+            ],
             "concluida": true,
             "data": "2026-05-13",
             "removida": false
           },
           {
             "id": "f3t2",
-            "nome": "Estrutura de módulos e conteúdo criada",
+            "nome": "Gestão de conteúdo",
+            "pilares": [
+              "capacitacao"
+            ],
             "concluida": true,
             "data": "2026-05-14",
             "removida": false
           },
           {
             "id": "f3t3",
-            "nome": "Regras de liberação de acesso configuradas",
+            "nome": "Club Sales",
+            "pilares": [
+              "estrategia",
+              "capacitacao"
+            ],
             "concluida": true,
-            "data": "2026-05-14",
+            "data": "2026-05-15",
+            "removida": false
+          },
+          {
+            "id": "f3t4",
+            "nome": "Gestão de turmas e agendamento",
+            "pilares": [
+              "capacitacao"
+            ],
+            "concluida": true,
+            "data": "2026-05-16",
+            "removida": false
+          },
+          {
+            "id": "f3t5",
+            "nome": "Capas de módulos, aulas e trilhas",
+            "pilares": [
+              "capacitacao"
+            ],
+            "concluida": true,
+            "data": "2026-05-17",
+            "removida": false
+          },
+          {
+            "id": "f3t6",
+            "nome": "Personalizações",
+            "pilares": [
+              "capacitacao"
+            ],
+            "concluida": true,
+            "data": "2026-05-18",
+            "removida": false
+          },
+          {
+            "id": "f3t7",
+            "nome": "Extras (tutor, PWA, insights)",
+            "pilares": [
+              "capacitacao"
+            ],
+            "concluida": true,
+            "data": "2026-05-19",
             "removida": false
           }
         ]
@@ -570,23 +873,22 @@
         "tarefas": [
           {
             "id": "f4t1",
-            "nome": "Checkout personalizado revisado",
+            "nome": "Criativos e artes",
+            "pilares": [
+              "capacitacao"
+            ],
             "concluida": true,
-            "data": "2026-05-19",
+            "data": "2026-05-22",
             "removida": false
           },
           {
             "id": "f4t2",
-            "nome": "Cupons e ofertas configurados",
+            "nome": "Configurações gerais da plataforma",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": true,
-            "data": "2026-05-20",
-            "removida": false
-          },
-          {
-            "id": "f4t3",
-            "nome": "Integrações finais validadas",
-            "concluida": true,
-            "data": "2026-05-20",
+            "data": "2026-05-23",
             "removida": false
           }
         ]
@@ -598,21 +900,31 @@
         "tarefas": [
           {
             "id": "f5t1",
-            "nome": "Compra de teste realizada com sucesso",
+            "nome": "Relatórios essenciais",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": true,
             "data": "2026-05-26",
             "removida": false
           },
           {
             "id": "f5t2",
-            "nome": "Acesso ao conteúdo validado",
+            "nome": "Check do Produto",
+            "pilares": [
+              "estrategia",
+              "capacitacao"
+            ],
             "concluida": true,
             "data": "2026-05-27",
             "removida": false
           },
           {
             "id": "f5t3",
-            "nome": "Checklist pré-venda aprovado pelo cliente",
+            "nome": "Definição de abertura de carrinho",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": true,
             "data": "2026-05-27",
             "removida": false
@@ -626,23 +938,14 @@
         "tarefas": [
           {
             "id": "f6t1",
-            "nome": "Produto ativado para venda",
+            "nome": "Primeiros 10k após início da parceria",
+            "pilares": [
+              "relacionamento",
+              "estrategia",
+              "capacitacao"
+            ],
             "concluida": true,
             "data": "2026-06-03",
-            "removida": false
-          },
-          {
-            "id": "f6t2",
-            "nome": "Comunicação de lançamento enviada",
-            "concluida": true,
-            "data": "2026-06-03",
-            "removida": false
-          },
-          {
-            "id": "f6t3",
-            "nome": "Canais de suporte ao comprador configurados",
-            "concluida": true,
-            "data": "2026-06-04",
             "removida": false
           }
         ]
@@ -654,21 +957,41 @@
         "tarefas": [
           {
             "id": "f7t1",
-            "nome": "Relatório dos primeiros 7 dias enviado",
+            "nome": "Relatório de Agente IA",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": true,
             "data": "2026-06-10",
             "removida": false
           },
           {
             "id": "f7t2",
-            "nome": "Dashboard de indicadores configurado",
+            "nome": "Gestão de vendas e relatórios de vendas",
+            "pilares": [
+              "estrategia"
+            ],
             "concluida": true,
             "data": "2026-06-10",
             "removida": false
           },
           {
             "id": "f7t3",
-            "nome": "Reunião de apresentação de resultados realizada",
+            "nome": "Desempenho de checkout com Analytics",
+            "pilares": [
+              "estrategia"
+            ],
+            "concluida": true,
+            "data": "2026-06-11",
+            "removida": false
+          },
+          {
+            "id": "f7t4",
+            "nome": "Dinheiro na mesa",
+            "pilares": [
+              "estrategia",
+              "capacitacao"
+            ],
             "concluida": true,
             "data": "2026-06-11",
             "removida": false
@@ -682,21 +1005,34 @@
         "tarefas": [
           {
             "id": "f8t1",
-            "nome": "Check-in de 30 dias realizado",
+            "nome": "Reunião de análise 30 dias",
+            "pilares": [
+              "relacionamento",
+              "estrategia"
+            ],
             "concluida": true,
             "data": "2026-06-17",
             "removida": false
           },
           {
             "id": "f8t2",
-            "nome": "Plano de otimização definido",
-            "concluida": false,
+            "nome": "Reunião de análise 60 dias",
+            "pilares": [
+              "relacionamento",
+              "estrategia"
+            ],
+            "concluida": true,
             "data": "2026-06-24",
             "removida": false
           },
           {
             "id": "f8t3",
-            "nome": "Encerramento formal do onboarding registrado",
+            "nome": "Reunião de fechamento do onboarding",
+            "pilares": [
+              "relacionamento",
+              "estrategia",
+              "capacitacao"
+            ],
             "concluida": false,
             "data": null,
             "removida": false

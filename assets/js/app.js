@@ -8,6 +8,23 @@
   var ASSIGNABLE = ["Ilana", "Pedro", "Josiane", "Madu"];
   var ADMIN = "Administrador";
 
+  // Pilares de atuação (usados para classificar tarefas e no gráfico do Analytics)
+  var PILARES_BASE = {
+    relacionamento: { emoji: "🟢", nome: "Relacionamento", cor: "#2F8F5B" },
+    estrategia: { emoji: "🔵", nome: "Estratégia", cor: "#2F5FA8" },
+    capacitacao: { emoji: "🟡", nome: "Capacitação", cor: "#FFD450" }
+  };
+  var PILARES_ORDEM = ["relacionamento", "estrategia", "capacitacao"];
+  var PILARES_LEGEND = [
+    { emoji: "🟢", nome: "Relacionamento", objetivo: "Construir confiança" },
+    { emoji: "🔵", nome: "Estratégia", objetivo: "Direcionar" },
+    { emoji: "🟡", nome: "Capacitação", objetivo: "Desenvolver" },
+    { emoji: "🟢🔵", nome: "Inteligência do Cliente", objetivo: "Personalizar" },
+    { emoji: "🔵🟡", nome: "Enablement Estratégico", objetivo: "Preparar" },
+    { emoji: "🟢🟡", nome: "Customer Enablement", objetivo: "Engajar" },
+    { emoji: "🟢🔵🟡", nome: "Customer Success", objetivo: "Gerar resultado" }
+  ];
+
   var app = document.getElementById("app");
   var copyBtn = document.getElementById("copy-link-btn");
   var exportBtn = document.getElementById("export-btn");
@@ -18,6 +35,11 @@
   var modal = document.getElementById("add-client-modal");
   var addClientForm = document.getElementById("add-client-form");
   var addClientError = document.getElementById("add-client-error");
+  var confirmModal = document.getElementById("confirm-modal");
+  var confirmModalTitle = document.getElementById("confirm-modal-title");
+  var confirmModalMessage = document.getElementById("confirm-modal-message");
+  var confirmModalConfirmBtn = document.getElementById("confirm-modal-confirm");
+  var confirmModalCallback = null;
 
   var store = null; // { [slug]: cliente }
   var currentUser = localStorage.getItem(PROFILE_KEY) || null;
@@ -39,9 +61,8 @@
       descricao: "Criação e configuração inicial da conta do cliente na Hotmart.",
       responsavel: "Suporte Técnico",
       tarefas: [
-        "Conta criada e verificada",
-        "Dados bancários e fiscais configurados",
-        "Usuários e permissões de acesso definidos"
+        { nome: "Envio de dados de migração", pilares: ["estrategia"] },
+        { nome: "Completar cadastro da conta", pilares: ["estrategia"] }
       ]
     },
     {
@@ -49,9 +70,11 @@
       descricao: "Treinamento sobre as configurações essenciais da plataforma.",
       responsavel: "Time de Onboarding",
       tarefas: [
-        "Treinamento de configurações gerais realizado",
-        "Identidade visual (logo e cores) configurada",
-        "Domínio, idioma e moeda configurados"
+        { nome: "Overview e navegação", pilares: ["capacitacao"] },
+        { nome: "Cadastro de produtos e formatos", pilares: ["capacitacao"] },
+        { nome: "Configurações de checkout", pilares: ["capacitacao"] },
+        { nome: "Otimização do checkout", pilares: ["estrategia", "capacitacao"] },
+        { nome: "Integrações", pilares: ["capacitacao"] }
       ]
     },
     {
@@ -59,9 +82,13 @@
       descricao: "Treinamento e estruturação da área de membros (Club).",
       responsavel: "Especialista de Produto",
       tarefas: [
-        "Treinamento do Club realizado",
-        "Estrutura de módulos e conteúdo criada",
-        "Regras de liberação de acesso configuradas"
+        { nome: "Navegação básica e ocultar produtos", pilares: ["capacitacao"] },
+        { nome: "Gestão de conteúdo", pilares: ["capacitacao"] },
+        { nome: "Club Sales", pilares: ["estrategia", "capacitacao"] },
+        { nome: "Gestão de turmas e agendamento", pilares: ["capacitacao"] },
+        { nome: "Capas de módulos, aulas e trilhas", pilares: ["capacitacao"] },
+        { nome: "Personalizações", pilares: ["capacitacao"] },
+        { nome: "Extras (tutor, PWA, insights)", pilares: ["capacitacao"] }
       ]
     },
     {
@@ -69,9 +96,8 @@
       descricao: "Ajustes finais de checkout, ofertas e integrações antes da venda.",
       responsavel: "Especialista de Conversão",
       tarefas: [
-        "Checkout personalizado revisado",
-        "Cupons e ofertas configurados",
-        "Integrações finais validadas"
+        { nome: "Criativos e artes", pilares: ["capacitacao"] },
+        { nome: "Configurações gerais da plataforma", pilares: ["estrategia"] }
       ]
     },
     {
@@ -79,9 +105,9 @@
       descricao: "Validação final de ponta a ponta antes da abertura das vendas.",
       responsavel: "QA de Onboarding",
       tarefas: [
-        "Compra de teste realizada com sucesso",
-        "Acesso ao conteúdo validado",
-        "Checklist pré-venda aprovado pelo cliente"
+        { nome: "Relatórios essenciais", pilares: ["estrategia"] },
+        { nome: "Check do Produto", pilares: ["estrategia", "capacitacao"] },
+        { nome: "Definição de abertura de carrinho", pilares: ["estrategia"] }
       ]
     },
     {
@@ -89,9 +115,7 @@
       descricao: "Abertura oficial das vendas ao público.",
       responsavel: "Time de Onboarding",
       tarefas: [
-        "Produto ativado para venda",
-        "Comunicação de lançamento enviada",
-        "Canais de suporte ao comprador configurados"
+        { nome: "Primeiros 10k após início da parceria", pilares: ["relacionamento", "estrategia", "capacitacao"] }
       ]
     },
     {
@@ -99,9 +123,10 @@
       descricao: "Acompanhamento dos primeiros indicadores após a ativação.",
       responsavel: "Estrategista de Conta",
       tarefas: [
-        "Relatório dos primeiros 7 dias enviado",
-        "Dashboard de indicadores configurado",
-        "Reunião de apresentação de resultados realizada"
+        { nome: "Relatório de Agente IA", pilares: ["estrategia"] },
+        { nome: "Gestão de vendas e relatórios de vendas", pilares: ["estrategia"] },
+        { nome: "Desempenho de checkout com Analytics", pilares: ["estrategia"] },
+        { nome: "Dinheiro na mesa", pilares: ["estrategia", "capacitacao"] }
       ]
     },
     {
@@ -109,9 +134,9 @@
       descricao: "Acompanhamento contínuo do cliente após o encerramento do onboarding.",
       responsavel: "Time de Onboarding",
       tarefas: [
-        "Check-in de 30 dias realizado",
-        "Plano de otimização definido",
-        "Encerramento formal do onboarding registrado"
+        { nome: "Reunião de análise 30 dias", pilares: ["relacionamento", "estrategia"] },
+        { nome: "Reunião de análise 60 dias", pilares: ["relacionamento", "estrategia"] },
+        { nome: "Reunião de fechamento do onboarding", pilares: ["relacionamento", "estrategia", "capacitacao"] }
       ]
     }
   ];
@@ -122,8 +147,15 @@
         titulo: fase.titulo,
         descricao: fase.descricao,
         responsavel: fase.responsavel,
-        tarefas: fase.tarefas.map(function (nome, ti) {
-          return { id: "f" + (fi + 1) + "t" + (ti + 1), nome: nome, concluida: false, data: null, removida: false };
+        tarefas: fase.tarefas.map(function (t, ti) {
+          return {
+            id: "f" + (fi + 1) + "t" + (ti + 1),
+            nome: t.nome,
+            pilares: t.pilares.slice(),
+            concluida: false,
+            data: null,
+            removida: false
+          };
         })
       };
     });
@@ -252,6 +284,21 @@
     return total ? Math.round((done / total) * 100) : 0;
   }
 
+  // Conta, entre as tarefas ativas e concluídas, quantas envolvem cada pilar.
+  // Uma tarefa com pilares combinados (ex.: estratégia + capacitação) soma 1 para cada pilar.
+  function pilarCounts(cliente) {
+    var counts = { relacionamento: 0, estrategia: 0, capacitacao: 0 };
+    cliente.fases.forEach(function (fase) {
+      fase.tarefas.forEach(function (t) {
+        if (t.removida || !t.concluida) return;
+        (t.pilares || []).forEach(function (p) {
+          if (counts.hasOwnProperty(p)) counts[p]++;
+        });
+      });
+    });
+    return counts;
+  }
+
   // status de cada fase: a primeira fase incompleta é "atual"; antes dela, "concluida"; depois, "pendente"
   function faseStatuses(cliente) {
     var statuses = [];
@@ -352,6 +399,11 @@
     };
     persist();
     return slug;
+  }
+
+  function deleteClient(slug) {
+    delete store[slug];
+    persist();
   }
 
   // ---------- Renderização ----------
@@ -487,6 +539,59 @@
     return '<div class="chart-card"><div class="bar-chart">' + barsHtml + "</div></div>";
   }
 
+  function pilaresLegendHtml() {
+    var rows = PILARES_LEGEND.map(function (p) {
+      return (
+        '<div class="pilares-legend__row">' +
+          '<span class="pilares-legend__emoji">' + p.emoji + "</span>" +
+          '<span class="pilares-legend__name">' + escapeHtml(p.nome) + "</span>" +
+          '<span class="pilares-legend__goal">' + escapeHtml(p.objetivo) + "</span>" +
+        "</div>"
+      );
+    }).join("");
+    return '<div class="pilares-legend">' + rows + "</div>";
+  }
+
+  function pilarMiniChartHtml(cliente) {
+    var counts = pilarCounts(cliente);
+    var max = Math.max(counts.relacionamento, counts.estrategia, counts.capacitacao, 1);
+    return PILARES_ORDEM.map(function (key) {
+      var meta = PILARES_BASE[key];
+      var pct = Math.round((counts[key] / max) * 100);
+      return (
+        '<div class="pilar-bar-row">' +
+          '<span class="pilar-bar-row__label">' + meta.emoji + " " + meta.nome + "</span>" +
+          '<div class="pilar-bar-row__track"><div class="pilar-bar-row__fill" style="width:' + pct + "%;background:" + meta.cor + '"></div></div>' +
+          '<span class="pilar-bar-row__value">' + counts[key] + "</span>" +
+        "</div>"
+      );
+    }).join("");
+  }
+
+  function pilaresPorClienteHtml(rows) {
+    if (!rows.length) return "";
+    var cards = rows.map(function (r) {
+      var cliente = store[r.slug];
+      var counts = pilarCounts(cliente);
+      var allZero = !counts.relacionamento && !counts.estrategia && !counts.capacitacao;
+      return (
+        '<div class="pilar-card">' +
+          '<div class="pilar-card__header">' +
+            '<a class="pilar-card__name" href="?cliente=' + encodeURIComponent(r.slug) + '">' + escapeHtml(cliente.nome) + "</a>" +
+          "</div>" +
+          (allZero
+            ? '<p class="pilar-card__empty">Nenhuma tarefa concluída com pilar definido ainda.</p>'
+            : pilarMiniChartHtml(cliente)) +
+        "</div>"
+      );
+    }).join("");
+    return (
+      '<p class="analytics__section-label">Pilares por cliente (com base nas tarefas concluídas)</p>' +
+      pilaresLegendHtml() +
+      '<div class="pilar-cards">' + cards + "</div>"
+    );
+  }
+
   function renderAnalytics() {
     copyBtn.style.display = "none";
     var isAdmin = currentUser === ADMIN;
@@ -505,7 +610,8 @@
           statTileHtml(rows.length, rows.length === 1 ? "Cliente" : "Clientes") +
           statTileHtml(avgOf(rows) + "%", "Progresso médio") +
         "</div>" +
-        barChartHtml(rows);
+        barChartHtml(rows) +
+        pilaresPorClienteHtml(rows);
       app.innerHTML = "";
       app.appendChild(wrap);
       return;
@@ -557,7 +663,8 @@
       '<p class="analytics__section-label">Progresso médio por onboarding selecionado</p>' +
       breakdownHtml +
       '<p class="analytics__section-label">Clientes no filtro atual</p>' +
-      barChartHtml(chartRows);
+      barChartHtml(chartRows) +
+      pilaresPorClienteHtml(chartRows);
 
     app.innerHTML = "";
     app.appendChild(wrap);
@@ -612,8 +719,11 @@
       openPhases.add(atualIdx >= 0 ? atualIdx : 0);
     }
 
-    var backWrap = document.createElement("div");
-    backWrap.innerHTML = backLinkHtml();
+    var topRow = document.createElement("div");
+    topRow.className = "client-top-row";
+    topRow.innerHTML =
+      backLinkHtml() +
+      '<button type="button" class="btn btn--danger btn--small" data-action="delete-client">Excluir cliente</button>';
 
     var header = document.createElement("section");
     header.className = "client-header";
@@ -688,7 +798,7 @@
     footer.textContent = "Este link é exclusivo e não requer login. Guarde-o para acompanhar seu onboarding a qualquer momento.";
 
     app.innerHTML = "";
-    app.appendChild(backWrap.firstElementChild);
+    app.appendChild(topRow);
     app.appendChild(header);
     app.appendChild(timeline);
     app.appendChild(footer);
@@ -804,6 +914,17 @@
     } else if (action === "filter-clear") {
       analyticsFilter = new Set();
       refresh();
+    } else if (action === "delete-client") {
+      var clienteAtual = store[slug];
+      if (!clienteAtual) return;
+      openConfirmModal(
+        "Excluir cliente",
+        "Tem certeza que deseja excluir " + clienteAtual.nome + "? Essa ação não pode ser desfeita.",
+        function () {
+          deleteClient(slug);
+          goToPicker();
+        }
+      );
     }
   });
 
@@ -882,6 +1003,31 @@
 
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && modal.classList.contains("is-open")) closeModal();
+    if (e.key === "Escape" && confirmModal.classList.contains("is-open")) closeConfirmModal();
+  });
+
+  function openConfirmModal(title, message, onConfirm) {
+    confirmModalTitle.textContent = title;
+    confirmModalMessage.textContent = message;
+    confirmModalCallback = onConfirm;
+    confirmModal.classList.add("is-open");
+    confirmModal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeConfirmModal() {
+    confirmModal.classList.remove("is-open");
+    confirmModal.setAttribute("aria-hidden", "true");
+    confirmModalCallback = null;
+  }
+
+  confirmModal.addEventListener("click", function (e) {
+    if (e.target.closest('[data-action="close-confirm-modal"]')) closeConfirmModal();
+  });
+
+  confirmModalConfirmBtn.addEventListener("click", function () {
+    var cb = confirmModalCallback;
+    closeConfirmModal();
+    if (cb) cb();
   });
 
   addClientForm.addEventListener("submit", function (e) {
