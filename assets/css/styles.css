@@ -161,6 +161,24 @@ a {
   border-color: var(--hm-orange);
 }
 
+/* Ações secundárias/utilitárias da topbar (menos frequentes que Analytics ou
+   + Novo cliente) — peso visual mais leve para não competir com a navegação
+   principal. */
+.btn--subtle {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid transparent;
+}
+
+.btn--subtle:hover {
+  color: var(--hm-white);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.btn--subtle.is-copied {
+  color: var(--hm-orange);
+}
+
 .btn--secondary {
   background: var(--hm-white);
   color: var(--hm-black);
@@ -944,6 +962,18 @@ a {
   letter-spacing: 0.4px;
   color: var(--hm-text-muted);
   margin: 4px 0 10px;
+}
+
+.analytics__section-label--icon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.analytics__section-label--icon svg {
+  /* Ícone: restrito à paleta laranja/off-white/preto/branco do brandbook */
+  color: var(--hm-orange-dark);
+  flex-shrink: 0;
 }
 
 .filter-row {

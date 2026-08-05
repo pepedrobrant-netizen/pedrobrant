@@ -717,7 +717,10 @@
   function pilarMiniChartHtml(cliente) {
     var counts = pilarCombCounts(cliente);
     var max = Math.max.apply(null, PILARES_LEGEND.map(function (p) { return counts[p.key]; }).concat([1]));
-    return PILARES_LEGEND.map(function (p) {
+    // Só mostra categorias com pelo menos 1 tarefa concluída — com a legenda tendo
+    // 7 combinações, exibir todas sempre vira uma parede de barras zeradas para
+    // clientes no início do onboarding.
+    return PILARES_LEGEND.filter(function (p) { return counts[p.key] > 0; }).map(function (p) {
       var val = counts[p.key];
       var pct = Math.round((val / max) * 100);
       return (
@@ -786,8 +789,19 @@
         }).join("") + "</div>"
       : '<p class="picker__text">Nenhum aniversariante este mês (com base no CRM preenchido neste navegador).</p>';
 
+    var cakeIcon =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M4 21h16" />' +
+        '<path d="M5 21v-7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7" />' +
+        '<path d="M12 12V7" />' +
+        '<path d="M12 7c-1 0-1.5-.7-1.5-1.5S12 3 12 3s1.5.7 1.5 1.5S13 7 12 7z" />' +
+      "</svg>";
+
     return (
-      '<p class="analytics__section-label">🎂 Aniversariantes de ' + MESES[curMonth - 1] + "</p>" +
+      '<p class="analytics__section-label analytics__section-label--icon">' +
+        cakeIcon + "Aniversariantes de " + MESES[curMonth - 1] +
+      "</p>" +
       body
     );
   }
@@ -1071,6 +1085,7 @@
           "aparecem para outros times/dispositivos que não tenham preenchido aqui.</p>" +
       "</div>" +
       '<div class="crm__card">' +
+        '<p class="crm__card-title">Contato</p>' +
         '<label class="field crm-field">' +
           '<span class="field__label">ID do cliente</span>' +
           '<input class="field__input" type="text" data-action="crm-set-text" data-field="idCliente" ' +
@@ -1090,6 +1105,9 @@
           '<span class="field__label">Data de aniversário</span>' +
           '<input class="field__input" type="date" data-action="crm-set-text" data-field="aniversario" value="' + (crm.aniversario || "") + '" />' +
         "</label>" +
+      "</div>" +
+      '<div class="crm__card">' +
+        '<p class="crm__card-title">Comercial</p>' +
         '<div class="field crm-field">' +
           '<span class="field__label">Vai participar de algum evento?</span>' +
           yesNoToggleHtml("eventoParticipa", crm.eventoParticipa, slug) +
