@@ -1680,4 +1680,54 @@ a {
     width: 100%;
   }
 }
+
+/* Impressão / "Salvar como PDF" — usado pelo botão "Baixar PDF do cliente" para gerar
+   um retrato estático do cronograma, que pode ser enviado ao cliente por fora do app
+   (sem exigir login com conta @hotmart.com). Só afeta o que é impresso, não a tela. */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .topbar,
+  .hero-banner,
+  .modal,
+  .back-link,
+  .client-top-row__actions,
+  .avatar-upload-btn,
+  .client-header__remove-photo,
+  .phase__chevron,
+  .task-remove,
+  .task-restore,
+  .task-delete,
+  .add-task-btn,
+  .add-task-form,
+  .removed-tasks,
+  .footer-note {
+    display: none !important;
+  }
+
+  body {
+    background: var(--hm-white);
+  }
+
+  .app {
+    max-width: none;
+    padding: 0;
+  }
+
+  .phase__body {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .phase__header {
+    cursor: default;
+  }
+
+  .phase__card {
+    break-inside: avoid;
+  }
+}
 </style>

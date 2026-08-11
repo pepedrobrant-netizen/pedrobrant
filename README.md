@@ -25,8 +25,15 @@ para o código e o [passo a passo de publicação](google-apps-script/README.md)
   republicar nada.
 - Cada cliente é acessado pela URL do Web App + `?cliente=<slug>`, por exemplo:
   `https://script.google.com/macros/s/AKfycb.../exec?cliente=acme-cursos`. Esse link
-  funciona **sem login** — quem só tem o link vê o cronograma daquele cliente
+  não exige senha do time — quem só tem o link vê o cronograma daquele cliente
   específico, em modo leitura (não dá pra marcar tarefas nem editar nada por ali).
+  ⚠️ Mas, se a política do Google Workspace da Hotmart estiver restringindo o deploy a
+  "Qualquer pessoa em Hotmart" (em vez de "Qualquer pessoa"), esse link só abre para
+  quem tem conta `@hotmart.com` — um cliente externo não consegue acessá-lo. Nesse
+  caso, use o botão **"Baixar PDF do cliente"** (ao lado de "Copiar link do cliente")
+  para gerar um PDF estático do cronograma e enviar por e-mail/WhatsApp — não atualiza
+  sozinho, mas funciona para qualquer pessoa, sem depender de conta Google. Detalhes em
+  [`google-apps-script/README.md`](google-apps-script/README.md#7-compartilhar-o-link-de-um-cliente).
 - Sem o parâmetro `cliente`, a página pede login do time antes de mostrar a lista de
   clientes, o botão **"+ Novo cliente"** ou o Analytics — essas telas são só para quem
   está logado (ver "Login do time" abaixo).

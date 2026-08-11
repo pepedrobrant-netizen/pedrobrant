@@ -87,17 +87,28 @@ O link de cada cliente é a URL do Web App + `?cliente=<slug>`, por exemplo:
 ```
 https://script.google.com/macros/s/AKfycb.../exec?cliente=acme-cursos
 ```
-Esse link funciona **sem login**, em modo leitura. Você pode copiá-lo direto de
-dentro do app, pelo botão **"Copiar link do cliente"** na página de cada cliente.
+Esse link funciona sem login (modo leitura). Você pode copiá-lo direto de dentro do
+app, pelo botão **"Copiar link do cliente"** na página de cada cliente.
 
-⚠️ **Aviso importante sobre esse link**: como o script ainda não foi verificado pelo
-Google (isso só acontece para apps públicos que passam por uma revisão formal), quem
-abrir o link pela primeira vez pode ver uma tela de aviso ("This app isn't verified").
-Isso é do Google, não um bug — para uma ferramenta interna, geralmente dá pra
-ignorar/avançar, mas pode passar uma impressão não muito profissional para clientes
-externos. Se isso for um problema, existe um processo de verificação do Google Cloud
-(fora do escopo deste guia) que remove esse aviso — vale perguntar ao time de TI da
-Hotmart se isso é necessário.
+⚠️ **Atenção — esse link só funciona para quem tem conta `@hotmart.com`.** Se no passo
+5 ("Quem pode acessar") a única opção disponível foi **"Qualquer pessoa em Hotmart"**
+(sem a opção "Qualquer pessoa"), isso significa que a política do Google Workspace da
+Hotmart restringe o acesso ao domínio. Na prática: **um cliente externo não consegue
+abrir esse link** — ele cai numa tela de login do Google pedindo uma conta que ele não
+tem. Isso não é um bug do app, é uma configuração do Workspace; só a TI da Hotmart pode
+mudar isso (perguntando se dá pra liberar "Qualquer pessoa" só para este Web App).
+
+**Enquanto isso não é liberado, use o botão "Baixar PDF do cliente"** (ao lado de
+"Copiar link do cliente") para gerar um retrato estático do cronograma do cliente:
+1. Abra a página do cliente.
+2. Clique em **"Baixar PDF do cliente"** — abre a caixa de impressão do navegador,
+   com todas as fases já expandidas e sem os botões de edição.
+3. Em "Destino"/"Salvar como", escolha **"Salvar como PDF"** e salve o arquivo.
+4. Envie o PDF ao cliente por e-mail, WhatsApp, etc.
+
+A desvantagem é que o PDF é uma foto do momento — não atualiza sozinho. Sempre que o
+cronograma mudar, é preciso gerar e reenviar um PDF novo. Mas resolve o problema de
+acesso sem depender de nenhuma liberação da TI.
 
 ## Atualizando o app depois de mudanças no código
 

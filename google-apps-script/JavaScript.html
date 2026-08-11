@@ -61,6 +61,7 @@
   var app = document.getElementById("app");
   var heroBanner = document.getElementById("hero-banner");
   var copyBtn = document.getElementById("copy-link-btn");
+  var printBtn = document.getElementById("print-client-btn");
   var exportBtn = document.getElementById("export-btn");
   var addClientBtn = document.getElementById("add-client-btn");
   var analyticsBtn = document.getElementById("analytics-btn");
@@ -464,6 +465,7 @@
 
   function renderLoginGate(errorMsg) {
     copyBtn.style.display = "none";
+    printBtn.style.display = "none";
     var wrap = document.createElement("section");
     wrap.className = "picker";
     wrap.innerHTML =
@@ -720,6 +722,7 @@
 
   function renderProfileGate() {
     copyBtn.style.display = "none";
+    printBtn.style.display = "none";
     var tpl = document.getElementById("tpl-profile-gate");
     var node = tpl.content.cloneNode(true);
     var grid = node.getElementById("profile-grid");
@@ -743,6 +746,7 @@
 
   function renderPicker() {
     copyBtn.style.display = "none";
+    printBtn.style.display = "none";
     var tpl = document.getElementById("tpl-client-picker");
     var node = tpl.content.cloneNode(true);
     var list = node.getElementById("picker-list");
@@ -790,6 +794,7 @@
 
   function renderNotFound() {
     copyBtn.style.display = "none";
+    printBtn.style.display = "none";
     var tpl = document.getElementById("tpl-not-found");
     var backWrap = document.createElement("div");
     backWrap.innerHTML = backLinkHtml();
@@ -990,6 +995,7 @@
 
   function renderAnalytics() {
     copyBtn.style.display = "none";
+    printBtn.style.display = "none";
     var isAdmin = currentUser === ADMIN;
 
     if (!isAdmin) {
@@ -1112,6 +1118,7 @@
   function renderClient(slug) {
     var cliente = store[slug];
     copyBtn.style.display = "inline-block";
+    printBtn.style.display = "inline-block";
     var progress = clientProgress(cliente);
     var statuses = faseStatuses(cliente);
 
@@ -1286,6 +1293,7 @@
 
   function renderCrm(slug) {
     copyBtn.style.display = "none";
+    printBtn.style.display = "none";
     var cliente = store[slug];
     var crm = getCrm(slug);
 
@@ -1663,6 +1671,10 @@
         copyBtn.classList.remove("is-copied");
       }, 2000);
     });
+  });
+
+  printBtn.addEventListener("click", function () {
+    window.print();
   });
 
   exportBtn.addEventListener("click", function () {
