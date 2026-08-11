@@ -1,38 +1,52 @@
 # Cronograma de Onboarding — 8 Fases
 
-Página estática (HTML/CSS/JS, sem passo de build) para acompanhar o onboarding de
-clientes em **8 fases**, com a identidade visual da Hotmart, com os dados guardados num
-banco Supabase compartilhado por todo o time. Cada cliente acompanha seu próprio
-cronograma através de um **link único, sem precisar de login**; só o time precisa
-autenticar para editar.
+Acompanha o onboarding de clientes em **8 fases**, com a identidade visual da Hotmart.
+Cada cliente acompanha seu próprio cronograma através de um **link único, sem precisar
+de login**; só o time precisa autenticar para editar.
+
+**Publicação atual: Google Apps Script.** Por orientação interna da Hotmart, o app é
+publicado como um Web App do Google Apps Script (dados numa Planilha Google), em vez de
+hospedagem estática externa — ver a pasta [`google-apps-script/`](google-apps-script/)
+para o código e o [passo a passo de publicação](google-apps-script/README.md).
+
+> Este repositório também tem uma versão anterior (site estático + banco Supabase, em
+> `index.html`/`assets/`/`sql/`) de quando essa era a arquitetura prevista. Ela ficou
+> **em espera** por causa da restrição de usar só Google Apps Script — o código
+> continua aqui como referência, caso a política mude no futuro, mas **não é o que
+> está publicado hoje**. A partir daqui, este README descreve a versão em uso: Apps
+> Script + Planilha.
 
 ## Como funciona
 
-- Os dados (clientes, fases/tarefas, CRM) ficam num banco Postgres no
-  [Supabase](https://supabase.com) — ver `sql/schema.sql` para a estrutura completa das
-  tabelas e das regras de acesso (RLS). Isso significa que uma mudança feita por
-  qualquer pessoa do time aparece para todo mundo, em qualquer navegador/dispositivo,
-  sem precisar de "Exportar dados" nem republicar nada.
-- Cada cliente é acessado pela URL `?cliente=<slug>`, por exemplo:
-  `https://seudominio.com/?cliente=acme-cursos`. Esse link funciona **sem login** — quem
-  só tem o link vê o cronograma daquele cliente específico, em modo leitura (não dá pra
-  marcar tarefas nem editar nada por ali).
+- Os dados (clientes, fases/tarefas, CRM) ficam numa **Planilha Google**, lida e
+  gravada pelo `google-apps-script/Code.gs` — abas **Clientes** e **CRM**, criadas
+  automaticamente. Uma mudança feita por qualquer pessoa do time aparece pra todo
+  mundo, em qualquer navegador/dispositivo, sem precisar de "Exportar dados" nem
+  republicar nada.
+- Cada cliente é acessado pela URL do Web App + `?cliente=<slug>`, por exemplo:
+  `https://script.google.com/macros/s/AKfycb.../exec?cliente=acme-cursos`. Esse link
+  funciona **sem login** — quem só tem o link vê o cronograma daquele cliente
+  específico, em modo leitura (não dá pra marcar tarefas nem editar nada por ali).
 - Sem o parâmetro `cliente`, a página pede login do time antes de mostrar a lista de
   clientes, o botão **"+ Novo cliente"** ou o Analytics — essas telas são só para quem
   está logado (ver "Login do time" abaixo).
-- A conexão com o Supabase é configurada em `assets/js/supabase-config.js` (URL do
-  projeto + chave pública `anon`/`publishable` — essa chave é segura de ficar exposta no
-  código, a segurança de verdade vem das políticas de RLS do banco, não do sigilo dela).
+- **Diferença importante em relação a um site normal**: como o Apps Script roda a
+  página dentro de um iframe isolado do Google, a navegação interna do app (clicar num
+  cliente, voltar para a lista, etc.) acontece **toda em memória** (sem mudar a URL do
+  navegador) — só o link que você compartilha (`?cliente=slug`) importa, para a
+  primeira abertura da página. O botão "voltar" do navegador não acompanha a navegação
+  interna; use os links "← Voltar" da própria interface.
 
-## Login do time (Supabase Auth)
+## Login do time (senha única)
 
 - Ao abrir a página sem um link de cliente específico, aparece a tela **"Login do
-  time"** — pede e-mail e senha (autenticação real via Supabase Auth, não é mais só
-  escolher um nome numa lista).
-- Contas de acesso são criadas no painel do Supabase (Authentication → Users → Add
-  user). Pode ser uma única conta compartilhada por todo o time, ou uma por pessoa —
-  qualquer conta autenticada tem acesso de leitura/escrita total (não há hoje o conceito
-  de "só o responsável edita o próprio cliente").
+  time"** — pede a senha do time (configurada nas Script Properties do projeto, chave
+  `TEAM_PASSWORD` — nunca fica escrita em nenhum arquivo de código).
+- É uma senha compartilhada (não contas individuais) — qualquer pessoa com a senha tem
+  acesso de leitura/escrita total (não há hoje o conceito de "só o responsável edita o
+  próprio cliente").
+- A sessão dura até 6 horas (limite técnico do `CacheService` do Apps Script), depois
+  disso pede login de novo.
 - Depois de logado, o botão **"Sair"** aparece na barra superior para encerrar a sessão.
 - O link direto de um cliente (`?cliente=slug`) **nunca exige login** — continua
   funcionando normalmente para quem só tem o link, sempre em modo leitura.
@@ -133,28 +147,27 @@ volta a mostrar o mês vigente; nada disso é salvo no `localStorage`.
 
 **Como a restrição funciona de verdade, não só visualmente:**
 
-- O botão "CRM" só aparece para quem está com **login do time ativo** (sessão do
-  Supabase Auth). Sem login — que é sempre o caso de quem abre o link do cliente direto,
-  já que esse link nunca exige login — o botão não é renderizado.
+- O botão "CRM" só aparece para quem está com **login do time ativo** (token de
+  sessão válido). Sem login — que é sempre o caso de quem abre o link do cliente
+  direto, já que esse link nunca exige login — o botão não é renderizado.
 - A rota (`?cliente=slug&view=crm`) também é protegida no roteamento: sem sessão, esse
   parâmetro é ignorado e a página cai na tela normal (leitura) do cliente, sem revelar
   que a aba existe.
-- Mais importante, a proteção não é só de interface: a tabela `crm` no banco não tem
-  **nenhuma** política de acesso liberada para quem não está autenticado (ver
-  `sql/schema.sql`) — mesmo alguém tentando ler diretamente pela API do Supabase, usando
-  a chave pública do site, não consegue nenhuma linha dessa tabela sem estar logado. O
-  link público do cliente só enxerga a tabela `clients`, e só o próprio registro (via a
-  função `get_client_by_slug`), nunca `crm`.
-- Como o banco agora é compartilhado, CRM preenchido por qualquer pessoa do time
-  aparece para todo o time, em qualquer navegador/dispositivo — diferente da limitação
-  que existia na versão anterior (só localStorage).
+- Mais importante, a proteção não é só de interface: as funções do servidor
+  (`google-apps-script/Code.gs`) que leem/gravam a aba **CRM** exigem um token de
+  sessão válido (`requireSession_`) — mesmo alguém tentando chamar essas funções
+  diretamente, sem passar pela tela de login, recebe erro. O link público do cliente só
+  consegue chamar `getPublicClient(slug)`, que só devolve dados da aba **Clientes**, e
+  só o registro daquele slug — nunca a aba CRM.
+- Como os dados agora ficam numa planilha compartilhada, CRM preenchido por qualquer
+  pessoa do time aparece para todo o time, em qualquer navegador/dispositivo.
 
 ## Adicionar um novo cliente
 
 Pelo botão **"+ Novo cliente"** na barra superior (só visível logado): preenche nome,
 empresa, ID da conta e data de início, e o cliente já nasce com as 8 fases padrão (ver
-`TEMPLATE_FASES` em `assets/js/app.js`) prontas para ajustar, direto no banco Supabase —
-já aparece pra todo o time.
+`TEMPLATE_FASES` em `google-apps-script/JavaScript.html`) prontas para ajustar, direto
+na Planilha — já aparece pra todo o time.
 
 - `responsavelCliente` aceita `"Ilana"`, `"Pedro"`, `"Josiane"` ou `"Madu"` — define quem
   vê esse cliente na lista/Analytics quando filtrado por perfil.
@@ -174,7 +187,7 @@ já aparece pra todo o time.
 
 `data/clients.json` continua no repositório como referência do formato de dados e dos
 3 clientes de demonstração originais, mas **não é mais lido pelo app** — os dados reais
-vivem só no banco Supabase agora.
+vivem só na Planilha Google agora.
 
 ## Analytics
 
@@ -212,48 +225,36 @@ do pilar; as 4 combinações usam um gradiente das cores dos pilares envolvidos,
 diferenciar visualmente sem inventar cores novas. Tarefas extras adicionadas por "+
 Adicionar tarefa" não têm pilar definido, então não entram nessa contagem.
 
-## Rodar localmente
+## Publicar / rodar
 
-```bash
-python3 -m http.server 8000
-```
+A publicação é feita direto no editor do Google Apps Script, não por git push nem
+servidor próprio — ver o passo a passo completo em
+[`google-apps-script/README.md`](google-apps-script/README.md). Resumo:
 
-Depois acesse `http://localhost:8000/`. Como os dados agora vêm do Supabase (não mais de
-`data/clients.json`), é preciso que `assets/js/supabase-config.js` aponte para um
-projeto Supabase válido com o schema de `sql/schema.sql` já criado — sem isso, a tela de
-login funciona mas não há dados pra carregar depois de logar. Abrir o `index.html`
-diretamente como arquivo (`file://`) não funciona; é necessário um servidor HTTP.
+1. Cria uma Google Sheet (vira o banco de dados).
+2. Extensões → Apps Script, cola `Code.gs`, `Index.html`, `Stylesheet.html` e
+   `JavaScript.html`.
+3. Configura a senha do time em Script Properties (`TEAM_PASSWORD`).
+4. Deploy → New deployment → Web app (Execute as: Me, Access: Anyone).
+5. A URL do deployment (`.../exec`) é a URL do site; `.../exec?cliente=slug` é o link
+   de cada cliente.
 
-## Publicar
-
-Por ser 100% estático no front (HTML/CSS/JS, sem passo de build), pode ser publicado em
-qualquer hospedagem de arquivos estáticos (GitHub Pages, Netlify, Vercel, S3, etc.) — o
-banco de dados é externo (Supabase), então não precisa de servidor próprio além da
-hospedagem estática.
-
-## Configurar o backend (Supabase) do zero
-
-1. Crie um projeto em [supabase.com](https://supabase.com) (tem plano gratuito).
-2. No **SQL Editor** do painel, cole e rode todo o conteúdo de `sql/schema.sql` — cria
-   as tabelas `clients`/`crm` e as políticas de segurança (RLS).
-3. Em **Settings → API Keys** (ou **Integrations → Data API**, dependendo da versão do
-   painel), copie a **Project URL** e a chave **`anon`/`publishable`** (nunca a
-   `secret`/`service_role`) e cole em `assets/js/supabase-config.js`.
-4. Em **Authentication → Users**, crie ao menos uma conta (e-mail + senha) para o time
-   logar — pode ser uma conta compartilhada ou uma por pessoa (ver "Login do time"
-   acima).
-5. Pronto: publique o site normalmente. O link de cada cliente (`?cliente=slug`) já
-   funciona sem login assim que o cliente correspondente existir no banco.
+Não existe "rodar localmente" no sentido tradicional (sem servidor próprio) — para
+testar mudanças de código, cole os arquivos atualizados no editor do Apps Script e crie
+uma nova versão do deployment (ver "Atualizando o app" no README da pasta
+`google-apps-script/`).
 
 ## Estrutura
 
 ```
-index.html                     página única (login, tela inicial, timeline do cliente, modal de novo cliente)
-assets/css/styles.css          estilo com a paleta de cores da Hotmart
-assets/js/app.js                autenticação, dados via Supabase, cálculo de progresso, CRUD e renderização
-assets/js/supabase-config.js   URL do projeto + chave pública do Supabase
-sql/schema.sql                  tabelas clients/crm e políticas de segurança (RLS) do Supabase
-data/clients.json               referência do formato de dados + clientes de demonstração (não é mais lido pelo app)
+google-apps-script/Code.gs               servidor: auth (senha do time), CRUD de clientes/CRM na Planilha
+google-apps-script/Index.html            página única (login, tela inicial, timeline do cliente, modal de novo cliente)
+google-apps-script/Stylesheet.html       estilo com a paleta de cores da Hotmart (mesmo CSS de sempre, embutido)
+google-apps-script/JavaScript.html       autenticação, dados via google.script.run, cálculo de progresso, CRUD e renderização
+google-apps-script/README.md             passo a passo de publicação
+
+index.html, assets/, sql/                versão anterior (site estático + Supabase), em espera — ver nota no topo deste README
+data/clients.json                        referência do formato de dados + clientes de demonstração (não é lido por nenhuma das duas versões em produção)
 ```
 
 ## Brandbook Hotmart

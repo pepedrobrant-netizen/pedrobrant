@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cronograma de Onboarding</title>
+  <meta name="description" content="Acompanhe as 8 fases do seu onboarding em tempo real, sem necessidade de login." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 128'%3E%3Cpath fill='%23FF4000' fill-rule='evenodd' clip-rule='evenodd' d='M55 4C66 16 78 22 78 36C90 50 92 66 92 80C92 106 73 126 50 126C27 126 8 106 8 80C8 62 14 46 28 34C26 44 34 46 38 36C36 26 46 22 42 12C48 18 52 14 55 4Z M50 82A17 17 0 1 1 49.99 82Z'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bitter:wght@700;800&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <?!= include('Stylesheet'); ?>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__brand">
+      <svg class="topbar__logo" viewBox="0 0 100 128" aria-hidden="true">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M55 4C66 16 78 22 78 36C90 50 92 66 92 80C92 106 73 126 50 126C27 126 8 106 8 80C8 62 14 46 28 34C26 44 34 46 38 36C36 26 46 22 42 12C48 18 52 14 55 4Z M50 82A17 17 0 1 1 49.99 82Z"/>
+      </svg>
+      <span class="topbar__title">Onboarding</span>
+    </div>
+    <div class="topbar__actions">
+      <button id="analytics-btn" class="btn btn--ghost" type="button">
+        Analytics
+      </button>
+      <button id="copy-link-btn" class="btn btn--subtle" type="button" title="Copiar link deste cliente">
+        Copiar link do cliente
+      </button>
+      <button id="export-btn" class="btn btn--subtle" type="button" title="Baixar os dados atuais em clients.json">
+        Exportar dados
+      </button>
+      <button id="add-client-btn" class="btn btn--primary" type="button">
+        + Novo cliente
+      </button>
+      <button id="profile-btn" class="btn btn--profile" type="button" title="Trocar perfil">
+        <span id="profile-btn-label">Selecionar perfil</span>
+      </button>
+      <button id="logout-btn" class="btn btn--subtle" type="button" title="Sair da conta do time" hidden>
+        Sair
+      </button>
+    </div>
+  </header>
+
+  <div class="hero-banner" id="hero-banner" hidden>
+    <div class="hero-banner__inner">
+      <p class="hero-banner__text">Hotmart. <span>Aqui acontece.</span></p>
+    </div>
+  </div>
+
+  <main id="app" class="app">
+    <!-- Preenchido dinamicamente por JavaScript.html -->
+    <div class="loading" id="loading-state">Carregando cronograma…</div>
+  </main>
+
+  <input type="file" id="photo-input" accept="image/*" hidden />
+
+  <div class="modal" id="add-client-modal" aria-hidden="true">
+    <div class="modal__overlay" data-action="close-modal"></div>
+    <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="add-client-title">
+      <h2 class="modal__title" id="add-client-title">Novo cliente</h2>
+      <p class="modal__text">
+        Cria um cliente com as 8 fases padrão do onboarding, prontas para acompanhar. O cronograma
+        pode ser ajustado depois (remover tarefas que não se aplicam, marcar datas, etc.).
+      </p>
+      <form id="add-client-form">
+        <label class="field">
+          <span class="field__label">Nome do cliente *</span>
+          <input class="field__input" type="text" name="nome" required autocomplete="off" />
+        </label>
+        <label class="field">
+          <span class="field__label">Empresa</span>
+          <input class="field__input" type="text" name="empresa" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span class="field__label">ID da conta</span>
+          <input class="field__input" type="text" name="idConta" autocomplete="off" placeholder="Ex.: HM-00000" />
+        </label>
+        <label class="field">
+          <span class="field__label">Responsável *</span>
+          <select class="field__input" name="responsavelCliente" required>
+            <option value="" disabled selected>Selecione…</option>
+            <option value="Ilana">Ilana</option>
+            <option value="Pedro">Pedro</option>
+            <option value="Josiane">Josiane</option>
+            <option value="Madu">Madu</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field__label">Data de início</span>
+          <input class="field__input" type="date" name="dataInicio" />
+        </label>
+        <p class="modal__error" id="add-client-error" hidden></p>
+        <div class="modal__actions">
+          <button type="button" class="btn btn--secondary" data-action="close-modal">Cancelar</button>
+          <button type="submit" class="btn btn--primary">Criar cliente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="confirm-modal" aria-hidden="true">
+    <div class="modal__overlay" data-action="close-confirm-modal"></div>
+    <div class="modal__dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+      <h2 class="modal__title" id="confirm-modal-title">Confirmar ação</h2>
+      <p class="modal__text" id="confirm-modal-message"></p>
+      <div class="modal__actions">
+        <button type="button" class="btn btn--secondary" data-action="close-confirm-modal">Cancelar</button>
+        <button type="button" class="btn btn--danger" id="confirm-modal-confirm">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <template id="tpl-profile-gate">
+    <section class="picker">
+      <div class="picker__card">
+        <h1 class="picker__heading">Quem é você?</h1>
+        <p class="picker__text">
+          Selecione seu perfil para ver os clientes sob sua responsabilidade. Isso não é um
+          login — é só uma preferência salva neste navegador, para filtrar a lista.
+        </p>
+        <div class="profile-grid" id="profile-grid"></div>
+      </div>
+    </section>
+  </template>
+
+  <template id="tpl-client-picker">
+    <section class="picker">
+      <div class="picker__card">
+        <h1 class="picker__heading">Cronograma de Onboarding</h1>
+        <p class="picker__text">
+          Nenhum cliente foi informado no link. Cada cliente acessa o próprio cronograma por meio
+          de um link único — sem necessidade de senha ou login. Escolha um cliente abaixo para
+          visualizar:
+        </p>
+        <div class="picker__list" id="picker-list"></div>
+        <p class="picker__hint">
+          Link de exemplo: <code id="picker-example-url"></code>
+        </p>
+      </div>
+    </section>
+  </template>
+
+  <template id="tpl-not-found">
+    <section class="picker">
+      <div class="picker__card">
+        <span class="picker__logo" aria-hidden="true">⚠️</span>
+        <h1 class="picker__heading">Cliente não encontrado</h1>
+        <p class="picker__text">
+          O link acessado não corresponde a nenhum cliente cadastrado. Verifique se o endereço
+          está completo e correto, ou entre em contato com o time responsável pelo seu onboarding.
+        </p>
+      </div>
+    </section>
+  </template>
+
+  <script>
+    // Injetado pelo servidor (Code.gs > doGet) — window.location não é confiável
+    // dentro do sandbox do Apps Script, então os parâmetros da URL de entrada e a URL
+    // base do deployment chegam por aqui, não por window.location.search.
+    window.GAS_INITIAL_PARAMS = {
+      cliente: "<?= initialCliente ?>",
+      view: "<?= initialView ?>"
+    };
+    window.GAS_BASE_URL = "<?= baseUrl ?>";
+  </script>
+  <?!= include('JavaScript'); ?>
+</body>
+</html>

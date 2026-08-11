@@ -1,0 +1,1820 @@
+<script>
+(function () {
+  "use strict";
+
+  // Preferência local de qual nome está filtrando a lista/Analytics — não é mais a
+  // fronteira de segurança (isso agora é o token de sessão do time, ver "session"
+  // mais abaixo). Fica em localStorage só para lembrar a escolha entre visitas.
+  var PROFILE_KEY = "hm_current_user_v1";
+
+  var PROFILES = ["Ilana", "Pedro", "Josiane", "Madu", "Administrador"];
+  var ASSIGNABLE = ["Ilana", "Pedro", "Josiane", "Madu"];
+  var ADMIN = "Administrador";
+
+  // Pilares de atuação (usados para classificar tarefas e no gráfico do Analytics)
+  var PILARES_BASE = {
+    relacionamento: { emoji: "🟢", nome: "Relacionamento", cor: "#2F8F5B" },
+    estrategia: { emoji: "🔵", nome: "Estratégia", cor: "#2F5FA8" },
+    capacitacao: { emoji: "🟡", nome: "Capacitação", cor: "#FFD450" }
+  };
+  function sortedPilaresKey(arr) {
+    return arr.slice().sort().join(",");
+  }
+
+  // As 7 combinações da legenda — "keys" é a combinação exata de pilares base que
+  // define a categoria; "key" é a chave canônica usada para classificar cada tarefa.
+  var PILARES_LEGEND = [
+    { keys: ["relacionamento"], emoji: "🟢", nome: "Relacionamento", objetivo: "Construir confiança" },
+    { keys: ["estrategia"], emoji: "🔵", nome: "Estratégia", objetivo: "Direcionar" },
+    { keys: ["capacitacao"], emoji: "🟡", nome: "Capacitação", objetivo: "Desenvolver" },
+    { keys: ["relacionamento", "estrategia"], emoji: "🟢🔵", nome: "Inteligência do Cliente", objetivo: "Personalizar" },
+    { keys: ["estrategia", "capacitacao"], emoji: "🔵🟡", nome: "Enablement Estratégico", objetivo: "Preparar" },
+    { keys: ["relacionamento", "capacitacao"], emoji: "🟢🟡", nome: "Customer Enablement", objetivo: "Engajar" },
+    { keys: ["relacionamento", "estrategia", "capacitacao"], emoji: "🟢🔵🟡", nome: "Customer Success", objetivo: "Gerar resultado" }
+  ];
+  PILARES_LEGEND.forEach(function (p) {
+    p.key = sortedPilaresKey(p.keys);
+    p.cor = p.keys.length === 1
+      ? PILARES_BASE[p.keys[0]].cor
+      : "linear-gradient(90deg, " + p.keys.map(function (k) { return PILARES_BASE[k].cor; }).join(", ") + ")";
+  });
+
+  // Ponte com o servidor (Code.gs) via google.script.run, envelopada em Promise pra
+  // poder usar .then()/.catch() como o resto do código já fazia com o Supabase.
+  var GS_TOKEN_KEY = "hm_team_token_v1";
+  function gsRun(fnName) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function (resolve, reject) {
+      var runner = google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(function (err) { reject(err); });
+      runner[fnName].apply(runner, args);
+    });
+  }
+
+  // Token de sessão do time — null quando ninguém do time está logado (ex.: link
+  // público do cliente). É essa variável, não o "currentUser" (nome escolhido na
+  // lista), que decide o que pode ser lido/editado; currentUser continua sendo só
+  // uma preferência de filtro, agora só relevante depois de já estar logado.
+  var session = localStorage.getItem(GS_TOKEN_KEY) || null;
+
+  var app = document.getElementById("app");
+  var heroBanner = document.getElementById("hero-banner");
+  var copyBtn = document.getElementById("copy-link-btn");
+  var exportBtn = document.getElementById("export-btn");
+  var addClientBtn = document.getElementById("add-client-btn");
+  var analyticsBtn = document.getElementById("analytics-btn");
+  var profileBtn = document.getElementById("profile-btn");
+  var profileBtnLabel = document.getElementById("profile-btn-label");
+  var logoutBtn = document.getElementById("logout-btn");
+  var modal = document.getElementById("add-client-modal");
+  var addClientForm = document.getElementById("add-client-form");
+  var addClientError = document.getElementById("add-client-error");
+  var confirmModal = document.getElementById("confirm-modal");
+  var confirmModalTitle = document.getElementById("confirm-modal-title");
+  var confirmModalMessage = document.getElementById("confirm-modal-message");
+  var confirmModalConfirmBtn = document.getElementById("confirm-modal-confirm");
+  var confirmModalCallback = null;
+  var photoInput = document.getElementById("photo-input");
+
+  var store = {}; // { [slug]: cliente } — vem da planilha (aba Clientes)
+  var crmStore = {}; // { [slug]: { endereco, aniversario, ... } } — vem da planilha (aba CRM)
+  var currentUser = localStorage.getItem(PROFILE_KEY) || null;
+  if (currentUser === "Amanda") {
+    // migração: nome antigo do perfil de administração
+    currentUser = ADMIN;
+    localStorage.setItem(PROFILE_KEY, currentUser);
+  }
+  var currentSlug = null;
+  var openPhases = new Set();
+  var addingTaskFor = new Set();
+  var analyticsFilter = new Set(ASSIGNABLE);
+  // Deslocamento (em meses) do card "Aniversariantes do mês" em relação ao mês atual —
+  // 0 é sempre o mês vigente. Fica só em memória (não é salvo no localStorage) e é
+  // resetado toda vez que se entra na tela de Analytics vindo de outra tela, para nunca
+  // "lembrar" o último mês navegado.
+  var birthdayMonthOffset = 0;
+  var lastViewKey = null;
+
+  // ---------- Template para novos clientes ----------
+
+  var TEMPLATE_FASES = [
+    {
+      titulo: "Setup de Conta",
+      descricao: "Criação e configuração inicial da conta do cliente na Hotmart.",
+      responsavel: "Suporte Técnico",
+      tarefas: [
+        { nome: "Envio de dados de migração", pilares: ["estrategia"] },
+        { nome: "Completar cadastro da conta", pilares: ["estrategia"] }
+      ]
+    },
+    {
+      titulo: "Treinamento: Configurações Básicas",
+      descricao: "Treinamento sobre as configurações essenciais da plataforma.",
+      responsavel: "Time de Onboarding",
+      tarefas: [
+        { nome: "Overview e navegação", pilares: ["capacitacao"] },
+        { nome: "Cadastro de produtos e formatos", pilares: ["capacitacao"] },
+        { nome: "Configurações de checkout", pilares: ["capacitacao"] },
+        { nome: "Otimização do checkout", pilares: ["estrategia", "capacitacao"] },
+        { nome: "Integrações", pilares: ["capacitacao"] }
+      ]
+    },
+    {
+      titulo: "Treinamento: Club (Área de Membros)",
+      descricao: "Treinamento e estruturação da área de membros (Club).",
+      responsavel: "Especialista de Produto",
+      tarefas: [
+        { nome: "Navegação básica e ocultar produtos", pilares: ["capacitacao"] },
+        { nome: "Gestão de conteúdo", pilares: ["capacitacao"] },
+        { nome: "Club Sales", pilares: ["estrategia", "capacitacao"] },
+        { nome: "Gestão de turmas e agendamento", pilares: ["capacitacao"] },
+        { nome: "Capas de módulos, aulas e trilhas", pilares: ["capacitacao"] },
+        { nome: "Personalizações", pilares: ["capacitacao"] },
+        { nome: "Extras (tutor, PWA, insights)", pilares: ["capacitacao"] }
+      ]
+    },
+    {
+      titulo: "Acabamentos e Configurações Finais",
+      descricao: "Ajustes finais de checkout, ofertas e integrações antes da venda.",
+      responsavel: "Especialista de Conversão",
+      tarefas: [
+        { nome: "Criativos e artes", pilares: ["capacitacao"] },
+        { nome: "Configurações gerais da plataforma", pilares: ["estrategia"] }
+      ]
+    },
+    {
+      titulo: "Checklist Pré-venda",
+      descricao: "Validação final de ponta a ponta antes da abertura das vendas.",
+      responsavel: "QA de Onboarding",
+      tarefas: [
+        { nome: "Relatórios essenciais", pilares: ["estrategia"] },
+        { nome: "Check do Produto", pilares: ["estrategia", "capacitacao"] },
+        { nome: "Definição de abertura de carrinho", pilares: ["estrategia"] }
+      ]
+    },
+    {
+      titulo: "Ativação",
+      descricao: "Abertura oficial das vendas ao público.",
+      responsavel: "Time de Onboarding",
+      tarefas: [
+        { nome: "Primeiros 10k após início da parceria", pilares: ["relacionamento", "estrategia", "capacitacao"] }
+      ]
+    },
+    {
+      titulo: "Relatórios Gerenciais (pós-ativação)",
+      descricao: "Acompanhamento dos primeiros indicadores após a ativação.",
+      responsavel: "Estrategista de Conta",
+      tarefas: [
+        { nome: "Relatório de Agente IA", pilares: ["estrategia"] },
+        { nome: "Gestão de vendas e relatórios de vendas", pilares: ["estrategia"] },
+        { nome: "Desempenho de checkout com Analytics", pilares: ["estrategia"] },
+        { nome: "Dinheiro na mesa", pilares: ["estrategia", "capacitacao"] }
+      ]
+    },
+    {
+      titulo: "Acompanhamento",
+      descricao: "Acompanhamento contínuo do cliente após o encerramento do onboarding.",
+      responsavel: "Time de Onboarding",
+      tarefas: [
+        { nome: "Reunião de análise 30 dias", pilares: ["relacionamento", "estrategia"] },
+        { nome: "Reunião de análise 60 dias", pilares: ["relacionamento", "estrategia"] },
+        { nome: "Reunião de fechamento do onboarding", pilares: ["relacionamento", "estrategia", "capacitacao"] }
+      ]
+    }
+  ];
+
+  function cloneTemplateFases() {
+    return TEMPLATE_FASES.map(function (fase, fi) {
+      return {
+        titulo: fase.titulo,
+        descricao: fase.descricao,
+        responsavel: fase.responsavel,
+        tarefas: fase.tarefas.map(function (t, ti) {
+          return {
+            id: "f" + (fi + 1) + "t" + (ti + 1),
+            nome: t.nome,
+            pilares: t.pilares.slice(),
+            concluida: false,
+            data: null,
+            removida: false
+          };
+        })
+      };
+    });
+  }
+
+  // ---------- Persistência (Google Apps Script + Planilha) ----------
+  // store/crmStore continuam sendo objetos JS em memória, no mesmo formato de sempre —
+  // o servidor (Code.gs) já devolve/recebe os objetos no mesmo formato camelCase que o
+  // resto do app usa, então não precisa de conversão de formato aqui (diferente da
+  // versão anterior com Supabase, que tinha colunas snake_case). As funções de
+  // renderização não mudam.
+
+  // Se uma chamada ao servidor falhar por sessão expirada (AUTH_EXPIRED, ver
+  // requireSession_ no Code.gs), limpa a sessão local e manda pra tela de login, em
+  // vez de mostrar um erro genérico.
+  function handleAuthError_(err) {
+    var msg = (err && err.message) || String(err);
+    if (msg.indexOf("AUTH_EXPIRED") !== -1) {
+      session = null;
+      localStorage.removeItem(GS_TOKEN_KEY);
+      store = {};
+      crmStore = {};
+      render();
+      return true;
+    }
+    return false;
+  }
+
+  // Time logado: carrega TODOS os clientes e TODOS os registros de CRM de uma vez.
+  function loadTeamData() {
+    return gsRun("getTeamData", session).then(function (result) {
+      var newStore = {};
+      (result.clientes || []).forEach(function (c) { newStore[c.slug] = c; });
+      var newCrmStore = {};
+      (result.crm || []).forEach(function (c) { newCrmStore[c.slug] = c; });
+      store = newStore;
+      crmStore = newCrmStore;
+    });
+  }
+
+  // Link público (sem login): só consegue ler UM cliente por vez (getPublicClient no
+  // Code.gs) — nunca lista os outros, nunca vê CRM.
+  function loadPublicClient(slug) {
+    return gsRun("getPublicClient", slug).then(function (cliente) {
+      store = {};
+      crmStore = {};
+      if (cliente) store[slug] = cliente;
+    });
+  }
+
+  // Salva só o registro desse cliente (não a planilha inteira) — fire-and-forget: a UI
+  // já foi atualizada de forma otimista antes desta chamada, então erro aqui só
+  // precisa avisar a pessoa, não travar a interface.
+  function persistClient(slug) {
+    var cliente = store[slug];
+    if (!cliente) return;
+    gsRun("saveClient", session, slug, cliente).catch(function (err) {
+      if (handleAuthError_(err)) return;
+      console.error(err);
+      window.alert("Não foi possível salvar essa alteração (" + err.message + "). Verifique sua conexão e tente de novo.");
+    });
+  }
+
+  function persistCrmClient(slug) {
+    gsRun("saveCrm", session, slug, getCrm(slug)).catch(function (err) {
+      if (handleAuthError_(err)) return;
+      console.error(err);
+      window.alert("Não foi possível salvar esse dado de CRM (" + err.message + "). Verifique sua conexão e tente de novo.");
+    });
+  }
+
+  function crmDefaults() {
+    return {
+      idCliente: "",
+      telefonePrincipal: "",
+      emailCliente: "",
+      endereco: "",
+      aniversario: null,
+      eventoParticipa: false,
+      eventoQual: "",
+      contratoAssinado: false,
+      brindeEnviado: false,
+      metaFaturamento: "",
+      equipe: [],
+      acoes: []
+    };
+  }
+
+  // Mescla com os defaults (não só substitui) para não quebrar quando o registro foi
+  // salvo antes de um campo novo existir.
+  function getCrm(slug) {
+    var defaults = crmDefaults();
+    var saved = crmStore[slug] || {};
+    var merged = Object.assign(defaults, saved);
+    merged.equipe = saved.equipe || [];
+    merged.acoes = saved.acoes || [];
+    return merged;
+  }
+
+  // Não chama refresh(): o próprio input/textarea/date já mostra o valor digitado
+  // nativamente. Recriar o DOM a cada tecla/blur causaria uma corrida entre campos
+  // vizinhos (o próximo "fill" foca o campo seguinte, disparando o "change" do atual
+  // no meio de um refresh e perdendo valor). Quem precisa de refresh (ex.: toggles
+  // sim/não, que mudam o que é exibido) chama refresh() explicitamente depois.
+  function setCrmField(slug, field, value) {
+    var current = getCrm(slug);
+    current[field] = value;
+    crmStore[slug] = current;
+    persistCrmClient(slug);
+  }
+
+  function addTeamMember(slug) {
+    var current = getCrm(slug);
+    current.equipe.push({ nome: "", cargo: "", telefone: "", email: "" });
+    crmStore[slug] = current;
+    persistCrmClient(slug);
+    refresh();
+  }
+
+  // Mesma razão do setCrmField acima: sem refresh(), para não perder valores dos
+  // outros campos da mesma linha quando o foco muda rápido entre eles.
+  function setTeamMemberField(slug, idx, field, value) {
+    var current = getCrm(slug);
+    if (!current.equipe[idx]) return;
+    current.equipe[idx][field] = value;
+    crmStore[slug] = current;
+    persistCrmClient(slug);
+  }
+
+  function removeTeamMember(slug, idx) {
+    var current = getCrm(slug);
+    current.equipe.splice(idx, 1);
+    crmStore[slug] = current;
+    persistCrmClient(slug);
+    refresh();
+  }
+
+  function addRelationshipAction(slug) {
+    var current = getCrm(slug);
+    current.acoes.push({ data: todayISO(), descricao: "" });
+    crmStore[slug] = current;
+    persistCrmClient(slug);
+    refresh();
+  }
+
+  // Mesma razão do setCrmField acima: sem refresh(), para não perder valores dos
+  // outros campos da mesma entrada quando o foco muda rápido entre eles.
+  function setRelationshipActionField(slug, idx, field, value) {
+    var current = getCrm(slug);
+    if (!current.acoes[idx]) return;
+    current.acoes[idx][field] = value;
+    crmStore[slug] = current;
+    persistCrmClient(slug);
+  }
+
+  function removeRelationshipAction(slug, idx) {
+    var current = getCrm(slug);
+    current.acoes.splice(idx, 1);
+    crmStore[slug] = current;
+    persistCrmClient(slug);
+    refresh();
+  }
+
+  // ---------- Utilidades ----------
+
+  function slugify(text) {
+    return (text || "")
+      .toString()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "cliente";
+  }
+
+  function uniqueSlug(base) {
+    var slug = base;
+    var n = 2;
+    while (store[slug]) {
+      slug = base + "-" + n;
+      n++;
+    }
+    return slug;
+  }
+
+  function initials(nome) {
+    var parts = (nome || "").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "??";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  function todayISO() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function formatDate(isoString) {
+    if (!isoString) return null;
+    var parts = isoString.split("-");
+    var d = new Date(Date.UTC(+parts[0], +parts[1] - 1, +parts[2]));
+    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+  }
+
+  function escapeHtml(str) {
+    return (str || "").toString().replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function avatarInnerHtml(cliente) {
+    if (cliente.foto) {
+      return '<img class="avatar-img" src="' + cliente.foto + '" alt="" />';
+    }
+    return escapeHtml(cliente.inicial);
+  }
+
+  function cameraIconSvg() {
+    return (
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="14" r="3.2"/>' +
+      "</svg>"
+    );
+  }
+
+  // ---------- Perfil / permissões ----------
+  // Não é autenticação: é uma preferência local (localStorage) para filtrar a lista de
+  // clientes por responsável. Um link direto de cliente (?cliente=slug) nunca é
+  // bloqueado por isso — só a lista/analytics internos são filtrados.
+
+  function visibleSlugs() {
+    var all = Object.keys(store);
+    if (currentUser === ADMIN) return all;
+    return all.filter(function (s) { return store[s].responsavelCliente === currentUser; });
+  }
+
+  function updateProfileButton() {
+    profileBtnLabel.textContent = currentUser ? "👤 " + currentUser + " · trocar" : "Selecionar perfil";
+    profileBtn.classList.toggle("is-set", !!currentUser);
+  }
+
+  function switchProfile() {
+    currentUser = null;
+    localStorage.removeItem(PROFILE_KEY);
+    setParams({ cliente: null, view: null });
+  }
+
+  // ---------- Autenticação do time (senha única + token de sessão) ----------
+  // Isto é a fronteira de segurança de verdade — diferente do "currentUser" acima,
+  // que é só uma preferência de filtro. Sem sessão, a pessoa só enxerga o que o link
+  // público de UM cliente específico permite (ver loadPublicClient/RLS).
+
+  // Mostra/esconde os botões da topbar que só fazem sentido para o time logado.
+  // Chamado em todo render(), então reage sozinho a login/logout.
+  function updateTeamChrome() {
+    var show = !!session;
+    analyticsBtn.style.display = show ? "" : "none";
+    addClientBtn.style.display = show ? "" : "none";
+    exportBtn.style.display = show ? "" : "none";
+    profileBtn.style.display = show ? "" : "none";
+    logoutBtn.hidden = !show;
+  }
+
+  function renderLoginGate(errorMsg) {
+    copyBtn.style.display = "none";
+    var wrap = document.createElement("section");
+    wrap.className = "picker";
+    wrap.innerHTML =
+      '<div class="picker__card">' +
+        '<h1 class="picker__heading">Login do time</h1>' +
+        "<p class=\"picker__text\">Digite a senha do time para acessar a lista de clientes, " +
+          "o Analytics e o CRM. Quem só tem o link de um cliente específico não precisa fazer login — " +
+          "esse link continua funcionando normalmente.</p>" +
+        '<form id="login-form">' +
+          '<label class="field">' +
+            '<span class="field__label">Senha do time</span>' +
+            '<input class="field__input" type="password" name="senha" required autocomplete="current-password" autofocus />' +
+          "</label>" +
+          (errorMsg ? '<p class="modal__error">' + escapeHtml(errorMsg) + "</p>" : "") +
+          '<div class="modal__actions" style="justify-content:flex-start;margin-top:4px;">' +
+            '<button type="submit" class="btn btn--primary">Entrar</button>' +
+          "</div>" +
+        "</form>" +
+      "</div>";
+    app.innerHTML = "";
+    app.appendChild(wrap);
+
+    var form = wrap.querySelector("#login-form");
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var fd = new FormData(form);
+      var senha = (fd.get("senha") || "").toString();
+      var btn = form.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = "Entrando…";
+      gsRun("login", senha).then(function (result) {
+        session = result.token;
+        localStorage.setItem(GS_TOKEN_KEY, session);
+        bootTeam();
+      }).catch(function (err) {
+        renderLoginGate("Não foi possível entrar: " + err.message);
+      });
+    });
+  }
+
+  function logout() {
+    var token = session;
+    session = null;
+    localStorage.removeItem(GS_TOKEN_KEY);
+    store = {};
+    crmStore = {};
+    currentUser = null;
+    localStorage.removeItem(PROFILE_KEY);
+    navigateTo({ type: "picker" });
+    gsRun("logout", token).catch(function () {}); // best-effort, não bloqueia o logout local
+  }
+
+  // ---------- Cálculo de progresso ----------
+
+  function activeTasks(fase) {
+    return fase.tarefas.filter(function (t) { return !t.removida; });
+  }
+
+  function faseProgress(fase) {
+    var active = activeTasks(fase);
+    var done = active.filter(function (t) { return t.concluida; }).length;
+    var total = active.length;
+    return { done: done, total: total, pct: total ? done / total : 1 };
+  }
+
+  function clientProgress(cliente) {
+    var done = 0, total = 0;
+    cliente.fases.forEach(function (fase) {
+      var p = faseProgress(fase);
+      done += p.done;
+      total += p.total;
+    });
+    return total ? Math.round((done / total) * 100) : 0;
+  }
+
+  // Conta, entre as tarefas ativas e concluídas, quantas caem em cada uma das 7
+  // combinações de pilares da legenda — pela combinação EXATA de pilares da tarefa,
+  // não decompondo pilares combinados em contagens separadas por pilar base.
+  function pilarCombCounts(cliente) {
+    var counts = {};
+    PILARES_LEGEND.forEach(function (p) { counts[p.key] = 0; });
+    cliente.fases.forEach(function (fase) {
+      fase.tarefas.forEach(function (t) {
+        if (t.removida || !t.concluida) return;
+        if (!t.pilares || !t.pilares.length) return;
+        var key = sortedPilaresKey(t.pilares);
+        if (counts.hasOwnProperty(key)) counts[key]++;
+      });
+    });
+    return counts;
+  }
+
+  // status de cada fase: a primeira fase incompleta é "atual"; antes dela, "concluida"; depois, "pendente"
+  function faseStatuses(cliente) {
+    var statuses = [];
+    var passedCurrent = false;
+    cliente.fases.forEach(function (fase) {
+      var pct = faseProgress(fase).pct;
+      if (pct >= 1) {
+        statuses.push("concluida");
+      } else if (!passedCurrent) {
+        statuses.push("atual");
+        passedCurrent = true;
+      } else {
+        statuses.push("pendente");
+      }
+    });
+    return statuses;
+  }
+
+  // ---------- Mutações ----------
+
+  function findTask(cliente, faseIdx, taskId) {
+    var fase = cliente.fases[faseIdx];
+    if (!fase) return null;
+    return fase.tarefas.filter(function (t) { return t.id === taskId; })[0] || null;
+  }
+
+  function toggleTask(slug, faseIdx, taskId) {
+    var cliente = store[slug];
+    var task = findTask(cliente, faseIdx, taskId);
+    if (!task) return;
+    task.concluida = !task.concluida;
+    if (task.concluida && !task.data) task.data = todayISO();
+    persistClient(slug);
+    refresh();
+  }
+
+  function setTaskDate(slug, faseIdx, taskId, value) {
+    var cliente = store[slug];
+    var task = findTask(cliente, faseIdx, taskId);
+    if (!task) return;
+    task.data = value || null;
+    persistClient(slug);
+    refresh();
+  }
+
+  function removeTask(slug, faseIdx, taskId) {
+    var cliente = store[slug];
+    var task = findTask(cliente, faseIdx, taskId);
+    if (!task) return;
+    task.removida = true;
+    persistClient(slug);
+    refresh();
+  }
+
+  function restoreTask(slug, faseIdx, taskId) {
+    var cliente = store[slug];
+    var task = findTask(cliente, faseIdx, taskId);
+    if (!task) return;
+    task.removida = false;
+    persistClient(slug);
+    refresh();
+  }
+
+  function deleteTaskForever(slug, faseIdx, taskId) {
+    var cliente = store[slug];
+    var fase = cliente.fases[faseIdx];
+    if (!fase) return;
+    fase.tarefas = fase.tarefas.filter(function (t) { return t.id !== taskId; });
+    persistClient(slug);
+    refresh();
+  }
+
+  function addTask(slug, faseIdx, nome) {
+    var cliente = store[slug];
+    var fase = cliente.fases[faseIdx];
+    if (!fase) return;
+    var idx = fase.tarefas.length + 1;
+    var id = "f" + (faseIdx + 1) + "-custom-" + idx;
+    while (fase.tarefas.some(function (t) { return t.id === id; })) {
+      idx++;
+      id = "f" + (faseIdx + 1) + "-custom-" + idx;
+    }
+    fase.tarefas.push({ id: id, nome: nome, concluida: false, data: null, removida: false, custom: true });
+    persistClient(slug);
+  }
+
+  // Assíncrono — diferente das outras mutações, que atualizam o store local de forma
+  // otimista e só depois salvam em segundo plano: aqui é melhor esperar a confirmação
+  // da planilha antes de navegar para o cliente novo, para não levar a pessoa a uma
+  // tela cujo cliente não foi salvo de verdade.
+  function addClient(fields) {
+    var slug = uniqueSlug(slugify(fields.nome));
+    var cliente = {
+      nome: fields.nome,
+      empresa: fields.empresa || "",
+      inicial: initials(fields.nome),
+      idConta: fields.idConta || "",
+      responsavelCliente: fields.responsavelCliente || "",
+      criadoPor: currentUser || "",
+      dataInicio: fields.dataInicio || todayISO(),
+      foto: null,
+      fases: cloneTemplateFases()
+    };
+    return gsRun("createClient", session, slug, cliente).then(function () {
+      store[slug] = cliente;
+      return slug;
+    });
+  }
+
+  // Também assíncrono, pelo mesmo motivo: só sai da tela / navega de volta para a
+  // lista depois de confirmar que a exclusão foi aceita pela planilha.
+  function deleteClient(slug) {
+    return gsRun("deleteClient", session, slug).then(function () {
+      delete store[slug];
+      delete crmStore[slug];
+    });
+  }
+
+  function setClientPhoto(slug, dataUrl) {
+    var cliente = store[slug];
+    if (!cliente) return;
+    cliente.foto = dataUrl;
+    persistClient(slug);
+    refresh();
+  }
+
+  function removeClientPhoto(slug) {
+    var cliente = store[slug];
+    if (!cliente) return;
+    cliente.foto = null;
+    persistClient(slug);
+    refresh();
+  }
+
+  // Redimensiona a imagem no cliente (canvas) antes de salvar como data URL,
+  // para não inflar o localStorage com fotos em resolução alta.
+  function resizeImageFile(file, maxSize) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          var scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+          var w = Math.max(1, Math.round(img.width * scale));
+          var h = Math.max(1, Math.round(img.height * scale));
+          var canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          var ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", 0.85));
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ---------- Renderização ----------
+
+  function renderProfileGate() {
+    copyBtn.style.display = "none";
+    var tpl = document.getElementById("tpl-profile-gate");
+    var node = tpl.content.cloneNode(true);
+    var grid = node.getElementById("profile-grid");
+
+    PROFILES.forEach(function (name) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "profile-chip" + (name === ADMIN ? " profile-chip--coord" : "");
+      btn.textContent = name + (name === ADMIN ? " (vê todos os clientes)" : "");
+      btn.addEventListener("click", function () {
+        currentUser = name;
+        localStorage.setItem(PROFILE_KEY, name);
+        refresh();
+      });
+      grid.appendChild(btn);
+    });
+
+    app.innerHTML = "";
+    app.appendChild(node);
+  }
+
+  function renderPicker() {
+    copyBtn.style.display = "none";
+    var tpl = document.getElementById("tpl-client-picker");
+    var node = tpl.content.cloneNode(true);
+    var list = node.getElementById("picker-list");
+
+    var filterNote = document.createElement("p");
+    filterNote.className = "picker__filter-note";
+    filterNote.textContent = currentUser === ADMIN
+      ? "Visão geral (administrador): todos os clientes, de todos os responsáveis."
+      : "Mostrando apenas os clientes de " + currentUser + ".";
+    node.getElementById("picker-example-url").parentNode.parentNode.insertBefore(filterNote, list);
+
+    var slugs = visibleSlugs();
+    if (!slugs.length) {
+      var empty = document.createElement("p");
+      empty.className = "picker__text";
+      empty.textContent = "Nenhum cliente atribuído a você ainda. Use o botão “+ Novo cliente” para começar.";
+      list.appendChild(empty);
+    }
+
+    slugs.forEach(function (slug) {
+      var c = store[slug];
+      var a = document.createElement("a");
+      a.className = "picker__item";
+      a.href = clientShareUrl(slug);
+      a.setAttribute("data-action", "nav-client");
+      a.setAttribute("data-slug", slug);
+      a.innerHTML =
+        '<span class="picker__item-avatar">' + avatarInnerHtml(c) + "</span>" +
+        '<span class="picker__item-body">' +
+          '<span class="picker__item-name">' + escapeHtml(c.nome) + "</span><br>" +
+          '<span class="picker__item-meta">' + escapeHtml(c.empresa || "Sem empresa informada") +
+            (c.responsavelCliente ? " · " + escapeHtml(c.responsavelCliente) : "") + "</span>" +
+        "</span>" +
+        '<span class="picker__item-progress">' + clientProgress(c) + "%</span>";
+      list.appendChild(a);
+    });
+
+    var exampleUrl = node.getElementById("picker-example-url");
+    var firstSlug = slugs[0];
+    exampleUrl.textContent = firstSlug ? clientShareUrl(firstSlug) : clientShareUrl("slug-do-cliente");
+
+    app.innerHTML = "";
+    app.appendChild(node);
+  }
+
+  function renderNotFound() {
+    copyBtn.style.display = "none";
+    var tpl = document.getElementById("tpl-not-found");
+    var backWrap = document.createElement("div");
+    backWrap.innerHTML = backLinkHtml();
+    app.innerHTML = "";
+    app.appendChild(backWrap.firstElementChild);
+    app.appendChild(tpl.content.cloneNode(true));
+  }
+
+  function backLinkHtml() {
+    return '<a href="#" class="back-link" data-action="nav-back">← Voltar para clientes</a>';
+  }
+
+  function backToClientLinkHtml(slug) {
+    return '<a href="' + escapeHtml(clientShareUrl(slug)) +
+      '" class="back-link" data-action="nav-back-client" data-slug="' + encodeURIComponent(slug) + '">← Voltar para o cliente</a>';
+  }
+
+  function statTileHtml(value, label) {
+    return (
+      '<div class="stat-tile">' +
+        '<div class="stat-tile__value">' + value + "</div>" +
+        '<div class="stat-tile__label">' + label + "</div>" +
+      "</div>"
+    );
+  }
+
+  function rowsFor(slugs) {
+    return slugs
+      .map(function (slug) {
+        var c = store[slug];
+        return {
+          slug: slug,
+          nome: c.nome,
+          empresa: c.empresa,
+          responsavel: c.responsavelCliente,
+          pct: clientProgress(c)
+        };
+      })
+      .sort(function (a, b) { return b.pct - a.pct; });
+  }
+
+  function avgOf(rows) {
+    return rows.length ? Math.round(rows.reduce(function (sum, r) { return sum + r.pct; }, 0) / rows.length) : 0;
+  }
+
+  function barChartHtml(rows) {
+    if (!rows.length) return '<p class="picker__text">Nenhum cliente para mostrar.</p>';
+    var barsHtml = rows.map(function (r) {
+      return (
+        '<a class="bar-row" href="' + escapeHtml(clientShareUrl(r.slug)) + '" data-action="nav-client" data-slug="' +
+          escapeHtml(r.slug) + '" title="' + escapeHtml(r.nome) + " — " + r.pct + '% concluído">' +
+          '<div class="bar-row__label">' +
+            '<span class="bar-row__name">' + escapeHtml(r.nome) + "</span>" +
+            '<span class="bar-row__meta">' + escapeHtml(r.empresa || "") +
+              (r.responsavel ? " · " + escapeHtml(r.responsavel) : "") + "</span>" +
+          "</div>" +
+          '<div class="bar-row__track"><div class="bar-row__fill" style="width:' + r.pct + '%"></div></div>' +
+          '<span class="bar-row__value">' + r.pct + "%</span>" +
+        "</a>"
+      );
+    }).join("");
+    return '<div class="chart-card"><div class="bar-chart">' + barsHtml + "</div></div>";
+  }
+
+  function pilaresLegendHtml() {
+    var rows = PILARES_LEGEND.map(function (p) {
+      return (
+        '<div class="pilares-legend__row">' +
+          '<span class="pilares-legend__emoji">' + p.emoji + "</span>" +
+          '<span class="pilares-legend__name">' + escapeHtml(p.nome) + "</span>" +
+          '<span class="pilares-legend__goal">' + escapeHtml(p.objetivo) + "</span>" +
+        "</div>"
+      );
+    }).join("");
+    return '<div class="pilares-legend">' + rows + "</div>";
+  }
+
+  function pilarMiniChartHtml(cliente) {
+    var counts = pilarCombCounts(cliente);
+    var max = Math.max.apply(null, PILARES_LEGEND.map(function (p) { return counts[p.key]; }).concat([1]));
+    // Só mostra categorias com pelo menos 1 tarefa concluída — com a legenda tendo
+    // 7 combinações, exibir todas sempre vira uma parede de barras zeradas para
+    // clientes no início do onboarding.
+    return PILARES_LEGEND.filter(function (p) { return counts[p.key] > 0; }).map(function (p) {
+      var val = counts[p.key];
+      var pct = Math.round((val / max) * 100);
+      return (
+        '<div class="pilar-bar-row">' +
+          '<span class="pilar-bar-row__label">' + p.emoji + " " + escapeHtml(p.nome) + "</span>" +
+          '<div class="pilar-bar-row__track"><div class="pilar-bar-row__fill" style="width:' + pct + "%;background:" + p.cor + '"></div></div>' +
+          '<span class="pilar-bar-row__value">' + val + "</span>" +
+        "</div>"
+      );
+    }).join("");
+  }
+
+  function pilaresPorClienteHtml(rows) {
+    if (!rows.length) return "";
+    var cards = rows.map(function (r) {
+      var cliente = store[r.slug];
+      var counts = pilarCombCounts(cliente);
+      var allZero = PILARES_LEGEND.every(function (p) { return !counts[p.key]; });
+      return (
+        '<div class="pilar-card">' +
+          '<div class="pilar-card__header">' +
+            '<a class="pilar-card__name" href="' + escapeHtml(clientShareUrl(r.slug)) + '" data-action="nav-client" data-slug="' +
+              escapeHtml(r.slug) + '">' + escapeHtml(cliente.nome) + "</a>" +
+          "</div>" +
+          (allZero
+            ? '<p class="pilar-card__empty">Nenhuma tarefa concluída com pilar definido ainda.</p>'
+            : pilarMiniChartHtml(cliente)) +
+        "</div>"
+      );
+    }).join("");
+    return (
+      '<p class="analytics__section-label">Pilares por cliente (com base nas tarefas concluídas)</p>' +
+      pilaresLegendHtml() +
+      '<div class="pilar-cards">' + cards + "</div>"
+    );
+  }
+
+  var MESES = [
+    "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+    "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
+  ];
+
+  // Baseado no CRM (localStorage próprio, ver getCrm) — só enxerga aniversários
+  // preenchidos neste mesmo navegador. O mês exibido segue birthdayMonthOffset (0 =
+  // mês vigente); as setas só mudam esse deslocamento em memória, nunca o mês padrão.
+  function birthdaysHtml(slugs) {
+    var now = new Date();
+    var base = new Date(now.getFullYear(), now.getMonth() + birthdayMonthOffset, 1);
+    var targetMonth = base.getMonth() + 1;
+    var targetYear = base.getFullYear();
+    var isCurrentMonth = birthdayMonthOffset === 0;
+
+    var items = slugs
+      .map(function (slug) {
+        var crm = crmStore[slug];
+        if (!crm || !crm.aniversario) return null;
+        var mes = +crm.aniversario.slice(5, 7);
+        if (mes !== targetMonth) return null;
+        var dia = +crm.aniversario.slice(8, 10);
+        return { slug: slug, nome: store[slug].nome, dia: dia };
+      })
+      .filter(Boolean)
+      .sort(function (a, b) { return a.dia - b.dia; });
+
+    var emptyMsg = isCurrentMonth
+      ? "Nenhum aniversariante este mês (com base no CRM preenchido neste navegador)."
+      : "Nenhum aniversariante em " + MESES[targetMonth - 1] + " (com base no CRM preenchido neste navegador).";
+
+    var body = items.length
+      ? '<div class="birthday-list">' + items.map(function (it) {
+          return (
+            '<a class="birthday-row" href="' + escapeHtml(clientShareUrl(it.slug)) + '" data-action="nav-client" data-slug="' + escapeHtml(it.slug) + '">' +
+              '<span class="birthday-row__day">' + (it.dia < 10 ? "0" + it.dia : it.dia) + "</span>" +
+              '<span class="birthday-row__name">' + escapeHtml(it.nome) + "</span>" +
+            "</a>"
+          );
+        }).join("") + "</div>"
+      : '<p class="picker__text">' + emptyMsg + "</p>";
+
+    var cakeIcon =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M4 21h16" />' +
+        '<path d="M5 21v-7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7" />' +
+        '<path d="M12 12V7" />' +
+        '<path d="M12 7c-1 0-1.5-.7-1.5-1.5S12 3 12 3s1.5.7 1.5 1.5S13 7 12 7z" />' +
+      "</svg>";
+
+    var chevronLeft =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>';
+    var chevronRight =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>';
+
+    var monthLabel = MESES[targetMonth - 1] + (targetYear !== now.getFullYear() ? " de " + targetYear : "");
+
+    return (
+      '<div class="birthday-header">' +
+        '<p class="analytics__section-label analytics__section-label--icon">' +
+          cakeIcon + "Aniversariantes de " + monthLabel +
+        "</p>" +
+        '<div class="birthday-month-nav">' +
+          '<button type="button" class="birthday-month-nav__btn" data-action="birthday-month-prev" aria-label="Mês anterior">' + chevronLeft + "</button>" +
+          (isCurrentMonth
+            ? ""
+            : '<button type="button" class="filter-action-link" data-action="birthday-month-reset">Mês atual</button>') +
+          '<button type="button" class="birthday-month-nav__btn" data-action="birthday-month-next" aria-label="Próximo mês">' + chevronRight + "</button>" +
+        "</div>" +
+      "</div>" +
+      body
+    );
+  }
+
+  function renderAnalytics() {
+    copyBtn.style.display = "none";
+    var isAdmin = currentUser === ADMIN;
+
+    if (!isAdmin) {
+      var rows = rowsFor(visibleSlugs());
+      var wrap = document.createElement("section");
+      wrap.className = "analytics";
+      wrap.innerHTML =
+        backLinkHtml() +
+        '<div class="analytics__header">' +
+          '<h1 class="analytics__title">Analytics</h1>' +
+          '<p class="analytics__subtitle">Progresso dos clientes de ' + escapeHtml(currentUser) + ".</p>" +
+        "</div>" +
+        '<div class="analytics__stats">' +
+          statTileHtml(rows.length, rows.length === 1 ? "Cliente" : "Clientes") +
+          statTileHtml(avgOf(rows) + "%", "Progresso médio") +
+        "</div>" +
+        birthdaysHtml(rows.map(function (r) { return r.slug; })) +
+        '<p class="analytics__section-label">Clientes</p>' +
+        barChartHtml(rows) +
+        pilaresPorClienteHtml(rows);
+      app.innerHTML = "";
+      app.appendChild(wrap);
+      return;
+    }
+
+    // Administrador: visão geral fixa + filtro por onboarding
+    var allSlugs = Object.keys(store);
+    var overallRows = rowsFor(allSlugs);
+    var selected = ASSIGNABLE.filter(function (name) { return analyticsFilter.has(name); });
+
+    var filterChipsHtml = ASSIGNABLE.map(function (name) {
+      var active = analyticsFilter.has(name);
+      return '<button type="button" class="filter-chip' + (active ? " is-active" : "") +
+        '" data-action="toggle-onboarder-filter" data-name="' + escapeHtml(name) + '">' + escapeHtml(name) + "</button>";
+    }).join("");
+
+    var breakdownHtml = "";
+    var chartRows;
+    if (!selected.length) {
+      breakdownHtml = '<p class="picker__text">Selecione ao menos um onboarding para ver o detalhamento.</p>';
+      chartRows = [];
+    } else {
+      breakdownHtml = '<div class="analytics__stats">' + selected.map(function (name) {
+        var nameRows = rowsFor(allSlugs.filter(function (s) { return store[s].responsavelCliente === name; }));
+        return statTileHtml(avgOf(nameRows) + "%", name + " (" + nameRows.length + ")");
+      }).join("") + "</div>";
+      chartRows = rowsFor(allSlugs.filter(function (s) { return selected.indexOf(store[s].responsavelCliente) !== -1; }));
+    }
+
+    var wrap = document.createElement("section");
+    wrap.className = "analytics";
+    wrap.innerHTML =
+      backLinkHtml() +
+      '<div class="analytics__header">' +
+        '<h1 class="analytics__title">Analytics</h1>' +
+        '<p class="analytics__subtitle">Visão geral (administrador): todos os clientes, todos os responsáveis.</p>' +
+      "</div>" +
+      '<div class="analytics__stats">' +
+        statTileHtml(overallRows.length, overallRows.length === 1 ? "Cliente (todos)" : "Clientes (todos)") +
+        statTileHtml(avgOf(overallRows) + "%", "Progresso médio geral") +
+      "</div>" +
+      birthdaysHtml(allSlugs) +
+      '<div class="filter-row">' +
+        filterChipsHtml +
+        '<div class="filter-actions">' +
+          '<button type="button" class="filter-action-link" data-action="filter-select-all">Selecionar todos</button>' +
+          '<button type="button" class="filter-action-link" data-action="filter-clear">Limpar</button>' +
+        "</div>" +
+      "</div>" +
+      '<p class="analytics__section-label">Progresso médio por onboarding selecionado</p>' +
+      breakdownHtml +
+      '<p class="analytics__section-label">Clientes no filtro atual</p>' +
+      barChartHtml(chartRows) +
+      pilaresPorClienteHtml(chartRows);
+
+    app.innerHTML = "";
+    app.appendChild(wrap);
+  }
+
+  function taskRowHtml(faseIdx, task) {
+    return (
+      '<div class="task-row' + (task.concluida ? " task-row--done" : "") + '">' +
+        '<button type="button" class="task-check" data-action="toggle-task" data-fase="' + faseIdx + '" data-task="' + task.id + '" aria-label="Marcar tarefa como concluída">' +
+          (task.concluida ? "✓" : "") +
+        "</button>" +
+        '<span class="task-name">' + escapeHtml(task.nome) + "</span>" +
+        '<input type="date" class="task-date" data-action="set-date" data-fase="' + faseIdx + '" data-task="' + task.id + '" value="' + (task.data || "") + '" />' +
+        '<button type="button" class="task-remove" data-action="remove-task" data-fase="' + faseIdx + '" data-task="' + task.id + '" title="Remover (não se aplica a este cliente)" aria-label="Remover tarefa">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
+        "</button>" +
+      "</div>"
+    );
+  }
+
+  function removedTaskRowHtml(faseIdx, task) {
+    return (
+      '<div class="task-row task-row--removed">' +
+        '<span class="task-name">' + escapeHtml(task.nome) + "</span>" +
+        '<button type="button" class="task-restore" data-action="restore-task" data-fase="' + faseIdx + '" data-task="' + task.id + '">Restaurar</button>' +
+        (task.custom
+          ? '<button type="button" class="task-delete" data-action="delete-task-forever" data-fase="' + faseIdx + '" data-task="' + task.id + '" title="Excluir definitivamente — não pode ser desfeito">Excluir definitivamente</button>'
+          : "") +
+      "</div>"
+    );
+  }
+
+  function addTaskControlHtml(faseIdx) {
+    if (addingTaskFor.has(faseIdx)) {
+      return (
+        '<form class="add-task-form" data-fase="' + faseIdx + '">' +
+          '<input type="text" name="nome" class="add-task-input" placeholder="Nome da nova tarefa" required autocomplete="off" />' +
+          '<button type="submit" class="btn btn--primary btn--small">Adicionar</button>' +
+          '<button type="button" class="btn btn--secondary btn--small" data-action="cancel-add-task" data-fase="' + faseIdx + '">Cancelar</button>' +
+        "</form>"
+      );
+    }
+    return '<button type="button" class="add-task-btn" data-action="show-add-task" data-fase="' + faseIdx + '">+ Adicionar tarefa</button>';
+  }
+
+  function renderClient(slug) {
+    var cliente = store[slug];
+    copyBtn.style.display = "inline-block";
+    var progress = clientProgress(cliente);
+    var statuses = faseStatuses(cliente);
+
+    if (!openPhases.size) {
+      var atualIdx = statuses.indexOf("atual");
+      openPhases.add(atualIdx >= 0 ? atualIdx : 0);
+    }
+
+    var topRow = document.createElement("div");
+    topRow.className = "client-top-row";
+    topRow.innerHTML = session
+      ? backLinkHtml() +
+        '<div class="client-top-row__actions">' +
+          '<button type="button" class="btn btn--secondary btn--small" data-action="go-crm">CRM</button>' +
+          '<button type="button" class="btn btn--danger btn--small" data-action="delete-client">Excluir cliente</button>' +
+        "</div>"
+      : "";
+
+    var header = document.createElement("section");
+    header.className = "client-header";
+    header.innerHTML =
+      '<div class="client-header__top">' +
+        '<div class="client-header__avatar-wrap">' +
+          '<div class="client-header__avatar">' + avatarInnerHtml(cliente) + "</div>" +
+          (session
+            ? '<button type="button" class="avatar-upload-btn" data-action="upload-photo" title="Alterar foto" aria-label="Alterar foto">' +
+                cameraIconSvg() +
+              "</button>"
+            : "") +
+        "</div>" +
+        "<div>" +
+          '<h1 class="client-header__name">' + escapeHtml(cliente.nome) + "</h1>" +
+          '<p class="client-header__company">' + escapeHtml(cliente.empresa || "Sem empresa informada") + "</p>" +
+          '<p class="client-header__account">ID da conta: <strong>' + escapeHtml(cliente.idConta || "não informado") +
+            "</strong> · Responsável: <strong>" + escapeHtml(cliente.responsavelCliente || "não atribuído") + "</strong></p>" +
+          (cliente.foto && session
+            ? '<button type="button" class="filter-action-link client-header__remove-photo" data-action="remove-photo">Remover foto</button>'
+            : "") +
+        "</div>" +
+      "</div>" +
+      '<div class="progress">' +
+        '<div class="progress__track"><div class="progress__fill" style="width:' + progress + '%"></div></div>' +
+        '<div class="progress__label">' + progress + "% concluído</div>" +
+      "</div>" +
+      '<div class="client-header__meta">' +
+        "<span>Início: <strong>" + (formatDate(cliente.dataInicio) || "—") + "</strong></span>" +
+      "</div>";
+
+    var timeline = document.createElement("div");
+    timeline.className = "timeline";
+
+    cliente.fases.forEach(function (fase, i) {
+      var status = statuses[i];
+      var p = faseProgress(fase);
+      var phasePct = Math.round(p.pct * 100);
+      var removedTasks = fase.tarefas.filter(function (t) { return t.removida; });
+
+      var phase = document.createElement("div");
+      phase.className = "phase phase--" + status;
+      if (openPhases.has(i)) phase.classList.add("is-open");
+
+      var tasksHtml = activeTasks(fase).map(function (t) { return taskRowHtml(i, t); }).join("");
+      var removedHtml = removedTasks.length
+        ? '<div class="removed-tasks"><p class="removed-tasks__label">Tarefas removidas (não contam no progresso)</p>' +
+            removedTasks.map(function (t) { return removedTaskRowHtml(i, t); }).join("") +
+          "</div>"
+        : "";
+
+      phase.innerHTML =
+        '<span class="phase__marker">' + (status === "concluida" ? "✓" : i + 1) + "</span>" +
+        '<div class="phase__card">' +
+          '<div class="phase__header" data-action="toggle-phase" data-fase="' + i + '">' +
+            '<div class="phase__title-group">' +
+              '<p class="phase__title">' + (i + 1) + ". " + escapeHtml(fase.titulo) + "</p>" +
+              '<div class="phase__progress">' +
+                '<div class="phase__progress-track"><div class="phase__progress-fill" style="width:' + phasePct + '%"></div></div>' +
+                '<span class="phase__progress-label">' + p.done + "/" + p.total + "</span>" +
+              "</div>" +
+            "</div>" +
+            '<span class="phase__badge">' + { concluida: "Concluída", atual: "Em andamento", pendente: "Pendente" }[status] + "</span>" +
+            '<svg class="phase__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>' +
+          "</div>" +
+          '<div class="phase__body">' +
+            '<div class="phase__body-inner">' +
+              '<p class="phase__desc">' + escapeHtml(fase.descricao) + "</p>" +
+              '<div class="phase__tasks">' + (tasksHtml || '<p class="phase__empty">Todas as tarefas desta fase foram removidas para este cliente.</p>') + "</div>" +
+              addTaskControlHtml(i) +
+              removedHtml +
+              '<p class="phase__owner">Responsável pela fase: ' + escapeHtml(cliente.criadoPor || "não informado") + "</p>" +
+            "</div>" +
+          "</div>" +
+        "</div>";
+
+      timeline.appendChild(phase);
+    });
+
+    // Sem sessão do time (link público do cliente): a timeline vira só leitura. Os
+    // botões de mutação (marcar, remover, restaurar, excluir, + adicionar tarefa)
+    // somem; o campo de data continua visível, só desabilitado — dá pra ver a data
+    // sem poder editar. Expandir/recolher fase continua funcionando (é só estado
+    // local, não grava nada). Mesmo com isso escondido na UI, o servidor (Code.gs)
+    // já exige token válido em toda função de escrita — isto é só a UI acompanhar.
+    if (!session) {
+      timeline.querySelectorAll("button[data-action]").forEach(function (el) {
+        el.style.display = "none";
+      });
+      timeline.querySelectorAll("input[data-action]").forEach(function (el) {
+        el.setAttribute("disabled", "disabled");
+      });
+    }
+
+    var footer = document.createElement("p");
+    footer.className = "footer-note";
+    footer.textContent = "Este link é exclusivo e não requer login. Guarde-o para acompanhar seu onboarding a qualquer momento.";
+
+    app.innerHTML = "";
+    app.appendChild(topRow);
+    app.appendChild(header);
+    app.appendChild(timeline);
+    app.appendChild(footer);
+  }
+
+  function yesNoToggleHtml(field, value, slug) {
+    return (
+      '<div class="yesno-toggle">' +
+        '<button type="button" class="yesno-chip' + (value ? " is-active" : "") +
+          '" data-action="crm-set-bool" data-field="' + field + '" data-value="true">Sim</button>' +
+        '<button type="button" class="yesno-chip' + (!value ? " is-active" : "") +
+          '" data-action="crm-set-bool" data-field="' + field + '" data-value="false">Não</button>' +
+      "</div>"
+    );
+  }
+
+  var removeIconSvg =
+    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+
+  function teamMemberRowHtml(slug, idx, pessoa) {
+    return (
+      '<div class="crm-entry-card">' +
+        '<button type="button" class="crm-entry-remove" data-action="crm-team-remove" data-idx="' + idx + '" ' +
+          'title="Remover pessoa" aria-label="Remover pessoa">' + removeIconSvg + "</button>" +
+        '<div class="crm-entry-grid">' +
+          '<input class="field__input" type="text" data-action="crm-team-set" data-idx="' + idx + '" data-field="nome" ' +
+            'placeholder="Nome" value="' + escapeHtml(pessoa.nome) + '" />' +
+          '<input class="field__input" type="text" data-action="crm-team-set" data-idx="' + idx + '" data-field="cargo" ' +
+            'placeholder="Cargo" value="' + escapeHtml(pessoa.cargo) + '" />' +
+          '<input class="field__input" type="text" data-action="crm-team-set" data-idx="' + idx + '" data-field="telefone" ' +
+            'placeholder="Telefone" value="' + escapeHtml(pessoa.telefone) + '" />' +
+          '<input class="field__input" type="email" data-action="crm-team-set" data-idx="' + idx + '" data-field="email" ' +
+            'placeholder="E-mail" value="' + escapeHtml(pessoa.email || "") + '" />' +
+        "</div>" +
+      "</div>"
+    );
+  }
+
+  // Exibidas mais recente primeiro (histórico), mas o data-idx aponta sempre para a
+  // posição real no array (ordem de criação), usada por setRelationshipActionField/
+  // removeRelationshipAction.
+  function relationshipActionRowHtml(idx, acao) {
+    return (
+      '<div class="crm-entry-card">' +
+        '<button type="button" class="crm-entry-remove" data-action="crm-action-remove" data-idx="' + idx + '" ' +
+          'title="Remover ação" aria-label="Remover ação">' + removeIconSvg + "</button>" +
+        '<input class="field__input crm-action-date" type="date" data-action="crm-action-set" data-idx="' + idx + '" ' +
+          'data-field="data" value="' + (acao.data || "") + '" />' +
+        '<textarea class="field__input crm-textarea crm-action-desc" rows="2" data-action="crm-action-set" data-idx="' + idx + '" ' +
+          'data-field="descricao" placeholder="Ex.: almoço com o cliente, visita presencial ao escritório...">' +
+          escapeHtml(acao.descricao) + "</textarea>" +
+      "</div>"
+    );
+  }
+
+  function renderCrm(slug) {
+    copyBtn.style.display = "none";
+    var cliente = store[slug];
+    var crm = getCrm(slug);
+
+    var teamRowsHtml = crm.equipe.length
+      ? crm.equipe.map(function (p, i) { return teamMemberRowHtml(slug, i, p); }).join("")
+      : '<p class="crm-entry-empty">Nenhuma pessoa cadastrada ainda.</p>';
+
+    var actionRowsHtml = crm.acoes.length
+      ? crm.acoes.map(function (a, i) { return { idx: i, acao: a }; })
+          .slice().reverse()
+          .map(function (entry) { return relationshipActionRowHtml(entry.idx, entry.acao); }).join("")
+      : '<p class="crm-entry-empty">Nenhuma ação registrada ainda.</p>';
+
+    var wrap = document.createElement("section");
+    wrap.className = "crm";
+    wrap.innerHTML =
+      backToClientLinkHtml(slug) +
+      '<div class="crm__header">' +
+        '<h1 class="crm__title">CRM · ' + escapeHtml(cliente.nome) + "</h1>" +
+        '<p class="crm__subtitle">Dados internos e sensíveis — visíveis só para o time (Ilana, Pedro, Josiane, ' +
+          "Madu, Administrador). Guardados apenas neste navegador: não entram no " +
+          '"Exportar dados" nem em nenhuma versão pública do link deste cliente, e não ' +
+          "aparecem para outros times/dispositivos que não tenham preenchido aqui.</p>" +
+      "</div>" +
+      '<div class="crm__card">' +
+        '<p class="crm__card-title">Contato</p>' +
+        '<label class="field crm-field">' +
+          '<span class="field__label">ID do cliente</span>' +
+          '<input class="field__input" type="text" data-action="crm-set-text" data-field="idCliente" ' +
+            'placeholder="Número/identificador da conta" value="' + escapeHtml(crm.idCliente) + '" />' +
+        "</label>" +
+        '<label class="field crm-field">' +
+          '<span class="field__label">Telefone principal (WhatsApp)</span>' +
+          '<input class="field__input" type="text" data-action="crm-set-text" data-field="telefonePrincipal" ' +
+            'placeholder="(11) 91234-5678" value="' + escapeHtml(crm.telefonePrincipal) + '" />' +
+        "</label>" +
+        '<label class="field crm-field">' +
+          '<span class="field__label">E-mail do cliente</span>' +
+          '<input class="field__input" type="email" data-action="crm-set-text" data-field="emailCliente" ' +
+            'placeholder="cliente@empresa.com" value="' + escapeHtml(crm.emailCliente) + '" />' +
+        "</label>" +
+        '<label class="field crm-field">' +
+          '<span class="field__label">Endereço completo (para envio de brindes)</span>' +
+          '<textarea class="field__input crm-textarea" rows="3" data-action="crm-set-text" data-field="endereco" ' +
+            'placeholder="Rua, número, complemento, bairro, cidade, estado, CEP">' + escapeHtml(crm.endereco) + "</textarea>" +
+        "</label>" +
+        '<label class="field crm-field">' +
+          '<span class="field__label">Data de aniversário</span>' +
+          '<input class="field__input" type="date" data-action="crm-set-text" data-field="aniversario" value="' + (crm.aniversario || "") + '" />' +
+        "</label>" +
+      "</div>" +
+      '<div class="crm__card">' +
+        '<p class="crm__card-title">Comercial</p>' +
+        '<div class="field crm-field">' +
+          '<span class="field__label">Vai participar de algum evento?</span>' +
+          yesNoToggleHtml("eventoParticipa", crm.eventoParticipa, slug) +
+          (crm.eventoParticipa
+            ? '<input class="field__input crm-followup" type="text" data-action="crm-set-text" data-field="eventoQual" ' +
+                'placeholder="Qual evento?" value="' + escapeHtml(crm.eventoQual) + '" />'
+            : "") +
+        "</div>" +
+        '<div class="field crm-field">' +
+          '<span class="field__label">Tem contrato assinado?</span>' +
+          yesNoToggleHtml("contratoAssinado", crm.contratoAssinado, slug) +
+        "</div>" +
+        '<div class="field crm-field">' +
+          '<span class="field__label">Brinde enviado?</span>' +
+          yesNoToggleHtml("brindeEnviado", crm.brindeEnviado, slug) +
+        "</div>" +
+        '<label class="field crm-field">' +
+          '<span class="field__label">Meta de faturamento</span>' +
+          '<input class="field__input" type="text" data-action="crm-set-text" data-field="metaFaturamento" ' +
+            'placeholder="Ex.: R$ 50.000/mês" value="' + escapeHtml(crm.metaFaturamento) + '" />' +
+        "</label>" +
+      "</div>" +
+      '<div class="crm__card crm__card--team">' +
+        '<p class="crm__card-title">Equipe do cliente</p>' +
+        '<div class="crm-entry-list">' + teamRowsHtml + "</div>" +
+        '<button type="button" class="add-task-btn" data-action="crm-team-add">+ Adicionar pessoa</button>' +
+      "</div>" +
+      '<div class="crm__card crm__card--team">' +
+        '<p class="crm__card-title">Ações de relacionamento</p>' +
+        '<div class="crm-entry-list">' + actionRowsHtml + "</div>" +
+        '<button type="button" class="add-task-btn" data-action="crm-action-add">+ Registrar ação</button>' +
+      "</div>";
+
+    app.innerHTML = "";
+    app.appendChild(wrap);
+  }
+
+  // ---------- Roteamento ----------
+
+  // Roteamento 100% em memória — o Apps Script serve a página dentro de um iframe
+  // isolado (sandbox do próprio Google), então window.location/history não refletem a
+  // URL real do deployment como num site normal, e não dá pra confiar em <a href="?...">
+  // + reload. Por isso currentView é uma variável JS comum, e toda navegação interna
+  // passa por navigateTo()/os goTo*, nunca por mudar a URL.
+  //
+  // A ÚNICA vez que os parâmetros da URL importam de verdade é no carregamento inicial
+  // da página (alguém abrindo um link do tipo .../exec?cliente=slug direto) — esses
+  // parâmetros chegam via GAS_INITIAL_PARAMS, injetado pelo servidor (Code.gs) no HTML,
+  // já que window.location.search não é confiável aqui.
+  var currentView = { type: "picker" };
+  var usedInitialParams = false;
+
+  function getView() {
+    if (!usedInitialParams) {
+      usedInitialParams = true;
+      var slug = window.GAS_INITIAL_PARAMS && window.GAS_INITIAL_PARAMS.cliente;
+      var viewParam = window.GAS_INITIAL_PARAMS && window.GAS_INITIAL_PARAMS.view;
+      if (slug) {
+        currentView = (viewParam === "crm" && session)
+          ? { type: "crm", slug: slug }
+          : { type: "client", slug: slug };
+      } else if (viewParam === "analytics") {
+        currentView = { type: "analytics" };
+      }
+    }
+    return currentView;
+  }
+
+  function render() {
+    var view = getView();
+    updateProfileButton();
+    updateTeamChrome();
+
+    var viewKey = view.type + (view.slug ? ":" + view.slug : "");
+    if (view.type === "analytics" && lastViewKey !== "analytics") {
+      birthdayMonthOffset = 0;
+    }
+    lastViewKey = viewKey;
+
+    // A view de cliente funciona tanto para quem está logado (time) quanto para quem
+    // só tem o link público — o que muda é se store[slug] foi carregado via
+    // loadTeamData() (tudo) ou loadPublicClient() (só esse cliente), e se os
+    // controles de edição aparecem (ver renderClient/session).
+    if (view.type === "client") {
+      heroBanner.hidden = true;
+      currentSlug = view.slug;
+      if (!store[view.slug]) {
+        openPhases = new Set();
+        renderNotFound();
+        return;
+      }
+      renderClient(view.slug);
+      return;
+    }
+
+    // CRM e a lista/Analytics são sempre restritos ao time: sem sessão, cai no login.
+    if (!session) {
+      currentSlug = null;
+      heroBanner.hidden = false;
+      renderLoginGate();
+      return;
+    }
+
+    if (view.type === "crm") {
+      heroBanner.hidden = true;
+      currentSlug = view.slug;
+      if (!store[view.slug]) {
+        openPhases = new Set();
+        renderNotFound();
+        return;
+      }
+      renderCrm(view.slug);
+      return;
+    }
+
+    currentSlug = null;
+    if (!currentUser) {
+      heroBanner.hidden = false;
+      renderProfileGate();
+      return;
+    }
+    if (view.type === "analytics") {
+      heroBanner.hidden = true;
+      renderAnalytics();
+    } else {
+      heroBanner.hidden = false;
+      renderPicker();
+    }
+  }
+
+  function refresh() {
+    var y = window.scrollY;
+    render();
+    window.scrollTo(0, y);
+  }
+
+  function navigateTo(view) {
+    currentView = view;
+    openPhases = new Set();
+    addingTaskFor = new Set();
+    refresh();
+  }
+
+  function goToPicker() { navigateTo({ type: "picker" }); }
+  function goToAnalytics() { navigateTo({ type: "analytics" }); }
+  function goToClient(slug) { navigateTo({ type: "client", slug: slug }); }
+  function goToCrm(slug) { navigateTo({ type: "crm", slug: slug }); }
+
+  // URL compartilhável de um cliente — construída a partir da URL base do deployment
+  // (injetada pelo servidor, ver GAS_BASE_URL), já que window.location não é
+  // confiável dentro do sandbox do Apps Script.
+  function clientShareUrl(slug) {
+    return window.GAS_BASE_URL + "?cliente=" + encodeURIComponent(slug);
+  }
+
+  // ---------- Eventos ----------
+
+  app.addEventListener("click", function (e) {
+    var backEl = e.target.closest('[data-action="nav-back"]');
+    if (backEl) {
+      e.preventDefault();
+      goToPicker();
+      return;
+    }
+
+    var backClientEl = e.target.closest('[data-action="nav-back-client"]');
+    if (backClientEl) {
+      e.preventDefault();
+      goToClient(backClientEl.getAttribute("data-slug"));
+      return;
+    }
+
+    // Links pra um cliente específico (lista de clientes, barras do Analytics, cards
+    // de pilares, aniversariantes) — sempre interceptados: dentro do sandbox do Apps
+    // Script, deixar o navegador seguir o <a href> de verdade não funciona como
+    // navegação de rota (ver comentário em getView()).
+    var navClientEl = e.target.closest('[data-action="nav-client"]');
+    if (navClientEl) {
+      e.preventDefault();
+      goToClient(navClientEl.getAttribute("data-slug"));
+      return;
+    }
+
+    var target = e.target.closest("[data-action]");
+    if (!target) return;
+    var action = target.getAttribute("data-action");
+    var slug = currentSlug;
+    var faseIdx = target.hasAttribute("data-fase") ? +target.getAttribute("data-fase") : null;
+    var taskId = target.getAttribute("data-task");
+
+    if (action === "toggle-phase") {
+      if (openPhases.has(faseIdx)) {
+        openPhases.delete(faseIdx);
+      } else {
+        openPhases.add(faseIdx);
+      }
+      refresh();
+    } else if (action === "toggle-task") {
+      toggleTask(slug, faseIdx, taskId);
+    } else if (action === "remove-task") {
+      removeTask(slug, faseIdx, taskId);
+    } else if (action === "restore-task") {
+      restoreTask(slug, faseIdx, taskId);
+    } else if (action === "show-add-task") {
+      addingTaskFor.add(faseIdx);
+      refresh();
+    } else if (action === "cancel-add-task") {
+      addingTaskFor.delete(faseIdx);
+      refresh();
+    } else if (action === "delete-task-forever") {
+      if (window.confirm("Excluir esta tarefa definitivamente? Essa ação não pode ser desfeita.")) {
+        deleteTaskForever(slug, faseIdx, taskId);
+      }
+    } else if (action === "toggle-onboarder-filter") {
+      var name = target.getAttribute("data-name");
+      if (analyticsFilter.has(name)) analyticsFilter.delete(name);
+      else analyticsFilter.add(name);
+      refresh();
+    } else if (action === "filter-select-all") {
+      analyticsFilter = new Set(ASSIGNABLE);
+      refresh();
+    } else if (action === "filter-clear") {
+      analyticsFilter = new Set();
+      refresh();
+    } else if (action === "delete-client") {
+      var clienteAtual = store[slug];
+      if (!clienteAtual) return;
+      openConfirmModal(
+        "Excluir cliente",
+        "Tem certeza que deseja excluir " + clienteAtual.nome + "? Essa ação não pode ser desfeita.",
+        function () {
+          deleteClient(slug).then(function () {
+            goToPicker();
+          }).catch(function (err) {
+            window.alert("Não foi possível excluir o cliente (" + err.message + ").");
+          });
+        }
+      );
+    } else if (action === "upload-photo") {
+      photoInput.click();
+    } else if (action === "remove-photo") {
+      removeClientPhoto(slug);
+    } else if (action === "go-crm") {
+      if (session) goToCrm(slug);
+    } else if (action === "crm-set-bool") {
+      var boolField = target.getAttribute("data-field");
+      var boolValue = target.getAttribute("data-value") === "true";
+      setCrmField(slug, boolField, boolValue);
+      refresh();
+    } else if (action === "crm-team-add") {
+      addTeamMember(slug);
+    } else if (action === "crm-team-remove") {
+      removeTeamMember(slug, +target.getAttribute("data-idx"));
+    } else if (action === "crm-action-add") {
+      addRelationshipAction(slug);
+    } else if (action === "crm-action-remove") {
+      removeRelationshipAction(slug, +target.getAttribute("data-idx"));
+    } else if (action === "birthday-month-prev") {
+      birthdayMonthOffset -= 1;
+      refresh();
+    } else if (action === "birthday-month-next") {
+      birthdayMonthOffset += 1;
+      refresh();
+    } else if (action === "birthday-month-reset") {
+      birthdayMonthOffset = 0;
+      refresh();
+    }
+  });
+
+  photoInput.addEventListener("change", function (e) {
+    var file = e.target.files && e.target.files[0];
+    var slugParaFoto = currentSlug;
+    photoInput.value = "";
+    if (!file || !slugParaFoto) return;
+    resizeImageFile(file, 240).then(function (dataUrl) {
+      setClientPhoto(slugParaFoto, dataUrl);
+    });
+  });
+
+  app.addEventListener("submit", function (e) {
+    var form = e.target;
+    if (form.classList.contains("add-task-form")) {
+      e.preventDefault();
+      var faseIdx = +form.getAttribute("data-fase");
+      var input = form.querySelector('input[name="nome"]');
+      var nome = input.value.trim();
+      if (!nome) return;
+      addTask(currentSlug, faseIdx, nome);
+      addingTaskFor.delete(faseIdx);
+      refresh();
+    }
+  });
+
+  app.addEventListener("change", function (e) {
+    var target = e.target;
+    var targetAction = target.getAttribute("data-action");
+    if (targetAction === "set-date") {
+      var faseIdx = +target.getAttribute("data-fase");
+      var taskId = target.getAttribute("data-task");
+      setTaskDate(currentSlug, faseIdx, taskId, target.value);
+    } else if (targetAction === "crm-set-text") {
+      var field = target.getAttribute("data-field");
+      setCrmField(currentSlug, field, target.value || (field === "aniversario" ? null : ""));
+    } else if (targetAction === "crm-team-set") {
+      var teamIdx = +target.getAttribute("data-idx");
+      var teamField = target.getAttribute("data-field");
+      setTeamMemberField(currentSlug, teamIdx, teamField, target.value);
+    } else if (targetAction === "crm-action-set") {
+      var actionIdx = +target.getAttribute("data-idx");
+      var actionField = target.getAttribute("data-field");
+      setRelationshipActionField(currentSlug, actionIdx, actionField, target.value);
+    }
+  });
+
+  copyBtn.addEventListener("click", function () {
+    navigator.clipboard.writeText(clientShareUrl(currentSlug)).then(function () {
+      var original = copyBtn.textContent;
+      copyBtn.textContent = "Link copiado!";
+      copyBtn.classList.add("is-copied");
+      setTimeout(function () {
+        copyBtn.textContent = original;
+        copyBtn.classList.remove("is-copied");
+      }, 2000);
+    });
+  });
+
+  exportBtn.addEventListener("click", function () {
+    var payload = JSON.stringify(store, null, 2);
+    var blob = new Blob([payload], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "clients.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  analyticsBtn.addEventListener("click", goToAnalytics);
+  profileBtn.addEventListener("click", switchProfile);
+  logoutBtn.addEventListener("click", logout);
+
+  function openModal() {
+    addClientError.hidden = true;
+    addClientForm.reset();
+    modal.classList.add("is-open");
+    modal.setAttribute("aria-hidden", "false");
+    var respSelect = addClientForm.querySelector('select[name="responsavelCliente"]');
+    if (respSelect && ASSIGNABLE.indexOf(currentUser) !== -1) respSelect.value = currentUser;
+    var firstInput = addClientForm.querySelector('input[name="nome"]');
+    if (firstInput) firstInput.focus();
+  }
+
+  function closeModal() {
+    modal.classList.remove("is-open");
+    modal.setAttribute("aria-hidden", "true");
+  }
+
+  addClientBtn.addEventListener("click", openModal);
+
+  modal.addEventListener("click", function (e) {
+    if (e.target.closest('[data-action="close-modal"]')) closeModal();
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && modal.classList.contains("is-open")) closeModal();
+    if (e.key === "Escape" && confirmModal.classList.contains("is-open")) closeConfirmModal();
+  });
+
+  function openConfirmModal(title, message, onConfirm) {
+    confirmModalTitle.textContent = title;
+    confirmModalMessage.textContent = message;
+    confirmModalCallback = onConfirm;
+    confirmModal.classList.add("is-open");
+    confirmModal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeConfirmModal() {
+    confirmModal.classList.remove("is-open");
+    confirmModal.setAttribute("aria-hidden", "true");
+    confirmModalCallback = null;
+  }
+
+  confirmModal.addEventListener("click", function (e) {
+    if (e.target.closest('[data-action="close-confirm-modal"]')) closeConfirmModal();
+  });
+
+  confirmModalConfirmBtn.addEventListener("click", function () {
+    var cb = confirmModalCallback;
+    closeConfirmModal();
+    if (cb) cb();
+  });
+
+  addClientForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var formData = new FormData(addClientForm);
+    var nome = (formData.get("nome") || "").toString().trim();
+    var responsavelCliente = (formData.get("responsavelCliente") || "").toString().trim();
+    if (!nome) {
+      addClientError.textContent = "Informe o nome do cliente.";
+      addClientError.hidden = false;
+      return;
+    }
+    if (ASSIGNABLE.indexOf(responsavelCliente) === -1) {
+      addClientError.textContent = "Selecione um responsável.";
+      addClientError.hidden = false;
+      return;
+    }
+    var submitBtn = addClientForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    addClient({
+      nome: nome,
+      empresa: (formData.get("empresa") || "").toString().trim(),
+      idConta: (formData.get("idConta") || "").toString().trim(),
+      responsavelCliente: responsavelCliente,
+      dataInicio: (formData.get("dataInicio") || "").toString().trim()
+    }).then(function (slug) {
+      submitBtn.disabled = false;
+      closeModal();
+      goToClient(slug);
+    }).catch(function (err) {
+      submitBtn.disabled = false;
+      addClientError.textContent = "Não foi possível criar o cliente (" + err.message + ").";
+      addClientError.hidden = false;
+    });
+  });
+
+  // ---------- Início ----------
+  // Carrega os dados de acordo com quem está acessando:
+  //  - sessão de time ativa (token salvo de uma visita anterior, ou acabou de logar)
+  //    -> loadTeamData() (todos os clientes + todo o CRM)
+  //  - sem sessão + link de um cliente (?cliente=slug) -> loadPublicClient(slug),
+  //    só esse cliente, só leitura
+  //  - sem sessão + nenhum link de cliente -> nada pra carregar, cai direto no
+  //    login (render() cuida disso sozinho)
+  //
+  // Não existe um "google.script.run.auth.getSession()" equivalente ao do Supabase —
+  // a sessão aqui é só um token guardado em localStorage; se ele já expirou no
+  // servidor (CacheService, 6h), a primeira chamada autenticada falha com
+  // AUTH_EXPIRED e handleAuthError_ cuida de mandar de volta pro login.
+
+  function bootTeam() {
+    loadTeamData()
+      .then(function () {
+        render();
+      })
+      .catch(function (err) {
+        if (handleAuthError_(err)) return;
+        app.innerHTML = '<div class="loading">Não foi possível carregar os dados da planilha. ' +
+          "Recarregue a página; se persistir, verifique a conexão ou avise o time técnico.</div>";
+        console.error(err);
+      });
+  }
+
+  function bootPublic(slug) {
+    loadPublicClient(slug)
+      .then(function () {
+        render();
+      })
+      .catch(function (err) {
+        app.innerHTML = '<div class="loading">Não foi possível carregar os dados do cliente. ' +
+          "Verifique se o link está completo e correto.</div>";
+        console.error(err);
+      });
+  }
+
+  if (session) {
+    bootTeam();
+  } else {
+    var initialView = getView();
+    if (initialView.type === "client") {
+      bootPublic(initialView.slug);
+    } else {
+      render();
+    }
+  }
+})();
+</script>
