@@ -1,46 +1,54 @@
 # Cronograma de Onboarding — 8 Fases
 
-Página estática (sem backend, sem login) para acompanhar o onboarding de clientes em
-**8 fases**, com a identidade visual da Hotmart. Cada cliente acessa seu próprio
-cronograma através de um **link único** — não há autenticação nem senha.
+Página estática (HTML/CSS/JS, sem passo de build) para acompanhar o onboarding de
+clientes em **8 fases**, com a identidade visual da Hotmart, com os dados guardados num
+banco Supabase compartilhado por todo o time. Cada cliente acompanha seu próprio
+cronograma através de um **link único, sem precisar de login**; só o time precisa
+autenticar para editar.
 
 ## Como funciona
 
-- `data/clients.json` é o **dado-semente**: na primeira vez que a página é aberta em um
-  navegador, ele é copiado para o `localStorage` e passa a ser a fonte de verdade
-  *local* (por navegador/dispositivo). Todas as edições feitas pela interface — marcar
-  tarefa, editar data, remover/restaurar tarefa, criar cliente — são salvas ali e
-  sobrevivem a recarregar a página, mas **não são compartilhadas automaticamente** com
-  quem abre o link em outro navegador ou dispositivo.
-- Para publicar de verdade uma mudança (ex.: um cliente novo, tarefas ajustadas) para
-  todos que acessam o site, use o botão **"Exportar dados"** na barra superior — ele
-  baixa o `clients.json` atualizado. Substitua o arquivo em `data/clients.json` no
-  repositório e publique (commit + deploy) para que o novo estado vire o padrão de
-  todo mundo.
+- Os dados (clientes, fases/tarefas, CRM) ficam num banco Postgres no
+  [Supabase](https://supabase.com) — ver `sql/schema.sql` para a estrutura completa das
+  tabelas e das regras de acesso (RLS). Isso significa que uma mudança feita por
+  qualquer pessoa do time aparece para todo mundo, em qualquer navegador/dispositivo,
+  sem precisar de "Exportar dados" nem republicar nada.
 - Cada cliente é acessado pela URL `?cliente=<slug>`, por exemplo:
-  `https://seudominio.com/?cliente=acme-cursos`
-- Sem o parâmetro `cliente`, a página mostra a tela inicial com a lista de clientes e o
-  botão **"+ Novo cliente"**.
-- Não existe login: a "segurança" é o link ser único e não listado publicamente. Não
-  cadastre dados sensíveis nele.
+  `https://seudominio.com/?cliente=acme-cursos`. Esse link funciona **sem login** — quem
+  só tem o link vê o cronograma daquele cliente específico, em modo leitura (não dá pra
+  marcar tarefas nem editar nada por ali).
+- Sem o parâmetro `cliente`, a página pede login do time antes de mostrar a lista de
+  clientes, o botão **"+ Novo cliente"** ou o Analytics — essas telas são só para quem
+  está logado (ver "Login do time" abaixo).
+- A conexão com o Supabase é configurada em `assets/js/supabase-config.js` (URL do
+  projeto + chave pública `anon`/`publishable` — essa chave é segura de ficar exposta no
+  código, a segurança de verdade vem das políticas de RLS do banco, não do sigilo dela).
+
+## Login do time (Supabase Auth)
+
+- Ao abrir a página sem um link de cliente específico, aparece a tela **"Login do
+  time"** — pede e-mail e senha (autenticação real via Supabase Auth, não é mais só
+  escolher um nome numa lista).
+- Contas de acesso são criadas no painel do Supabase (Authentication → Users → Add
+  user). Pode ser uma única conta compartilhada por todo o time, ou uma por pessoa —
+  qualquer conta autenticada tem acesso de leitura/escrita total (não há hoje o conceito
+  de "só o responsável edita o próprio cliente").
+- Depois de logado, o botão **"Sair"** aparece na barra superior para encerrar a sessão.
+- O link direto de um cliente (`?cliente=slug`) **nunca exige login** — continua
+  funcionando normalmente para quem só tem o link, sempre em modo leitura.
 
 ## Perfis (Ilana, Pedro, Josiane, Madu, Administrador)
 
-- Cada cliente tem um campo **Responsável** (Ilana, Pedro, Josiane ou Madu).
-- Ao abrir a tela inicial ou o Analytics pela primeira vez, a página pergunta **"Quem é
-  você?"** — a pessoa escolhe seu nome numa lista (sem senha) e isso fica salvo no
-  `localStorage` daquele navegador. A partir daí, a lista de clientes e o Analytics
-  mostram só os clientes daquele responsável.
-- **Administrador** é o perfil de coordenação: ao selecioná-lo, a lista e o Analytics
-  mostram **todos** os clientes, de todos os responsáveis, sem filtro.
-- Isso é uma preferência de UI, não autenticação de verdade — qualquer pessoa pode abrir
-  o seletor e escolher "Administrador" ou qualquer outro nome. Não use isso como controle
-  de acesso a dados sensíveis.
-- Um **link direto de cliente** (`?cliente=slug`) nunca passa por esse filtro — continua
-  abrindo normalmente para quem tiver o link, mesmo que a pessoa nunca tenha escolhido um
-  perfil. O filtro de perfil só afeta a lista/Analytics internos da equipe.
-- Para trocar de perfil (ex.: outra pessoa usando o mesmo navegador), use o botão com o
-  nome atual no canto superior direito ("👤 Nome · trocar").
+- Depois de fazer login, a página pergunta **"Quem é você?"** — a pessoa escolhe seu
+  nome numa lista e isso fica salvo no `localStorage` daquele navegador, só como
+  preferência de exibição. A partir daí, a lista de clientes e o Analytics mostram só os
+  clientes daquele responsável.
+- **Administrador** mostra **todos** os clientes, de todos os responsáveis, sem filtro.
+- Diferente de antes, essa escolha de nome **não é mais o controle de acesso** — quem
+  chegou até essa tela já passou pelo login real. O nome é só para filtrar a lista/
+  Analytics, não decide quem pode editar o quê.
+- Para trocar de perfil (ex.: outra pessoa usando o mesmo login/navegador), use o botão
+  com o nome atual no canto superior direito ("👤 Nome · trocar").
 - O campo **"Responsável pela fase"**, no rodapé de cada fase, é preenchido
   automaticamente com o perfil que **criou** aquele cliente (`criadoPor`) — o mesmo nome
   aparece em todas as 8 fases, já que é o criador do cronograma, não um dono por fase.
@@ -125,54 +133,33 @@ volta a mostrar o mês vigente; nada disso é salvo no `localStorage`.
 
 **Como a restrição funciona de verdade, não só visualmente:**
 
-- O botão "CRM" só aparece quando existe um perfil do time ativo neste navegador
-  (Ilana, Pedro, Josiane, Madu ou Administrador). Sem perfil ativo — que é sempre o caso
-  de quem abre o link do cliente direto, já que esse link nunca passa pela tela "Quem é
-  você?" — o botão não é renderizado.
-- A rota (`?cliente=slug&view=crm`) também é protegida no roteamento: sem perfil ativo,
-  esse parâmetro é ignorado e a página cai na tela normal do cliente, sem revelar que a
-  aba existe.
-- Mais importante: os dados de CRM ficam numa chave de `localStorage` **separada**
-  (`hm_crm_store_v1`), que **nunca** é semeada a partir de `data/clients.json`, nunca é
-  incluída no botão "Exportar dados" e nunca é lida pelo código que renderiza a tela do
-  cliente. Como este app não sincroniza nada entre navegadores, isso significa que o
-  navegador de quem abre o link do cliente **nunca chega a receber esses dados** — não é
-  uma questão de UI escondida, a informação literalmente não trafega para lá. Testado:
-  abrindo o link do cliente num navegador que nunca teve um perfil do time selecionado,
-  a chave `hm_crm_store_v1` nem existe no `localStorage` (retorna `null`).
-- A limitação inversa, decorrente da mesma arquitetura sem backend: CRM preenchido por
-  alguém do time num navegador **não aparece** para outra pessoa do time em outro
-  navegador/dispositivo — cada um só vê o que foi digitado ali. Se for necessário CRM
-  compartilhado de verdade entre todo o time, isso exige um banco de dados real
-  (a mesma mudança de arquitetura discutida e adiada para o cronograma principal).
+- O botão "CRM" só aparece para quem está com **login do time ativo** (sessão do
+  Supabase Auth). Sem login — que é sempre o caso de quem abre o link do cliente direto,
+  já que esse link nunca exige login — o botão não é renderizado.
+- A rota (`?cliente=slug&view=crm`) também é protegida no roteamento: sem sessão, esse
+  parâmetro é ignorado e a página cai na tela normal (leitura) do cliente, sem revelar
+  que a aba existe.
+- Mais importante, a proteção não é só de interface: a tabela `crm` no banco não tem
+  **nenhuma** política de acesso liberada para quem não está autenticado (ver
+  `sql/schema.sql`) — mesmo alguém tentando ler diretamente pela API do Supabase, usando
+  a chave pública do site, não consegue nenhuma linha dessa tabela sem estar logado. O
+  link público do cliente só enxerga a tabela `clients`, e só o próprio registro (via a
+  função `get_client_by_slug`), nunca `crm`.
+- Como o banco agora é compartilhado, CRM preenchido por qualquer pessoa do time
+  aparece para todo o time, em qualquer navegador/dispositivo — diferente da limitação
+  que existia na versão anterior (só localStorage).
 
 ## Adicionar um novo cliente
 
-Pelo botão **"+ Novo cliente"** na barra superior: preenche nome, empresa, ID da conta e
-data de início, e o cliente já nasce com as 8 fases padrão (ver `TEMPLATE_FASES` em
-`assets/js/app.js`) prontas para ajustar. Alternativamente, copie um bloco inteiro
-dentro de `data/clients.json` (isso muda apenas o dado-semente, não o que já está salvo
-no `localStorage` de quem já visitou a página):
-
-```json
-"novo-cliente": {
-  "nome": "Nome do Cliente",
-  "empresa": "Nome da Empresa",
-  "inicial": "NC",
-  "idConta": "HM-00000",
-  "responsavelCliente": "Ilana",
-  "criadoPor": "Ilana",
-  "dataInicio": "AAAA-MM-DD",
-  "fases": [ ... 8 objetos, um por fase ... ]
-}
-```
+Pelo botão **"+ Novo cliente"** na barra superior (só visível logado): preenche nome,
+empresa, ID da conta e data de início, e o cliente já nasce com as 8 fases padrão (ver
+`TEMPLATE_FASES` em `assets/js/app.js`) prontas para ajustar, direto no banco Supabase —
+já aparece pra todo o time.
 
 - `responsavelCliente` aceita `"Ilana"`, `"Pedro"`, `"Josiane"` ou `"Madu"` — define quem
   vê esse cliente na lista/Analytics quando filtrado por perfil.
-- `criadoPor` é o que aparece como "Responsável pela fase" em todas as 8 fases (pelo
-  botão "+ Novo cliente" isso é preenchido sozinho com o perfil atual; editando o JSON à
-  mão, escreva o nome desejado diretamente).
-
+- `criadoPor` é o que aparece como "Responsável pela fase" em todas as 8 fases — é
+  preenchido sozinho com o perfil escolhido por quem está criando o cliente.
 - Cada fase tem `titulo`, `descricao`, `responsavel` (interno, não exibido na UI — ver
   `criadoPor` acima) e uma lista de `tarefas`.
 - Cada tarefa tem `id` (estável, usado pelos controles de UI), `nome`, `pilares`
@@ -182,10 +169,12 @@ no `localStorage` de quem já visitou a página):
   quando criada pelo botão "+ Adicionar tarefa", `custom: true` (habilita a opção de
   excluir definitivamente).
 - Uma tarefa com `removida: true` não conta no cálculo de progresso (nem no numerador
-  nem no denominador) daquele cliente, mas continua no arquivo — dá pra restaurar a
-  qualquer momento pela interface (seção "Tarefas removidas" dentro de cada fase).
+  nem no denominador) daquele cliente, mas continua salva — dá pra restaurar a qualquer
+  momento pela interface (seção "Tarefas removidas" dentro de cada fase).
 
-Não é necessário nenhum passo de build — é só editar o JSON e publicar.
+`data/clients.json` continua no repositório como referência do formato de dados e dos
+3 clientes de demonstração originais, mas **não é mais lido pelo app** — os dados reais
+vivem só no banco Supabase agora.
 
 ## Analytics
 
@@ -229,22 +218,42 @@ Adicionar tarefa" não têm pilar definido, então não entram nessa contagem.
 python3 -m http.server 8000
 ```
 
-Depois acesse `http://localhost:8000/?cliente=acme-cursos` (veja os slugs de exemplo em
-`data/clients.json`). Abrir o `index.html` diretamente como arquivo (`file://`) não
-funciona, pois o navegador bloqueia o `fetch` do JSON — é necessário um servidor HTTP.
+Depois acesse `http://localhost:8000/`. Como os dados agora vêm do Supabase (não mais de
+`data/clients.json`), é preciso que `assets/js/supabase-config.js` aponte para um
+projeto Supabase válido com o schema de `sql/schema.sql` já criado — sem isso, a tela de
+login funciona mas não há dados pra carregar depois de logar. Abrir o `index.html`
+diretamente como arquivo (`file://`) não funciona; é necessário um servidor HTTP.
 
 ## Publicar
 
-Por ser 100% estático (HTML/CSS/JS, sem dependências), pode ser publicado em qualquer
-hospedagem de arquivos estáticos (GitHub Pages, Netlify, Vercel, S3, etc.).
+Por ser 100% estático no front (HTML/CSS/JS, sem passo de build), pode ser publicado em
+qualquer hospedagem de arquivos estáticos (GitHub Pages, Netlify, Vercel, S3, etc.) — o
+banco de dados é externo (Supabase), então não precisa de servidor próprio além da
+hospedagem estática.
+
+## Configurar o backend (Supabase) do zero
+
+1. Crie um projeto em [supabase.com](https://supabase.com) (tem plano gratuito).
+2. No **SQL Editor** do painel, cole e rode todo o conteúdo de `sql/schema.sql` — cria
+   as tabelas `clients`/`crm` e as políticas de segurança (RLS).
+3. Em **Settings → API Keys** (ou **Integrations → Data API**, dependendo da versão do
+   painel), copie a **Project URL** e a chave **`anon`/`publishable`** (nunca a
+   `secret`/`service_role`) e cole em `assets/js/supabase-config.js`.
+4. Em **Authentication → Users**, crie ao menos uma conta (e-mail + senha) para o time
+   logar — pode ser uma conta compartilhada ou uma por pessoa (ver "Login do time"
+   acima).
+5. Pronto: publique o site normalmente. O link de cada cliente (`?cliente=slug`) já
+   funciona sem login assim que o cliente correspondente existir no banco.
 
 ## Estrutura
 
 ```
-index.html            página única (tela inicial + timeline do cliente + modal de novo cliente)
-assets/css/styles.css estilo com a paleta de cores da Hotmart
-assets/js/app.js       store (localStorage), cálculo de progresso, CRUD e renderização
-data/clients.json      dado-semente (primeira carga); depois disso o localStorage manda
+index.html                     página única (login, tela inicial, timeline do cliente, modal de novo cliente)
+assets/css/styles.css          estilo com a paleta de cores da Hotmart
+assets/js/app.js                autenticação, dados via Supabase, cálculo de progresso, CRUD e renderização
+assets/js/supabase-config.js   URL do projeto + chave pública do Supabase
+sql/schema.sql                  tabelas clients/crm e políticas de segurança (RLS) do Supabase
+data/clients.json               referência do formato de dados + clientes de demonstração (não é mais lido pelo app)
 ```
 
 ## Brandbook Hotmart

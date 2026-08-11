@@ -1,13 +1,10 @@
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "hm_onboarding_store_v2";
+  // Preferência local de qual nome está filtrando a lista/Analytics — não é mais a
+  // fronteira de segurança (isso agora é a sessão do Supabase Auth, ver "session"
+  // mais abaixo). Fica em localStorage só para lembrar a escolha entre visitas.
   var PROFILE_KEY = "hm_current_user_v1";
-  // Dados de CRM ficam numa chave à parte, nunca semeada a partir de data/clients.json e
-  // nunca incluída em "Exportar dados": só existe no navegador onde alguém do time digitou
-  // algo. Como este app não sincroniza nada entre navegadores, isso garante que o
-  // navegador do cliente (que nunca escreve nessa chave) nunca chega a ter essa informação.
-  var CRM_STORAGE_KEY = "hm_crm_store_v1";
 
   var PROFILES = ["Ilana", "Pedro", "Josiane", "Madu", "Administrador"];
   var ASSIGNABLE = ["Ilana", "Pedro", "Josiane", "Madu"];
@@ -41,6 +38,13 @@
       : "linear-gradient(90deg, " + p.keys.map(function (k) { return PILARES_BASE[k].cor; }).join(", ") + ")";
   });
 
+  var sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+  // Sessão do Supabase Auth — null quando ninguém do time está logado (ex.: link
+  // público do cliente). É essa variável, não o "currentUser" (nome escolhido na
+  // lista), que decide o que pode ser lido/editado; currentUser continua sendo só
+  // uma preferência de filtro, agora só relevante depois de já estar logado.
+  var session = null;
+
   var app = document.getElementById("app");
   var heroBanner = document.getElementById("hero-banner");
   var copyBtn = document.getElementById("copy-link-btn");
@@ -49,6 +53,7 @@
   var analyticsBtn = document.getElementById("analytics-btn");
   var profileBtn = document.getElementById("profile-btn");
   var profileBtnLabel = document.getElementById("profile-btn-label");
+  var logoutBtn = document.getElementById("logout-btn");
   var modal = document.getElementById("add-client-modal");
   var addClientForm = document.getElementById("add-client-form");
   var addClientError = document.getElementById("add-client-error");
@@ -59,8 +64,8 @@
   var confirmModalCallback = null;
   var photoInput = document.getElementById("photo-input");
 
-  var store = null; // { [slug]: cliente }
-  var crmStore = loadCrmStore(); // { [slug]: { endereco, aniversario, eventoParticipa, eventoQual, contratoAssinado, metaFaturamento } }
+  var store = {}; // { [slug]: cliente } — vem do Supabase (tabela clients)
+  var crmStore = {}; // { [slug]: { endereco, aniversario, ... } } — vem do Supabase (tabela crm)
   var currentUser = localStorage.getItem(PROFILE_KEY) || null;
   if (currentUser === "Amanda") {
     // migração: nome antigo do perfil de administração
@@ -186,52 +191,136 @@
     });
   }
 
-  // ---------- Persistência ----------
+  // ---------- Persistência (Supabase) ----------
+  // store/crmStore continuam sendo objetos JS em memória, no mesmo formato de sempre —
+  // só troca de onde vêm (Supabase, não mais localStorage/data/clients.json) e como
+  // mudanças são salvas (chamada à API, não localStorage.setItem). As funções de
+  // renderização não mudam.
+  //
+  // Convenção: colunas do banco são snake_case (id_conta, responsavel_cliente, ...);
+  // os objetos JS usados pelo resto do app continuam em camelCase — clientFromRow/
+  // clientToRow e crmFromRow/crmToRow fazem essa conversão nos dois sentidos.
 
-  function loadStore() {
-    var raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        return Promise.resolve(JSON.parse(raw));
-      } catch (e) {
-        // dado corrompido, recarrega da semente
+  function clientFromRow(row) {
+    return {
+      nome: row.nome,
+      empresa: row.empresa || "",
+      inicial: row.inicial || initials(row.nome),
+      idConta: row.id_conta || "",
+      responsavelCliente: row.responsavel_cliente || "",
+      criadoPor: row.criado_por || "",
+      dataInicio: row.data_inicio || null,
+      foto: row.foto || null,
+      fases: row.fases || []
+    };
+  }
+
+  function clientToRow(slug, cliente) {
+    return {
+      slug: slug,
+      nome: cliente.nome,
+      empresa: cliente.empresa || "",
+      inicial: cliente.inicial || "",
+      id_conta: cliente.idConta || "",
+      responsavel_cliente: cliente.responsavelCliente || "",
+      criado_por: cliente.criadoPor || "",
+      data_inicio: cliente.dataInicio || null,
+      foto: cliente.foto || null,
+      fases: cliente.fases || []
+    };
+  }
+
+  function crmFromRow(row) {
+    return {
+      idCliente: row.id_cliente || "",
+      telefonePrincipal: row.telefone_principal || "",
+      emailCliente: row.email_cliente || "",
+      endereco: row.endereco || "",
+      aniversario: row.aniversario || null,
+      eventoParticipa: !!row.evento_participa,
+      eventoQual: row.evento_qual || "",
+      contratoAssinado: !!row.contrato_assinado,
+      brindeEnviado: !!row.brinde_enviado,
+      metaFaturamento: row.meta_faturamento || "",
+      equipe: row.equipe || [],
+      acoes: row.acoes || []
+    };
+  }
+
+  function crmToRow(slug, crm) {
+    return {
+      slug: slug,
+      id_cliente: crm.idCliente || "",
+      telefone_principal: crm.telefonePrincipal || "",
+      email_cliente: crm.emailCliente || "",
+      endereco: crm.endereco || "",
+      aniversario: crm.aniversario || null,
+      evento_participa: !!crm.eventoParticipa,
+      evento_qual: crm.eventoQual || "",
+      contrato_assinado: !!crm.contratoAssinado,
+      brinde_enviado: !!crm.brindeEnviado,
+      meta_faturamento: crm.metaFaturamento || "",
+      equipe: crm.equipe || [],
+      acoes: crm.acoes || []
+    };
+  }
+
+  // Time logado: carrega TODOS os clientes e TODOS os registros de CRM de uma vez
+  // (permitido pelas policies "authenticated" do schema).
+  function loadTeamData() {
+    return Promise.all([
+      sb.from("clients").select("*"),
+      sb.from("crm").select("*")
+    ]).then(function (results) {
+      var clientsRes = results[0];
+      var crmRes = results[1];
+      if (clientsRes.error) throw clientsRes.error;
+      if (crmRes.error) throw crmRes.error;
+      var newStore = {};
+      (clientsRes.data || []).forEach(function (row) { newStore[row.slug] = clientFromRow(row); });
+      var newCrmStore = {};
+      (crmRes.data || []).forEach(function (row) { newCrmStore[row.slug] = crmFromRow(row); });
+      store = newStore;
+      crmStore = newCrmStore;
+    });
+  }
+
+  // Link público (sem login): só consegue ler UM cliente por vez, pela função segura
+  // get_client_by_slug (ver sql/schema.sql) — nunca lista os outros, nunca vê CRM.
+  function loadPublicClient(slug) {
+    return sb.rpc("get_client_by_slug", { p_slug: slug }).then(function (res) {
+      if (res.error) throw res.error;
+      store = {};
+      crmStore = {};
+      if (res.data && res.data.length) {
+        store[slug] = clientFromRow(res.data[0]);
       }
-    }
-    return fetch("data/clients.json")
-      .then(function (res) {
-        if (!res.ok) throw new Error("Falha ao carregar dados");
-        return res.json();
-      })
-      .then(function (data) {
-        delete data._readme;
-        saveStore(data);
-        return data;
-      });
+    });
   }
 
-  function saveStore(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  // Salva só a linha desse cliente (não a tabela inteira) — fire-and-forget: a UI já
+  // foi atualizada de forma otimista antes desta chamada, então erro aqui só precisa
+  // avisar a pessoa, não travar a interface.
+  function persistClient(slug) {
+    var cliente = store[slug];
+    if (!cliente) return;
+    sb.from("clients").update(clientToRow(slug, cliente)).eq("slug", slug).then(function (res) {
+      if (res.error) {
+        console.error(res.error);
+        window.alert("Não foi possível salvar essa alteração (" + res.error.message + "). Verifique sua conexão e tente de novo.");
+      }
+    });
   }
 
-  function persist() {
-    saveStore(store);
-  }
-
-  // Store de CRM: nunca tem semente (não existe fetch de fallback). Se a chave não
-  // existir neste navegador, começa vazio — só passa a existir quando alguém do time
-  // digita algo, e só naquele navegador.
-  function loadCrmStore() {
-    var raw = localStorage.getItem(CRM_STORAGE_KEY);
-    if (!raw) return {};
-    try {
-      return JSON.parse(raw);
-    } catch (e) {
-      return {};
-    }
-  }
-
-  function persistCrm() {
-    localStorage.setItem(CRM_STORAGE_KEY, JSON.stringify(crmStore));
+  // upsert (não update): o registro de CRM de um cliente pode ainda não existir na
+  // tabela na primeira vez que alguém preenche algo nele.
+  function persistCrmClient(slug) {
+    sb.from("crm").upsert(crmToRow(slug, getCrm(slug)), { onConflict: "slug" }).then(function (res) {
+      if (res.error) {
+        console.error(res.error);
+        window.alert("Não foi possível salvar esse dado de CRM (" + res.error.message + "). Verifique sua conexão e tente de novo.");
+      }
+    });
   }
 
   function crmDefaults() {
@@ -271,14 +360,14 @@
     var current = getCrm(slug);
     current[field] = value;
     crmStore[slug] = current;
-    persistCrm();
+    persistCrmClient(slug);
   }
 
   function addTeamMember(slug) {
     var current = getCrm(slug);
     current.equipe.push({ nome: "", cargo: "", telefone: "", email: "" });
     crmStore[slug] = current;
-    persistCrm();
+    persistCrmClient(slug);
     refresh();
   }
 
@@ -289,14 +378,14 @@
     if (!current.equipe[idx]) return;
     current.equipe[idx][field] = value;
     crmStore[slug] = current;
-    persistCrm();
+    persistCrmClient(slug);
   }
 
   function removeTeamMember(slug, idx) {
     var current = getCrm(slug);
     current.equipe.splice(idx, 1);
     crmStore[slug] = current;
-    persistCrm();
+    persistCrmClient(slug);
     refresh();
   }
 
@@ -304,7 +393,7 @@
     var current = getCrm(slug);
     current.acoes.push({ data: todayISO(), descricao: "" });
     crmStore[slug] = current;
-    persistCrm();
+    persistCrmClient(slug);
     refresh();
   }
 
@@ -315,14 +404,14 @@
     if (!current.acoes[idx]) return;
     current.acoes[idx][field] = value;
     crmStore[slug] = current;
-    persistCrm();
+    persistCrmClient(slug);
   }
 
   function removeRelationshipAction(slug, idx) {
     var current = getCrm(slug);
     current.acoes.splice(idx, 1);
     crmStore[slug] = current;
-    persistCrm();
+    persistCrmClient(slug);
     refresh();
   }
 
@@ -410,6 +499,81 @@
     setParams({ cliente: null, view: null });
   }
 
+  // ---------- Autenticação do time (Supabase Auth) ----------
+  // Isto é a fronteira de segurança de verdade — diferente do "currentUser" acima,
+  // que é só uma preferência de filtro. Sem sessão, a pessoa só enxerga o que o link
+  // público de UM cliente específico permite (ver loadPublicClient/RLS).
+
+  // Mostra/esconde os botões da topbar que só fazem sentido para o time logado.
+  // Chamado em todo render(), então reage sozinho a login/logout.
+  function updateTeamChrome() {
+    var show = !!session;
+    analyticsBtn.style.display = show ? "" : "none";
+    addClientBtn.style.display = show ? "" : "none";
+    exportBtn.style.display = show ? "" : "none";
+    profileBtn.style.display = show ? "" : "none";
+    logoutBtn.hidden = !show;
+  }
+
+  function renderLoginGate(errorMsg) {
+    copyBtn.style.display = "none";
+    var wrap = document.createElement("section");
+    wrap.className = "picker";
+    wrap.innerHTML =
+      '<div class="picker__card">' +
+        '<h1 class="picker__heading">Login do time</h1>' +
+        "<p class=\"picker__text\">Entre com o e-mail e senha do time para acessar a lista de clientes, " +
+          "o Analytics e o CRM. Quem só tem o link de um cliente específico não precisa fazer login — " +
+          "esse link continua funcionando normalmente.</p>" +
+        '<form id="login-form">' +
+          '<label class="field">' +
+            '<span class="field__label">E-mail</span>' +
+            '<input class="field__input" type="email" name="email" required autocomplete="username" />' +
+          "</label>" +
+          '<label class="field">' +
+            '<span class="field__label">Senha</span>' +
+            '<input class="field__input" type="password" name="senha" required autocomplete="current-password" />' +
+          "</label>" +
+          (errorMsg ? '<p class="modal__error">' + escapeHtml(errorMsg) + "</p>" : "") +
+          '<div class="modal__actions" style="justify-content:flex-start;margin-top:4px;">' +
+            '<button type="submit" class="btn btn--primary">Entrar</button>' +
+          "</div>" +
+        "</form>" +
+      "</div>";
+    app.innerHTML = "";
+    app.appendChild(wrap);
+
+    var form = wrap.querySelector("#login-form");
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var fd = new FormData(form);
+      var email = (fd.get("email") || "").toString().trim();
+      var senha = (fd.get("senha") || "").toString();
+      var btn = form.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = "Entrando…";
+      sb.auth.signInWithPassword({ email: email, password: senha }).then(function (res) {
+        if (res.error) {
+          renderLoginGate("Não foi possível entrar: " + res.error.message);
+          return;
+        }
+        session = res.data.session;
+        bootTeam();
+      });
+    });
+  }
+
+  function logout() {
+    sb.auth.signOut().then(function () {
+      session = null;
+      store = {};
+      crmStore = {};
+      currentUser = null;
+      localStorage.removeItem(PROFILE_KEY);
+      setParams({ cliente: null, view: null });
+    });
+  }
+
   // ---------- Cálculo de progresso ----------
 
   function activeTasks(fase) {
@@ -482,7 +646,7 @@
     if (!task) return;
     task.concluida = !task.concluida;
     if (task.concluida && !task.data) task.data = todayISO();
-    persist();
+    persistClient(slug);
     refresh();
   }
 
@@ -491,7 +655,7 @@
     var task = findTask(cliente, faseIdx, taskId);
     if (!task) return;
     task.data = value || null;
-    persist();
+    persistClient(slug);
     refresh();
   }
 
@@ -500,7 +664,7 @@
     var task = findTask(cliente, faseIdx, taskId);
     if (!task) return;
     task.removida = true;
-    persist();
+    persistClient(slug);
     refresh();
   }
 
@@ -509,7 +673,7 @@
     var task = findTask(cliente, faseIdx, taskId);
     if (!task) return;
     task.removida = false;
-    persist();
+    persistClient(slug);
     refresh();
   }
 
@@ -518,7 +682,7 @@
     var fase = cliente.fases[faseIdx];
     if (!fase) return;
     fase.tarefas = fase.tarefas.filter(function (t) { return t.id !== taskId; });
-    persist();
+    persistClient(slug);
     refresh();
   }
 
@@ -533,12 +697,16 @@
       id = "f" + (faseIdx + 1) + "-custom-" + idx;
     }
     fase.tarefas.push({ id: id, nome: nome, concluida: false, data: null, removida: false, custom: true });
-    persist();
+    persistClient(slug);
   }
 
+  // Assíncrono (INSERT no Supabase) — diferente das outras mutações, que atualizam o
+  // store local de forma otimista e só then salvam em segundo plano: aqui é melhor
+  // esperar a confirmação do banco antes de navegar para o cliente novo, para não
+  // levar a pessoa a uma URL cujo cliente não foi salvo de verdade.
   function addClient(fields) {
     var slug = uniqueSlug(slugify(fields.nome));
-    store[slug] = {
+    var cliente = {
       nome: fields.nome,
       empresa: fields.empresa || "",
       inicial: initials(fields.nome),
@@ -546,22 +714,31 @@
       responsavelCliente: fields.responsavelCliente || "",
       criadoPor: currentUser || "",
       dataInicio: fields.dataInicio || todayISO(),
+      foto: null,
       fases: cloneTemplateFases()
     };
-    persist();
-    return slug;
+    return sb.from("clients").insert(clientToRow(slug, cliente)).then(function (res) {
+      if (res.error) throw res.error;
+      store[slug] = cliente;
+      return slug;
+    });
   }
 
+  // Também assíncrono, pelo mesmo motivo: só sai da tela / navega de volta para a
+  // lista depois de confirmar que a exclusão foi aceita pelo banco.
   function deleteClient(slug) {
-    delete store[slug];
-    persist();
+    return sb.from("clients").delete().eq("slug", slug).then(function (res) {
+      if (res.error) throw res.error;
+      delete store[slug];
+      delete crmStore[slug];
+    });
   }
 
   function setClientPhoto(slug, dataUrl) {
     var cliente = store[slug];
     if (!cliente) return;
     cliente.foto = dataUrl;
-    persist();
+    persistClient(slug);
     refresh();
   }
 
@@ -569,7 +746,7 @@
     var cliente = store[slug];
     if (!cliente) return;
     cliente.foto = null;
-    persist();
+    persistClient(slug);
     refresh();
   }
 
@@ -1004,14 +1181,13 @@
 
     var topRow = document.createElement("div");
     topRow.className = "client-top-row";
-    topRow.innerHTML =
-      backLinkHtml() +
-      '<div class="client-top-row__actions">' +
-        (currentUser
-          ? '<button type="button" class="btn btn--secondary btn--small" data-action="go-crm">CRM</button>'
-          : "") +
-        '<button type="button" class="btn btn--danger btn--small" data-action="delete-client">Excluir cliente</button>' +
-      "</div>";
+    topRow.innerHTML = session
+      ? backLinkHtml() +
+        '<div class="client-top-row__actions">' +
+          '<button type="button" class="btn btn--secondary btn--small" data-action="go-crm">CRM</button>' +
+          '<button type="button" class="btn btn--danger btn--small" data-action="delete-client">Excluir cliente</button>' +
+        "</div>"
+      : "";
 
     var header = document.createElement("section");
     header.className = "client-header";
@@ -1019,16 +1195,18 @@
       '<div class="client-header__top">' +
         '<div class="client-header__avatar-wrap">' +
           '<div class="client-header__avatar">' + avatarInnerHtml(cliente) + "</div>" +
-          '<button type="button" class="avatar-upload-btn" data-action="upload-photo" title="Alterar foto" aria-label="Alterar foto">' +
-            cameraIconSvg() +
-          "</button>" +
+          (session
+            ? '<button type="button" class="avatar-upload-btn" data-action="upload-photo" title="Alterar foto" aria-label="Alterar foto">' +
+                cameraIconSvg() +
+              "</button>"
+            : "") +
         "</div>" +
         "<div>" +
           '<h1 class="client-header__name">' + escapeHtml(cliente.nome) + "</h1>" +
           '<p class="client-header__company">' + escapeHtml(cliente.empresa || "Sem empresa informada") + "</p>" +
           '<p class="client-header__account">ID da conta: <strong>' + escapeHtml(cliente.idConta || "não informado") +
             "</strong> · Responsável: <strong>" + escapeHtml(cliente.responsavelCliente || "não atribuído") + "</strong></p>" +
-          (cliente.foto
+          (cliente.foto && session
             ? '<button type="button" class="filter-action-link client-header__remove-photo" data-action="remove-photo">Remover foto</button>'
             : "") +
         "</div>" +
@@ -1088,6 +1266,21 @@
 
       timeline.appendChild(phase);
     });
+
+    // Sem sessão do time (link público do cliente): a timeline vira só leitura. Os
+    // botões de mutação (marcar, remover, restaurar, excluir, + adicionar tarefa)
+    // somem; o campo de data continua visível, só desabilitado — dá pra ver a data
+    // sem poder editar. Expandir/recolher fase continua funcionando (é só estado
+    // local, não grava nada). Mesmo com isso escondido na UI, o RLS do Supabase já
+    // bloqueia essas escritas para quem não está logado — isto é só a UI acompanhar.
+    if (!session) {
+      timeline.querySelectorAll("button[data-action]").forEach(function (el) {
+        el.style.display = "none";
+      });
+      timeline.querySelectorAll("input[data-action]").forEach(function (el) {
+        el.setAttribute("disabled", "disabled");
+      });
+    }
 
     var footer = document.createElement("p");
     footer.className = "footer-note";
@@ -1248,10 +1441,10 @@
     var params = new URLSearchParams(window.location.search);
     var slug = params.get("cliente");
     if (slug) {
-      // A rota do CRM só existe de verdade quando há um perfil do time ativo neste
-      // navegador — sem isso, o parâmetro "view=crm" é ignorado silenciosamente e cai
-      // na tela normal do cliente (não expõe nem a existência da aba).
-      if (params.get("view") === "crm" && currentUser) return { type: "crm", slug: slug };
+      // A rota do CRM só existe de verdade quando há uma sessão de time logada — sem
+      // isso, o parâmetro "view=crm" é ignorado silenciosamente e cai na tela normal
+      // do cliente (não expõe nem a existência da aba pra quem só tem o link público).
+      if (params.get("view") === "crm" && session) return { type: "crm", slug: slug };
       return { type: "client", slug: slug };
     }
     if (params.get("view") === "analytics") return { type: "analytics" };
@@ -1261,6 +1454,7 @@
   function render() {
     var view = getView();
     updateProfileButton();
+    updateTeamChrome();
 
     var viewKey = view.type + (view.slug ? ":" + view.slug : "");
     if (view.type === "analytics" && lastViewKey !== "analytics") {
@@ -1268,7 +1462,11 @@
     }
     lastViewKey = viewKey;
 
-    if (view.type === "client" || view.type === "crm") {
+    // A view de cliente funciona tanto para quem está logado (time) quanto para quem
+    // só tem o link público — o que muda é se store[slug] foi carregado via
+    // loadTeamData() (tudo) ou loadPublicClient() (só esse cliente), e se os
+    // controles de edição aparecem (ver renderClient/session).
+    if (view.type === "client") {
       heroBanner.hidden = true;
       currentSlug = view.slug;
       if (!store[view.slug]) {
@@ -1276,11 +1474,27 @@
         renderNotFound();
         return;
       }
-      if (view.type === "crm") {
-        renderCrm(view.slug);
-      } else {
-        renderClient(view.slug);
+      renderClient(view.slug);
+      return;
+    }
+
+    // CRM e a lista/Analytics são sempre restritos ao time: sem sessão, cai no login.
+    if (!session) {
+      currentSlug = null;
+      heroBanner.hidden = false;
+      renderLoginGate();
+      return;
+    }
+
+    if (view.type === "crm") {
+      heroBanner.hidden = true;
+      currentSlug = view.slug;
+      if (!store[view.slug]) {
+        openPhases = new Set();
+        renderNotFound();
+        return;
       }
+      renderCrm(view.slug);
       return;
     }
 
@@ -1387,8 +1601,11 @@
         "Excluir cliente",
         "Tem certeza que deseja excluir " + clienteAtual.nome + "? Essa ação não pode ser desfeita.",
         function () {
-          deleteClient(slug);
-          goToPicker();
+          deleteClient(slug).then(function () {
+            goToPicker();
+          }).catch(function (err) {
+            window.alert("Não foi possível excluir o cliente (" + err.message + ").");
+          });
         }
       );
     } else if (action === "upload-photo") {
@@ -1396,7 +1613,7 @@
     } else if (action === "remove-photo") {
       removeClientPhoto(slug);
     } else if (action === "go-crm") {
-      if (currentUser) goToCrm(slug);
+      if (session) goToCrm(slug);
     } else if (action === "crm-set-bool") {
       var boolField = target.getAttribute("data-field");
       var boolValue = target.getAttribute("data-value") === "true";
@@ -1494,6 +1711,7 @@
 
   analyticsBtn.addEventListener("click", goToAnalytics);
   profileBtn.addEventListener("click", switchProfile);
+  logoutBtn.addEventListener("click", logout);
 
   function openModal() {
     addClientError.hidden = true;
@@ -1561,30 +1779,76 @@
       addClientError.hidden = false;
       return;
     }
-    var slug = addClient({
+    var submitBtn = addClientForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    addClient({
       nome: nome,
       empresa: (formData.get("empresa") || "").toString().trim(),
       idConta: (formData.get("idConta") || "").toString().trim(),
       responsavelCliente: responsavelCliente,
       dataInicio: (formData.get("dataInicio") || "").toString().trim()
+    }).then(function (slug) {
+      submitBtn.disabled = false;
+      closeModal();
+      goToClient(slug);
+    }).catch(function (err) {
+      submitBtn.disabled = false;
+      addClientError.textContent = "Não foi possível criar o cliente (" + err.message + ").";
+      addClientError.hidden = false;
     });
-    closeModal();
-    goToClient(slug);
   });
 
   window.addEventListener("popstate", refresh);
 
   // ---------- Início ----------
+  // Carrega os dados de acordo com quem está acessando:
+  //  - sessão de time ativa -> loadTeamData() (todos os clientes + todo o CRM)
+  //  - sem sessão + link de um cliente (?cliente=slug) -> loadPublicClient(slug),
+  //    só esse cliente, só leitura
+  //  - sem sessão + nenhum link de cliente -> nada pra carregar, cai direto no
+  //    login (render() cuida disso sozinho)
 
-  loadStore()
-    .then(function (data) {
-      store = data;
+  function bootTeam() {
+    loadTeamData()
+      .then(function () {
+        render();
+      })
+      .catch(function (err) {
+        app.innerHTML = '<div class="loading">Não foi possível carregar os dados do Supabase. ' +
+          "Recarregue a página; se persistir, verifique a conexão ou avise o time técnico.</div>";
+        console.error(err);
+      });
+  }
+
+  function bootPublic(slug) {
+    loadPublicClient(slug)
+      .then(function () {
+        render();
+      })
+      .catch(function (err) {
+        app.innerHTML = '<div class="loading">Não foi possível carregar os dados do cliente. ' +
+          "Verifique se o link está completo e correto.</div>";
+        console.error(err);
+      });
+  }
+
+  sb.auth.getSession().then(function (res) {
+    session = res.data.session;
+    if (session) {
+      bootTeam();
+      return;
+    }
+    var initialView = getView();
+    if (initialView.type === "client") {
+      bootPublic(initialView.slug);
+    } else {
       render();
-    })
-    .catch(function (err) {
-      app.innerHTML = '<div class="loading">Não foi possível carregar o cronograma. ' +
-        "Se você abriu o arquivo diretamente, sirva a pasta com um servidor local " +
-        "(ex.: <code>python3 -m http.server</code>) e acesse via http://localhost.</div>";
-      console.error(err);
-    });
+    }
+  });
+
+  // Cobre login/logout feitos DEPOIS da carga inicial em outra aba, ou expiração de
+  // sessão — mantém a sessão local sincronizada com a do Supabase Auth.
+  sb.auth.onAuthStateChange(function (_event, newSession) {
+    session = newSession;
+  });
 })();
