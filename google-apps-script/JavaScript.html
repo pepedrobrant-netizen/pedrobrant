@@ -1115,6 +1115,88 @@
     return '<button type="button" class="add-task-btn" data-action="show-add-task" data-fase="' + faseIdx + '">+ Adicionar tarefa</button>';
   }
 
+  // Retrato estático (HTML autocontido) do cronograma de um cliente — usado pelo botão
+  // "Baixar página do cliente" para contornar duas limitações do Apps Script: (1) o
+  // link ?cliente=slug exige login @hotmart.com quando o Workspace restringe o deploy a
+  // "Qualquer pessoa em Hotmart", e (2) window.print() não funciona de dentro do iframe
+  // sandboxed que o Apps Script usa para servir a página. Um arquivo baixado não tem
+  // nenhuma das duas restrições: abre sem login, e se a pessoa quiser um PDF de verdade
+  // pode abrir o arquivo e imprimir por fora do Apps Script normalmente. Reaproveita o
+  // CSS já carregado na página (mesma <style> do Stylesheet.html) para ficar idêntico
+  // visualmente, sem duplicar as regras aqui.
+  function buildClientSnapshotHtml(cliente) {
+    var progress = clientProgress(cliente);
+    var statuses = faseStatuses(cliente);
+    var styleTag = document.querySelector("style");
+    var css = styleTag ? styleTag.textContent : "";
+
+    var phasesHtml = cliente.fases.map(function (fase, i) {
+      var status = statuses[i];
+      var p = faseProgress(fase);
+      var phasePct = Math.round(p.pct * 100);
+      var tasksHtml = activeTasks(fase).map(function (t) {
+        return (
+          '<div class="task-row' + (t.concluida ? " task-row--done" : "") + '">' +
+            '<span class="task-check">' + (t.concluida ? "✓" : "") + "</span>" +
+            '<span class="task-name">' + escapeHtml(t.nome) + "</span>" +
+            (t.data ? '<span class="task-date">' + escapeHtml(formatDate(t.data) || "") + "</span>" : "") +
+          "</div>"
+        );
+      }).join("");
+      return (
+        '<div class="phase phase--' + status + ' is-open">' +
+          '<span class="phase__marker">' + (status === "concluida" ? "✓" : i + 1) + "</span>" +
+          '<div class="phase__card">' +
+            '<div class="phase__header">' +
+              '<div class="phase__title-group">' +
+                '<p class="phase__title">' + (i + 1) + ". " + escapeHtml(fase.titulo) + "</p>" +
+                '<div class="phase__progress">' +
+                  '<div class="phase__progress-track"><div class="phase__progress-fill" style="width:' + phasePct + '%"></div></div>' +
+                  '<span class="phase__progress-label">' + p.done + "/" + p.total + "</span>" +
+                "</div>" +
+              "</div>" +
+              '<span class="phase__badge">' + { concluida: "Concluída", atual: "Em andamento", pendente: "Pendente" }[status] + "</span>" +
+            "</div>" +
+            '<div class="phase__body" style="max-height:none;overflow:visible;">' +
+              '<div class="phase__body-inner">' +
+                '<p class="phase__desc">' + escapeHtml(fase.descricao) + "</p>" +
+                '<div class="phase__tasks">' + (tasksHtml || '<p class="phase__empty">Todas as tarefas desta fase foram removidas para este cliente.</p>') + "</div>" +
+                '<p class="phase__owner">Responsável pela fase: ' + escapeHtml(cliente.criadoPor || "não informado") + "</p>" +
+              "</div>" +
+            "</div>" +
+          "</div>" +
+        "</div>"
+      );
+    }).join("");
+
+    return (
+      '<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8" />' +
+      '<meta name="viewport" content="width=device-width, initial-scale=1.0" />' +
+      "<title>" + escapeHtml(cliente.nome) + " — Onboarding</title>" +
+      "<style>" + css + "\nbody{background:var(--hm-white);}.app{max-width:720px;padding:32px 20px;}" +
+        ".snapshot-note{text-align:center;font-size:0.78rem;color:var(--hm-text-muted);margin-top:32px;}</style>" +
+      "</head><body><main class=\"app\">" +
+        '<section class="client-header">' +
+          '<div class="client-header__top">' +
+            '<div class="client-header__avatar-wrap"><div class="client-header__avatar">' + avatarInnerHtml(cliente) + "</div></div>" +
+            "<div>" +
+              '<h1 class="client-header__name">' + escapeHtml(cliente.nome) + "</h1>" +
+              '<p class="client-header__company">' + escapeHtml(cliente.empresa || "Sem empresa informada") + "</p>" +
+              '<p class="client-header__account">ID da conta: <strong>' + escapeHtml(cliente.idConta || "não informado") +
+                "</strong> · Responsável: <strong>" + escapeHtml(cliente.responsavelCliente || "não atribuído") + "</strong></p>" +
+            "</div>" +
+          "</div>" +
+          '<div class="progress"><div class="progress__track"><div class="progress__fill" style="width:' + progress + '%"></div></div>' +
+            '<div class="progress__label">' + progress + "% concluído</div></div>" +
+          '<div class="client-header__meta"><span>Início: <strong>' + (formatDate(cliente.dataInicio) || "—") + "</strong></span></div>" +
+        "</section>" +
+        '<div class="timeline">' + phasesHtml + "</div>" +
+        '<p class="snapshot-note">Gerado em ' + (formatDate(todayISO()) || todayISO()) +
+          " — este arquivo é uma foto do momento e não atualiza sozinho.</p>" +
+      "</main></body></html>"
+    );
+  }
+
   function renderClient(slug) {
     var cliente = store[slug];
     copyBtn.style.display = "inline-block";
@@ -1674,7 +1756,18 @@
   });
 
   printBtn.addEventListener("click", function () {
-    window.print();
+    var cliente = store[currentSlug];
+    if (!cliente) return;
+    var html = buildClientSnapshotHtml(cliente);
+    var blob = new Blob([html], { type: "text/html" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = slugify(cliente.nome) + "-onboarding.html";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   });
 
   exportBtn.addEventListener("click", function () {

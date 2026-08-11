@@ -98,17 +98,27 @@ abrir esse link** — ele cai numa tela de login do Google pedindo uma conta que
 tem. Isso não é um bug do app, é uma configuração do Workspace; só a TI da Hotmart pode
 mudar isso (perguntando se dá pra liberar "Qualquer pessoa" só para este Web App).
 
-**Enquanto isso não é liberado, use o botão "Baixar PDF do cliente"** (ao lado de
-"Copiar link do cliente") para gerar um retrato estático do cronograma do cliente:
+**Enquanto isso não é liberado, use o botão "Baixar página do cliente"** (ao lado de
+"Copiar link do cliente") para gerar um arquivo estático do cronograma do cliente:
 1. Abra a página do cliente.
-2. Clique em **"Baixar PDF do cliente"** — abre a caixa de impressão do navegador,
-   com todas as fases já expandidas e sem os botões de edição.
-3. Em "Destino"/"Salvar como", escolha **"Salvar como PDF"** e salve o arquivo.
-4. Envie o PDF ao cliente por e-mail, WhatsApp, etc.
+2. Clique em **"Baixar página do cliente"** — baixa um arquivo `.html` com o
+   cronograma daquele cliente, todas as fases já expandidas e sem os botões de edição.
+3. Envie esse arquivo ao cliente por e-mail, WhatsApp, etc. — ele abre com duplo-clique
+   em qualquer navegador, **sem pedir login nenhum** (é só um arquivo, não um link para
+   o Apps Script).
+4. Se quiser um PDF de verdade: a pessoa que recebeu o arquivo pode abri-lo e usar o
+   "Imprimir → Salvar como PDF" do próprio navegador dela — como esse arquivo não roda
+   mais dentro do Apps Script, a impressão funciona normalmente (dentro do Apps Script
+   ela não funciona, por causa do isolamento que o Google usa para servir a página).
 
-A desvantagem é que o PDF é uma foto do momento — não atualiza sozinho. Sempre que o
-cronograma mudar, é preciso gerar e reenviar um PDF novo. Mas resolve o problema de
-acesso sem depender de nenhuma liberação da TI.
+⚠️ Não use o "Imprimir" do navegador (Ctrl+P) **de dentro do app** para tentar gerar
+esse PDF — `window.print()` fica bloqueado pelo iframe isolado que o Apps Script usa
+para servir a página, então não abre nada. É por isso que o botão baixa um arquivo em
+vez de abrir a caixa de impressão direto.
+
+A desvantagem é que o arquivo é uma foto do momento — não atualiza sozinho. Sempre que
+o cronograma mudar, é preciso gerar e reenviar um arquivo novo. Mas resolve o problema
+de acesso sem depender de nenhuma liberação da TI.
 
 ## Atualizando o app depois de mudanças no código
 

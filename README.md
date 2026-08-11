@@ -30,9 +30,10 @@ para o código e o [passo a passo de publicação](google-apps-script/README.md)
   ⚠️ Mas, se a política do Google Workspace da Hotmart estiver restringindo o deploy a
   "Qualquer pessoa em Hotmart" (em vez de "Qualquer pessoa"), esse link só abre para
   quem tem conta `@hotmart.com` — um cliente externo não consegue acessá-lo. Nesse
-  caso, use o botão **"Baixar PDF do cliente"** (ao lado de "Copiar link do cliente")
-  para gerar um PDF estático do cronograma e enviar por e-mail/WhatsApp — não atualiza
-  sozinho, mas funciona para qualquer pessoa, sem depender de conta Google. Detalhes em
+  caso, use o botão **"Baixar página do cliente"** (ao lado de "Copiar link do
+  cliente") para baixar um arquivo `.html` estático do cronograma e enviar por
+  e-mail/WhatsApp — abre sem login em qualquer navegador, mas não atualiza sozinho
+  (gera um novo sempre que o cronograma mudar). Detalhes em
   [`google-apps-script/README.md`](google-apps-script/README.md#7-compartilhar-o-link-de-um-cliente).
 - Sem o parâmetro `cliente`, a página pede login do time antes de mostrar a lista de
   clientes, o botão **"+ Novo cliente"** ou o Analytics — essas telas são só para quem
