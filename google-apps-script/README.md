@@ -120,6 +120,44 @@ A desvantagem é que o arquivo é uma foto do momento — não atualiza sozinho.
 o cronograma mudar, é preciso gerar e reenviar um arquivo novo. Mas resolve o problema
 de acesso sem depender de nenhuma liberação da TI.
 
+## Lembretes de reunião no Google Calendar
+
+Toda tarefa do cronograma cujo nome contenha **"reunião"** ganha automaticamente um
+lembrete de dia inteiro na agenda do Google Calendar do **responsável pelo cliente**,
+sempre que ela recebe uma data. O evento fica marcado como **"Disponível"** (não
+"Ocupado"), então funciona como um lembrete visual, sem travar horário nem competir
+com reuniões de verdade.
+
+- Se a data da tarefa mudar depois, o mesmo evento é atualizado (não cria um duplicado).
+- Se a data for removida, ou a tarefa for removida do cronograma, o lembrete
+  correspondente é apagado da agenda.
+- Se o cliente inteiro for excluído, todos os lembretes de reunião pendentes dele são
+  apagados junto.
+- Tarefas que não têm "reunião" no nome (a maioria — cadastro, configuração, etc.)
+  nunca geram lembrete, pra não poluir a agenda de ninguém.
+
+### Configuração necessária (uma vez, por pessoa)
+
+Isso só funciona se cada onboarder **compartilhar a própria agenda** com a conta que
+publicou o Web App (a mesma que aparece em "Executar como" no passo 5 de publicação):
+
+1. No Google Calendar da pessoa (ex.: Ilana, Josiane, Madu — o Pedro não precisa, já
+   que o script roda como ele), engrenagem → **Configurações** → clique na agenda com
+   o nome dela em "Configurações das minhas agendas".
+2. Ache **"Compartilhar com pessoas específicas ou grupos"** → **"+ Adicionar
+   participantes e grupos"**.
+3. Adicione o e-mail da conta que publicou o app (quem fez o Deploy).
+4. Em permissão, escolha **"Fazer alterações nos eventos"** (é o nível mínimo
+   necessário — não precisa dar acesso aos detalhes dos outros eventos da agenda dela).
+5. Salvar.
+
+Enquanto isso não é feito, o app continua funcionando normalmente — só não cria o
+lembrete daquela pessoa (falha silenciosa, não trava o salvamento do cronograma).
+
+Os e-mails de cada onboarder ficam mapeados no topo do `Code.gs`, na constante
+`ONBOARDER_EMAILS` — se algum e-mail mudar (ou entrar/sair alguém do time), é só
+editar esse mapa e publicar uma nova versão.
+
 ## Atualizando o app depois de mudanças no código
 
 Toda vez que o `Code.gs` ou os arquivos `.html` deste repositório forem atualizados

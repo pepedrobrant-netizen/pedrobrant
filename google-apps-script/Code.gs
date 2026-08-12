@@ -25,6 +25,18 @@ var CRM_HEADERS = [
   "brindeEnviado", "metaFaturamento", "equipe", "acoes"
 ];
 
+// E-mail Google de cada onboarder — usado para saber em qual agenda criar o lembrete
+// de reunião (ver "Lembretes de reunião no Google Calendar" abaixo). Cada pessoa
+// precisa ter compartilhado a própria agenda com a conta que publicou este Web App,
+// com a permissão "Fazer alterações nos eventos" (Configurações do Google Calendar >
+// [agenda dela] > Compartilhar com pessoas específicas).
+var ONBOARDER_EMAILS = {
+  "Ilana": "ilana.carvalho@hotmart.com",
+  "Pedro": "pedro.brant@hotmart.com",
+  "Josiane": "josiane.rodrigues@hotmart.com",
+  "Madu": "ligia.madureira@hotmart.com"
+};
+
 // ---------- Web app ----------
 
 function doGet(e) {
@@ -136,6 +148,87 @@ function requireSession_(token) {
   if (!valid) throw new Error("AUTH_EXPIRED: sessão inválida ou expirada, faça login novamente.");
 }
 
+// ---------- Lembretes de reunião no Google Calendar ----------
+//
+// Sempre que um cliente é salvo, toda tarefa cujo nome contenha "reunião" ganha um
+// lembrete de dia inteiro na agenda do responsável por aquele cliente (campo
+// responsavelCliente) — não em toda tarefa, pra não poluir a agenda com itens
+// administrativos do cronograma. O evento é marcado como "Disponível" (transparente),
+// então não ocupa horário nem trava a agenda para reuniões de verdade.
+//
+// O id do evento criado fica guardado no próprio objeto da tarefa (task.eventId,
+// dentro do JSON de "fases" da planilha) — é assim que uma mudança de data atualiza o
+// mesmo evento em vez de criar um novo, e como uma data removida sabe qual evento
+// apagar. Qualquer falha aqui (ex.: a pessoa ainda não compartilhou a agenda dela)
+// não impede o cronograma de ser salvo — só o lembrete daquela tarefa fica pendente.
+
+function isMeetingTask_(nome) {
+  return (nome || "").toString().toLowerCase().indexOf("reuni") !== -1;
+}
+
+function getOnboarderCalendar_(nome) {
+  var email = ONBOARDER_EMAILS[nome];
+  if (!email) return null;
+  try {
+    return CalendarApp.getCalendarById(email);
+  } catch (e) {
+    return null;
+  }
+}
+
+function syncMeetingReminder_(cliente, task) {
+  if (!isMeetingTask_(task.nome)) return;
+  var calendar = getOnboarderCalendar_(cliente.responsavelCliente);
+  if (!calendar) return;
+  var shouldHaveEvent = !!(task.data && !task.removida);
+  try {
+    if (!shouldHaveEvent) {
+      if (task.eventId) {
+        var existing = calendar.getEventById(task.eventId);
+        if (existing) existing.deleteEvent();
+        task.eventId = null;
+      }
+      return;
+    }
+    var date = new Date(task.data + "T00:00:00");
+    if (task.eventId) {
+      var event = calendar.getEventById(task.eventId);
+      if (event) {
+        event.setAllDayDate(date);
+        return;
+      }
+    }
+    var created = calendar.createAllDayEvent(cliente.nome + " — " + task.nome, date);
+    created.setTransparency(CalendarApp.EventTransparency.TRANSPARENT);
+    task.eventId = created.getId();
+  } catch (e) {
+    // Agenda ainda não compartilhada com a conta do script, ou outro erro do
+    // Calendar — não propaga, o salvamento do cronograma continua normalmente.
+  }
+}
+
+function syncClientCalendarReminders_(cliente) {
+  (cliente.fases || []).forEach(function (fase) {
+    (fase.tarefas || []).forEach(function (task) {
+      syncMeetingReminder_(cliente, task);
+    });
+  });
+}
+
+function deleteClientCalendarReminders_(cliente) {
+  var calendar = getOnboarderCalendar_(cliente.responsavelCliente);
+  if (!calendar) return;
+  (cliente.fases || []).forEach(function (fase) {
+    (fase.tarefas || []).forEach(function (task) {
+      if (!task.eventId) return;
+      try {
+        var event = calendar.getEventById(task.eventId);
+        if (event) event.deleteEvent();
+      } catch (e) {}
+    });
+  });
+}
+
 // ---------- Clientes ----------
 
 function parseClientRow_(obj) {
@@ -238,6 +331,7 @@ function saveClient(token, slug, clientObj) {
     var sheet = getSheet_(SHEET_CLIENTES, CLIENTES_HEADERS);
     var rowIdx = findRowIndexBySlug_(sheet, slug);
     if (rowIdx === -1) throw new Error("Cliente não encontrado: " + slug);
+    syncClientCalendarReminders_(clientObj);
     sheet.getRange(rowIdx, 1, 1, CLIENTES_HEADERS.length).setValues([clientRowValues_(slug, clientObj)]);
     return { ok: true };
   });
@@ -260,7 +354,13 @@ function deleteClient(token, slug) {
   return withLock_(function () {
     var clientesSheet = getSheet_(SHEET_CLIENTES, CLIENTES_HEADERS);
     var rowIdx = findRowIndexBySlug_(clientesSheet, slug);
-    if (rowIdx !== -1) clientesSheet.deleteRow(rowIdx);
+    if (rowIdx !== -1) {
+      var row = clientesSheet.getRange(rowIdx, 1, 1, CLIENTES_HEADERS.length).getValues()[0];
+      var obj = {};
+      CLIENTES_HEADERS.forEach(function (h, i) { obj[h] = row[i]; });
+      deleteClientCalendarReminders_(parseClientRow_(obj));
+      clientesSheet.deleteRow(rowIdx);
+    }
     var crmSheet = getSheet_(SHEET_CRM, CRM_HEADERS);
     var crmRowIdx = findRowIndexBySlug_(crmSheet, slug);
     if (crmRowIdx !== -1) crmSheet.deleteRow(crmRowIdx);
