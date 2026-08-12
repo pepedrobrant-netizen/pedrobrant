@@ -167,14 +167,14 @@ function requireSession_(token) {
 //
 // IMPORTANTE — autorização: da primeira vez que o CalendarApp é usado num projeto, o
 // Google exige autorizar esse acesso (não acontece sozinho num Web App). Rode a função
-// autorizarCalendar_ manualmente uma vez no editor (ver função abaixo) antes de testar.
+// autorizarCalendar manualmente uma vez no editor (ver função abaixo) antes de testar.
 
 // Função só pra forçar a tela de autorização do Google Calendar. Selecione
-// "autorizarCalendar_" no menu de funções no topo do editor (ao lado do botão
+// "autorizarCalendar" no menu de funções no topo do editor (ao lado do botão
 // "Executar") e clique em "Executar" — vai pedir pra você aprovar o acesso ao
 // Calendar. Só precisa fazer isso uma vez por conta (você, e cada onboarder se algum
 // dia rodar o script como ela mesma — hoje não é o caso, mas não custa deixar aqui).
-function autorizarCalendar_() {
+function autorizarCalendar() {
   CalendarApp.getDefaultCalendar();
 }
 

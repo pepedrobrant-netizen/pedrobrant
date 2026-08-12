@@ -140,7 +140,7 @@ acesso explicitamente — isso não acontece sozinho num Web App, só quando alg
 uma função manualmente no editor. Faça isso uma vez:
 
 1. No editor do Apps Script, no menu de funções no topo (ao lado do botão
-   **"Executar"**), selecione **`autorizarCalendar_`**.
+   **"Executar"**), selecione **`autorizarCalendar`**.
 2. Clique em **"Executar"**.
 3. Vai aparecer um pedido de autorização — clique em **"Revisar permissões"**, escolha
    sua conta, e se aparecer o aviso "Google não verificou este app", clique em
