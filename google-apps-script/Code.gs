@@ -148,22 +148,34 @@ function requireSession_(token) {
   if (!valid) throw new Error("AUTH_EXPIRED: sessão inválida ou expirada, faça login novamente.");
 }
 
-// ---------- Lembretes de reunião no Google Calendar ----------
+// ---------- Lembretes de tarefas no Google Calendar ----------
 //
-// Sempre que um cliente é salvo, toda tarefa cujo nome contenha "reunião" ganha um
-// lembrete de dia inteiro na agenda do responsável por aquele cliente (campo
-// responsavelCliente) — não em toda tarefa, pra não poluir a agenda com itens
-// administrativos do cronograma. O evento é marcado como "Disponível" (transparente),
-// então não ocupa horário nem trava a agenda para reuniões de verdade.
+// Sempre que um cliente é salvo, toda tarefa ativa (não removida) que tiver uma data
+// ganha um lembrete de dia inteiro na agenda do responsável por aquele cliente (campo
+// responsavelCliente) — vale pra qualquer tarefa, de qualquer uma das 8 fases. O
+// evento é marcado como "Disponível" (transparente), então não ocupa horário nem
+// trava a agenda.
 //
 // O id do evento criado fica guardado no próprio objeto da tarefa (task.eventId,
 // dentro do JSON de "fases" da planilha) — é assim que uma mudança de data atualiza o
 // mesmo evento em vez de criar um novo, e como uma data removida sabe qual evento
-// apagar. Qualquer falha aqui (ex.: a pessoa ainda não compartilhou a agenda dela)
-// não impede o cronograma de ser salvo — só o lembrete daquela tarefa fica pendente.
+// apagar. Qualquer falha aqui (ex.: a pessoa ainda não compartilhou a agenda dela, ou
+// o script ainda não foi autorizado a usar o Calendar) não impede o cronograma de ser
+// salvo — só o lembrete daquela tarefa fica pendente. O erro vai pro log de execuções
+// do Apps Script (Extensões > Apps Script > ícone de relógio "Execuções", à esquerda)
+// pra dar pra investigar se os lembretes pararem de aparecer.
+//
+// IMPORTANTE — autorização: da primeira vez que o CalendarApp é usado num projeto, o
+// Google exige autorizar esse acesso (não acontece sozinho num Web App). Rode a função
+// autorizarCalendar_ manualmente uma vez no editor (ver função abaixo) antes de testar.
 
-function isMeetingTask_(nome) {
-  return (nome || "").toString().toLowerCase().indexOf("reuni") !== -1;
+// Função só pra forçar a tela de autorização do Google Calendar. Selecione
+// "autorizarCalendar_" no menu de funções no topo do editor (ao lado do botão
+// "Executar") e clique em "Executar" — vai pedir pra você aprovar o acesso ao
+// Calendar. Só precisa fazer isso uma vez por conta (você, e cada onboarder se algum
+// dia rodar o script como ela mesma — hoje não é o caso, mas não custa deixar aqui).
+function autorizarCalendar_() {
+  CalendarApp.getDefaultCalendar();
 }
 
 function getOnboarderCalendar_(nome) {
@@ -172,12 +184,12 @@ function getOnboarderCalendar_(nome) {
   try {
     return CalendarApp.getCalendarById(email);
   } catch (e) {
+    console.error("Não foi possível acessar a agenda de " + nome + " (" + email + "): " + e.message);
     return null;
   }
 }
 
-function syncMeetingReminder_(cliente, task) {
-  if (!isMeetingTask_(task.nome)) return;
+function syncTaskReminder_(cliente, task) {
   var calendar = getOnboarderCalendar_(cliente.responsavelCliente);
   if (!calendar) return;
   var shouldHaveEvent = !!(task.data && !task.removida);
@@ -202,15 +214,17 @@ function syncMeetingReminder_(cliente, task) {
     created.setTransparency(CalendarApp.EventTransparency.TRANSPARENT);
     task.eventId = created.getId();
   } catch (e) {
-    // Agenda ainda não compartilhada com a conta do script, ou outro erro do
-    // Calendar — não propaga, o salvamento do cronograma continua normalmente.
+    // Agenda ainda não compartilhada com a conta do script, script ainda não
+    // autorizado a usar o Calendar, ou outro erro — não propaga, o salvamento do
+    // cronograma continua normalmente. Fica registrado no log de execuções.
+    console.error("Falha ao sincronizar lembrete da tarefa \"" + task.nome + "\" (" + cliente.nome + "): " + e.message);
   }
 }
 
 function syncClientCalendarReminders_(cliente) {
   (cliente.fases || []).forEach(function (fase) {
     (fase.tarefas || []).forEach(function (task) {
-      syncMeetingReminder_(cliente, task);
+      syncTaskReminder_(cliente, task);
     });
   });
 }

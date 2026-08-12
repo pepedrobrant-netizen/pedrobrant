@@ -120,21 +120,37 @@ A desvantagem é que o arquivo é uma foto do momento — não atualiza sozinho.
 o cronograma mudar, é preciso gerar e reenviar um arquivo novo. Mas resolve o problema
 de acesso sem depender de nenhuma liberação da TI.
 
-## Lembretes de reunião no Google Calendar
+## Lembretes de tarefas no Google Calendar
 
-Toda tarefa do cronograma cujo nome contenha **"reunião"** ganha automaticamente um
+Toda tarefa do cronograma (de qualquer uma das 8 fases) ganha automaticamente um
 lembrete de dia inteiro na agenda do Google Calendar do **responsável pelo cliente**,
 sempre que ela recebe uma data. O evento fica marcado como **"Disponível"** (não
-"Ocupado"), então funciona como um lembrete visual, sem travar horário nem competir
-com reuniões de verdade.
+"Ocupado"), então funciona como um lembrete visual, sem travar horário na agenda.
 
 - Se a data da tarefa mudar depois, o mesmo evento é atualizado (não cria um duplicado).
 - Se a data for removida, ou a tarefa for removida do cronograma, o lembrete
   correspondente é apagado da agenda.
-- Se o cliente inteiro for excluído, todos os lembretes de reunião pendentes dele são
-  apagados junto.
-- Tarefas que não têm "reunião" no nome (a maioria — cadastro, configuração, etc.)
-  nunca geram lembrete, pra não poluir a agenda de ninguém.
+- Se o cliente inteiro for excluído, todos os lembretes pendentes dele são apagados
+  junto.
+
+### Autorização (uma vez, por quem publicou o app)
+
+Da primeira vez que o script usa o Google Calendar, o Google exige autorizar esse
+acesso explicitamente — isso não acontece sozinho num Web App, só quando alguém roda
+uma função manualmente no editor. Faça isso uma vez:
+
+1. No editor do Apps Script, no menu de funções no topo (ao lado do botão
+   **"Executar"**), selecione **`autorizarCalendar_`**.
+2. Clique em **"Executar"**.
+3. Vai aparecer um pedido de autorização — clique em **"Revisar permissões"**, escolha
+   sua conta, e se aparecer o aviso "Google não verificou este app", clique em
+   **"Avançado"** → **"Acessar [nome do projeto] (não seguro)"** → **"Permitir"**
+   (mesmo fluxo que já apareceu quando você publicou o app pela primeira vez).
+
+Sem esse passo, os lembretes falham silenciosamente (o cronograma continua salvando
+normal, só o evento não é criado) — se os lembretes pararem de funcionar do nada, esse
+é o primeiro lugar a checar. O erro exato fica registrado no log de execuções:
+**Extensões → Apps Script → ícone de relógio "Execuções"** no menu lateral esquerdo.
 
 ### Configuração necessária (uma vez, por pessoa)
 
