@@ -1179,6 +1179,449 @@
     });
   }
 
+  // ================= Gráficos SVG (sem dependência externa) =================
+  function ultimosMeses(qtd) {
+    var out = [];
+    var d = new Date();
+    d.setDate(1);
+    for (var i = 0; i < qtd; i++) {
+      out.unshift(d.toISOString().slice(0, 7));
+      d.setMonth(d.getMonth() - 1);
+    }
+    return out;
+  }
+  function mesLabel(chaveAno) {
+    var meses = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+    var partes = chaveAno.split("-");
+    return meses[Number(partes[1]) - 1] + "/" + partes[0].slice(2);
+  }
+
+  function svgLineChart(series, meses, opts) {
+    var w = (opts && opts.width) || 640, h = (opts && opts.height) || 220, pad = 34;
+    var maxVal = Math.max.apply(null, [1].concat(series.reduce(function (acc, s) { return acc.concat(s.points); }, [])));
+    var stepX = (w - pad * 2) / Math.max(1, meses.length - 1);
+    function coordFor(i, v) {
+      var x = pad + i * stepX;
+      var y = h - pad - (v / maxVal) * (h - pad * 2);
+      return [x, y];
+    }
+    var gridY = [0, 0.25, 0.5, 0.75, 1].map(function (f) {
+      var y = h - pad - f * (h - pad * 2);
+      return '<line x1="' + pad + '" y1="' + y + '" x2="' + (w - pad) + '" y2="' + y + '" stroke="var(--border)" stroke-width="1"/>';
+    }).join("");
+    var xLabels = meses.map(function (m, i) {
+      var x = pad + i * stepX;
+      return '<text x="' + x + '" y="' + (h - 8) + '" font-size="10" fill="var(--c-gray)" text-anchor="middle">' + mesLabel(m) + '</text>';
+    }).join("");
+    var linhas = series.map(function (s) {
+      var pts = s.points.map(function (v, i) { return coordFor(i, v); });
+      var d = pts.map(function (p, i) { return (i === 0 ? "M" : "L") + p[0].toFixed(1) + "," + p[1].toFixed(1); }).join(" ");
+      var dashAttr = s.dash ? ' stroke-dasharray="5,4"' : "";
+      var circles = pts.map(function (p) { return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3" fill="' + s.color + '"/>'; }).join("");
+      return '<path d="' + d + '" fill="none" stroke="' + s.color + '" stroke-width="2.5"' + dashAttr + '/>' + circles;
+    }).join("");
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;max-width:' + w + 'px;height:' + h + 'px;">' + gridY + linhas + xLabels + '</svg>';
+  }
+
+  function progressRingSvg(pct, size) {
+    size = size || 150;
+    var r = size / 2 - 12, c = size / 2, circ = 2 * Math.PI * r;
+    var clamped = Math.max(0, Math.min(100, pct));
+    var dash = (clamped / 100) * circ;
+    return '<svg viewBox="0 0 ' + size + ' ' + size + '" style="width:' + size + 'px;height:' + size + 'px;transform:rotate(-90deg);">' +
+      '<circle cx="' + c + '" cy="' + c + '" r="' + r + '" fill="none" stroke="var(--surface-2)" stroke-width="12"/>' +
+      '<circle cx="' + c + '" cy="' + c + '" r="' + r + '" fill="none" stroke="var(--c-orange)" stroke-width="12" ' +
+        'stroke-dasharray="' + dash.toFixed(1) + ' ' + circ.toFixed(1) + '" stroke-linecap="round"/>' +
+    '</svg>';
+  }
+
+  // ================= Meta =================
+  function nivelGamificado(pct) {
+    if (pct >= 100) return { nome: "Diamante", cls: "level-diamante" };
+    if (pct >= 80) return { nome: "Ouro", cls: "level-ouro" };
+    if (pct >= 50) return { nome: "Prata", cls: "level-prata" };
+    return { nome: "Bronze", cls: "level-bronze" };
+  }
+
+  function renderMeta() {
+    var meses = ultimosMeses(8);
+    if (!state.meta) state.meta = { periodo: meses[meses.length - 1] };
+    var periodo = state.meta.periodo;
+    var todos = clientesDoPerfil();
+
+    var doPeriodo = todos.filter(function (c) { return c.cw && c.cw.slice(0, 7) === periodo; });
+    var ativadosNoPeriodo = todos.filter(function (c) { return c.ativacao && c.ativacao.slice(0, 7) === periodo; });
+    var gmvPeriodo = doPeriodo.reduce(function (s, c) { return s + (c.gmv || 0); }, 0);
+    var metaPeriodo = doPeriodo.reduce(function (s, c) { return s + (c.amount3Meses || 0); }, 0);
+    var pctHero = metaPeriodo ? Math.round((gmvPeriodo / metaPeriodo) * 100) : 0;
+    var nivel = nivelGamificado(pctHero);
+
+    var pctFerramentas = todos.length ? Math.round(todos.reduce(function (s, c) { return s + (simpleHashClient_(c.hotmartId) % 101); }, 0) / todos.length) : 0;
+    var bonusIlustrativo = Math.round((gmvPeriodo * 0.004) / 50) * 50;
+
+    var opcoesMes = meses.map(function (m) { return '<option value="' + m + '"' + (m === periodo ? " selected" : "") + '>' + mesLabel(m) + "/" + m.slice(0, 4) + '</option>'; }).join("");
+
+    var gmvAcumulado = [], metaAcumulado = [], ativAcumulado = [], fechadosAcumulado = [];
+    var accGmv = 0, accMeta = 0, accAtiv = 0, accFechados = 0;
+    meses.forEach(function (m) {
+      var doMes = todos.filter(function (c) { return c.cw && c.cw.slice(0, 7) === m; });
+      accGmv += doMes.reduce(function (s, c) { return s + (c.gmv || 0); }, 0);
+      accMeta += doMes.reduce(function (s, c) { return s + (c.amount3Meses || 0); }, 0);
+      accFechados += doMes.length;
+      accAtiv += todos.filter(function (c) { return c.ativacao && c.ativacao.slice(0, 7) === m; }).length;
+      gmvAcumulado.push(accGmv); metaAcumulado.push(accMeta);
+      ativAcumulado.push(accAtiv); fechadosAcumulado.push(accFechados);
+    });
+
+    var praAtivar = todos.filter(function (c) { return STATUS_JORNADA_ATIVA.indexOf(c.status) !== -1 && !c.ativacao; })
+      .sort(function (a, b) { return (b.daysCarteira || 0) - (a.daysCarteira || 0); }).slice(0, 15);
+
+    var ranking = "";
+    if (isAdmin()) {
+      var linhas = ["Madu", "Pedro", "Josiane", "Ilana"].map(function (nome) {
+        var carteira = PORTFOLIO_DATA[nome.toLowerCase()] || [];
+        var ativ = carteira.filter(function (c) { return c.ativacao && c.ativacao.slice(0, 7) === periodo; }).length;
+        var gmv = carteira.filter(function (c) { return c.cw && c.cw.slice(0, 7) === periodo; }).reduce(function (s, c) { return s + (c.gmv || 0); }, 0);
+        return { nome: nome, ativ: ativ, gmv: gmv };
+      }).sort(function (a, b) { return b.gmv - a.gmv; });
+      ranking = '<div class="card"><div class="section-title">Ranking da equipe — ' + mesLabel(periodo) + '</div>' +
+        linhas.map(function (l, i) {
+          return '<div class="ranking-row"><div class="ranking-pos">' + (i + 1) + '</div>' +
+            '<div style="flex:1;font-weight:700;">' + l.nome + '</div>' +
+            '<div>' + l.ativ + ' ativações</div><div style="width:120px;text-align:right;">' + fmtBRL(l.gmv) + '</div></div>';
+        }).join("") + '</div>';
+    }
+
+    return '' +
+      '<div class="toolbar"><label style="font-weight:700;">Período:</label><select id="selPeriodoMeta">' + opcoesMes + '</select></div>' +
+      '<div class="card"><div class="hero-meta">' +
+        '<div class="ring-wrap">' + progressRingSvg(pctHero) + '<div class="ring-value"><span class="pct">' + pctHero + '%</span><span class="level-pill ' + nivel.cls + '">' + nivel.nome + '</span></div></div>' +
+        '<div style="flex:1;min-width:220px;">' +
+          '<div class="section-title">Atingimento do período (GMV / meta)</div>' +
+          '<div style="color:var(--c-gray);font-size:13px;">GMV real: <b style="color:var(--text);">' + fmtBRL(gmvPeriodo) + '</b> · Meta (Amount 3 meses): <b style="color:var(--text);">' + fmtBRL(metaPeriodo) + '</b></div>' +
+        '</div>' +
+      '</div></div>' +
+      '<div class="kpi-row">' +
+        '<div class="kpi-card"><div class="label">Ativação real (período)</div><div class="value">' + ativadosNoPeriodo.length + '</div></div>' +
+        '<div class="kpi-card"><div class="label">% Ferramentas (ilustrativo)</div><div class="value">' + pctFerramentas + '%</div></div>' +
+        '<div class="kpi-card"><div class="label">Receita/GMV real (período)</div><div class="value">' + fmtBRL(gmvPeriodo) + '</div></div>' +
+        '<div class="kpi-card"><div class="label">Bônus (ilustrativo)</div><div class="value">' + fmtBRL(bonusIlustrativo) + '</div></div>' +
+      '</div>' +
+      '<div class="card"><div class="section-title">GMV acumulado × Meta</div>' +
+        '<div class="chart-legend"><span><span class="dot" style="background:var(--c-orange);"></span>GMV real</span><span><span class="dot" style="background:var(--c-gray);"></span>Meta (Amount 3 meses)</span></div>' +
+        '<div class="chart-wrap">' + svgLineChart([
+          { color: "#FF4000", points: gmvAcumulado },
+          { color: "#C3BFB8", dash: true, points: metaAcumulado }
+        ], meses) + '</div></div>' +
+      '<div class="card"><div class="section-title">Ativações acumuladas × Clientes fechados (proxy de meta)</div>' +
+        '<div class="chart-legend"><span><span class="dot" style="background:var(--c-blue);"></span>Ativações reais</span><span><span class="dot" style="background:var(--c-gray);"></span>Fechados (CW)</span></div>' +
+        '<div class="chart-wrap">' + svgLineChart([
+          { color: "#44D0FF", points: ativAcumulado },
+          { color: "#C3BFB8", dash: true, points: fechadosAcumulado }
+        ], meses) + '</div></div>' +
+      '<div class="card"><div class="section-title">Clientes ativados no período</div>' + tabelaSimples(ativadosNoPeriodo, ["nome", "closer", "ativacao", "gmv"]) + '</div>' +
+      '<div class="card"><div class="section-title">Clientes pra ativar (mais antigos primeiro)</div>' + tabelaSimples(praAtivar, ["nome", "closer", "status", "daysCarteira"]) + '</div>' +
+      ranking;
+  }
+
+  function simpleHashClient_(str) {
+    var hash = 5381, s = String(str || "");
+    for (var i = 0; i < s.length; i++) hash = ((hash << 5) + hash + s.charCodeAt(i)) & 0xffffffff;
+    return Math.abs(hash);
+  }
+
+  function tabelaSimples(lista, keys) {
+    if (!lista.length) return '<div class="empty-state">Nenhum cliente aqui.</div>';
+    var defsByKey = {}; FIELD_DEFS.forEach(function (f) { defsByKey[f.key] = f; });
+    var head = keys.map(function (k) { return '<th>' + (defsByKey[k] ? defsByKey[k].label : k) + '</th>'; }).join("");
+    var rows = lista.map(function (c) {
+      var tds = keys.map(function (k) { return '<td>' + fmtCell(defsByKey[k] || {}, c[k]) + '</td>'; }).join("");
+      return '<tr data-cliente-id="' + c.hotmartId + '">' + tds + '</tr>';
+    }).join("");
+    return '<div class="table-scroll"><table class="data-table"><thead><tr>' + head + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+  }
+
+  function bindMeta() {
+    var sel = document.getElementById("selPeriodoMeta");
+    if (sel) sel.addEventListener("change", function () { state.meta.periodo = this.value; rerenderScreenContent(); });
+    document.querySelectorAll("[data-cliente-id]").forEach(function (tr) {
+      tr.addEventListener("click", function () {
+        state.clienteSelecionado = tr.getAttribute("data-cliente-id");
+        state.clienteAba = "cronograma"; state.screen = "perfil"; render();
+      });
+    });
+  }
+
+  // ================= Analytics =================
+  // Protótipo visual — os números de "queda" aqui são ilustrativos (hash determinístico
+  // do Hotmart ID), até existir integração real com o Astrobox interno. O recorte é
+  // sempre a jornada ativa (5 status), sem toggle pra ver histórico encerrado.
+  function quedaDoCliente(c) {
+    return simpleHashClient_(c.hotmartId + "|queda") % 60; // 0 a 59
+  }
+  function statusQueda(pct) {
+    if (pct >= 40) return { label: "Crítico", cls: "maroon" };
+    if (pct >= 20) return { label: "Atenção", cls: "orange" };
+    return { label: "Estável", cls: "lemon" };
+  }
+
+  function renderAnalytics() {
+    var ativos = clientesDoPerfil().filter(function (c) { return STATUS_JORNADA_ATIVA.indexOf(c.status) !== -1; });
+    var comQueda = ativos.map(function (c) { return { c: c, queda: quedaDoCliente(c) }; });
+    var emQueda = comQueda.filter(function (x) { return x.queda >= 20; });
+    var quedaMedia = ativos.length ? Math.round(comQueda.reduce(function (s, x) { return s + x.queda; }, 0) / ativos.length) : 0;
+    var maior = comQueda.slice().sort(function (a, b) { return b.queda - a.queda; })[0];
+
+    var meses = ultimosMeses(8);
+    var tendencia = meses.map(function (m) { return 25 + (simpleHashClient_(m + "|tendencia") % 45); });
+
+    var maioresQuedas = comQueda.slice().sort(function (a, b) { return b.queda - a.queda; }).slice(0, 15);
+    var rows = maioresQuedas.map(function (x) {
+      var st = statusQueda(x.queda);
+      return '<tr data-cliente-id="' + x.c.hotmartId + '">' +
+        '<td>' + escapeHtml(x.c.nome || "—") + '</td>' +
+        '<td>' + escapeHtml(x.c.closer || "—") + '</td>' +
+        '<td>' + statusBadge(x.c.status) + '</td>' +
+        '<td>' + x.queda + '%</td>' +
+        '<td><span class="badge ' + st.cls + '">' + st.label + '</span></td>' +
+      '</tr>';
+    }).join("");
+
+    return '' +
+      '<p style="font-size:12px;color:var(--c-gray);margin-bottom:14px;">Recorte fixo na jornada ativa · dados ilustrativos até existir integração com o Astrobox interno.</p>' +
+      '<div class="kpi-row">' +
+        '<div class="kpi-card"><div class="label">Clientes em queda</div><div class="value">' + emQueda.length + '</div></div>' +
+        '<div class="kpi-card"><div class="label">Queda média</div><div class="value">' + quedaMedia + '%</div></div>' +
+        '<div class="kpi-card"><div class="label">Maior queda</div><div class="value">' + (maior ? maior.queda + '%' : "—") + '</div><div style="font-size:12px;color:var(--c-gray);">' + (maior ? escapeHtml(maior.c.nome || "") : "") + '</div></div>' +
+      '</div>' +
+      '<div class="card"><div class="section-title">Tendência de queda (ilustrativo)</div>' +
+        '<div class="chart-wrap">' + svgLineChart([{ color: "#FF4000", points: tendencia }], meses) + '</div></div>' +
+      '<div class="card"><div class="section-title">Maiores quedas</div>' +
+        '<div class="table-scroll"><table class="data-table"><thead><tr><th>Nome</th><th>Closer</th><th>Status</th><th>Queda</th><th>Alerta</th></tr></thead>' +
+        '<tbody>' + (rows || '<tr><td colspan="5"><div class="empty-state">Sem clientes na jornada ativa.</div></td></tr>') + '</tbody></table></div>' +
+      '</div>';
+  }
+
+  function bindAnalytics() {
+    document.querySelectorAll("[data-cliente-id]").forEach(function (tr) {
+      tr.addEventListener("click", function () {
+        state.clienteSelecionado = tr.getAttribute("data-cliente-id");
+        state.clienteAba = "cronograma"; state.screen = "perfil"; render();
+      });
+    });
+  }
+
+  // ================= Rotina =================
+  var ROTINA_SUBABAS = [
+    { id: "semana", label: "Semana" }, { id: "diario", label: "Diário" },
+    { id: "checklist", label: "Checklist semanal" }, { id: "tipo", label: "Por tipo de cliente" },
+    { id: "mensal", label: "Mensal" }, { id: "missoes", label: "Missões" }
+  ];
+  var CHECKLIST_SEMANAL_ITENS = [
+    "Revisar carteira e status de cada cliente", "Atualizar CRM dos clientes tocados na semana",
+    "Checar clientes em alerta de prazo", "Enviar relatório semanal pra coordenação",
+    "Planejar contatos da próxima semana"
+  ];
+  var DIAS_SEMANA = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
+
+  function chaveSemanaAtual() {
+    var d = new Date();
+    var onejan = new Date(d.getFullYear(), 0, 1);
+    var semana = Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);
+    return d.getFullYear() + "-W" + semana;
+  }
+
+  function renderRotina() {
+    if (!state.rotinaSubaba) state.rotinaSubaba = "semana";
+    var tabs = ROTINA_SUBABAS.map(function (t) {
+      return '<button class="subtab-btn' + (state.rotinaSubaba === t.id ? " active" : "") + '" data-subtab="' + t.id + '">' + t.label + '</button>';
+    }).join("");
+    var conteudo;
+    switch (state.rotinaSubaba) {
+      case "semana": conteudo = renderRotinaSemana(); break;
+      case "diario": conteudo = renderRotinaDiario(); break;
+      case "checklist": conteudo = renderRotinaChecklist(); break;
+      case "tipo": conteudo = renderRotinaPorTipo(); break;
+      case "mensal": conteudo = renderRotinaMensal(); break;
+      case "missoes": conteudo = renderRotinaMissoes(); break;
+    }
+    return '<div class="subtabs">' + tabs + '</div>' + conteudo;
+  }
+
+  function renderRotinaSemana() {
+    var todos = clientesDoPerfil().filter(function (c) { return STATUS_JORNADA_ATIVA.indexOf(c.status) !== -1; });
+    var colunas = DIAS_SEMANA.map(function (dia, i) {
+      var doDia = todos.filter(function (c) { return simpleHashClient_(c.hotmartId) % 5 === i; });
+      var itens = doDia.map(function (c) { return '<div class="checklist-item" data-cliente-id="' + c.hotmartId + '" style="cursor:pointer;">' + escapeHtml(c.nome || "—") + '</div>'; }).join("");
+      return '<div class="card" style="flex:1;min-width:180px;"><div class="section-title">' + dia + '</div>' + (itens || '<div class="empty-state">Sem contatos.</div>') + '</div>';
+    }).join("");
+    return '<div style="display:flex;gap:12px;flex-wrap:wrap;">' + colunas + '</div>';
+  }
+
+  function renderRotinaDiario() {
+    var todos = clientesDoPerfil().filter(function (c) { return STATUS_JORNADA_ATIVA.indexOf(c.status) !== -1; });
+    var contatarHoje = todos.filter(function (c) { return (c._ultimoContatoDias || 0) >= 25; })
+      .sort(function (a, b) { return (b._ultimoContatoDias || 0) - (a._ultimoContatoDias || 0); });
+    var rows = contatarHoje.map(function (c) {
+      return '<div class="checklist-item" data-cliente-id="' + c.hotmartId + '" style="cursor:pointer;">' +
+        '<span style="flex:1;">' + escapeHtml(c.nome || "—") + '</span>' +
+        '<span style="font-size:12px;color:var(--c-gray);">Último contato há ' + c._ultimoContatoDias + ' dias</span>' +
+      '</div>';
+    }).join("");
+    return '<div class="card"><div class="section-title">Contatar hoje</div>' + (rows || '<div class="empty-state">Ninguém pendente de contato hoje.</div>') + '</div>';
+  }
+
+  function renderRotinaChecklist() {
+    var semana = chaveSemanaAtual();
+    var salvo = {};
+    try { salvo = JSON.parse(localStorage.getItem("dboChecklist_" + state.perfil + "_" + semana) || "{}"); } catch (e) {}
+    var itens = CHECKLIST_SEMANAL_ITENS.map(function (item, i) {
+      return '<div class="checklist-item"><input type="checkbox" data-checklist-idx="' + i + '" ' + (salvo[i] ? "checked" : "") + '/> <span style="' + (salvo[i] ? "text-decoration:line-through;color:var(--c-gray);" : "") + '">' + item + '</span></div>';
+    }).join("");
+    return '<div class="card"><div class="section-title">Checklist da semana (' + semana + ')</div>' + itens + '</div>';
+  }
+
+  function renderRotinaPorTipo() {
+    var todos = clientesDoPerfil();
+    var porSegmento = {};
+    todos.forEach(function (c) {
+      var seg = c.segmento || "Sem segmento";
+      if (!porSegmento[seg]) porSegmento[seg] = { count: 0, gmv: 0 };
+      porSegmento[seg].count++; porSegmento[seg].gmv += (c.gmv || 0);
+    });
+    var linhas = Object.keys(porSegmento).sort(function (a, b) { return porSegmento[b].gmv - porSegmento[a].gmv; }).map(function (seg) {
+      var s = porSegmento[seg];
+      return '<tr><td>' + escapeHtml(seg) + '</td><td>' + s.count + '</td><td>' + fmtBRL(s.gmv) + '</td></tr>';
+    }).join("");
+    return '<div class="card"><div class="section-title">Carteira por segmento</div>' +
+      '<div class="table-scroll"><table class="data-table"><thead><tr><th>Segmento</th><th>Clientes</th><th>GMV</th></tr></thead><tbody>' +
+      (linhas || '<tr><td colspan="3"><div class="empty-state">Sem dados.</div></td></tr>') + '</tbody></table></div></div>';
+  }
+
+  function renderRotinaMensal() {
+    var hist = historicoMensalPorCW();
+    var todos = clientesDoPerfil();
+    var gmvTotalMes = {};
+    todos.forEach(function (c) { if (c.cw) { var m = c.cw.slice(0, 7); gmvTotalMes[m] = (gmvTotalMes[m] || 0) + (c.gmv || 0); } });
+    var linhas = hist.map(function (h) {
+      return '<tr><td>' + h.mes + '</td><td>' + h.total + ' clientes fechados</td><td>' + fmtBRL(gmvTotalMes[h.mes] || 0) + '</td></tr>';
+    }).join("");
+    return '<div class="card"><div class="section-title">Resumo mensal (por CW)</div>' +
+      '<div class="table-scroll"><table class="data-table"><thead><tr><th>Mês</th><th>Fechados</th><th>GMV</th></tr></thead><tbody>' +
+      (linhas || '<tr><td colspan="3"><div class="empty-state">Sem dados.</div></td></tr>') + '</tbody></table></div></div>';
+  }
+
+  function nivelPorPontos(pontos) {
+    if (pontos >= 600) return { nome: "Diamante", cls: "level-diamante" };
+    if (pontos >= 300) return { nome: "Ouro", cls: "level-ouro" };
+    if (pontos >= 100) return { nome: "Prata", cls: "level-prata" };
+    return { nome: "Bronze", cls: "level-bronze" };
+  }
+  function pontosDoPerfil(nome) {
+    return state.missoes.reduce(function (total, m) {
+      var a = (m.atribuicoes || []).filter(function (x) { return x.pessoa === nome && x.completo; });
+      return total + a.length * (m.pontos || 0);
+    }, 0);
+  }
+
+  function renderRotinaMissoes() {
+    var meusPontos = pontosDoPerfil(state.perfil);
+    var nivel = nivelPorPontos(meusPontos);
+    var cards = state.missoes.map(function (m) {
+      var minhaAtribuicao = (m.atribuicoes || []).filter(function (a) { return a.pessoa === state.perfil; })[0];
+      var atribuicoesTexto = (m.atribuicoes || []).map(function (a) {
+        return a.pessoa + (a.completo ? " ✓" : "");
+      }).join(", ");
+      return '<div class="mission-card">' +
+        '<div style="display:flex;justify-content:space-between;"><b>' + escapeHtml(m.titulo) + '</b><span class="mission-points">+' + m.pontos + ' pts</span></div>' +
+        '<div style="font-size:13px;color:var(--c-gray);margin:6px 0;">' + escapeHtml(m.descricao || "") + '</div>' +
+        '<div style="font-size:12px;color:var(--c-gray);">Prazo: ' + fmtDate(m.prazo) + ' · Atribuído: ' + escapeHtml(atribuicoesTexto || "—") + '</div>' +
+        (minhaAtribuicao && !minhaAtribuicao.completo ? '<button class="btn small subtle" data-completar-missao="' + m.id + '" style="margin-top:8px;">Marcar como concluída</button>' : "") +
+        (isAdmin() ? '<button class="btn small ghost" data-remover-missao="' + m.id + '" style="margin-top:8px;margin-left:6px;">Remover</button>' : "") +
+      '</div>';
+    }).join("");
+    var formNovaMissao = isAdmin() ? (
+      '<div class="card"><div class="section-title">Nova missão</div>' +
+        '<div class="field"><label>Título</label><input type="text" id="missaoTitulo"/></div>' +
+        '<div class="field"><label>Descrição</label><input type="text" id="missaoDescricao"/></div>' +
+        '<div class="field"><label>Pontos</label><input type="text" id="missaoPontos" value="50"/></div>' +
+        '<div class="field"><label>Prazo</label><input type="text" id="missaoPrazo" placeholder="yyyy-mm-dd"/></div>' +
+        '<div class="field"><label>Atribuir a</label>' +
+          ["Madu", "Pedro", "Josiane", "Ilana"].map(function (n) { return '<label style="margin-right:10px;"><input type="checkbox" data-missao-pessoa="' + n + '"/> ' + n + '</label>'; }).join("") +
+        '</div>' +
+        '<button class="btn" id="btnCriarMissao">Criar missão</button>' +
+      '</div>'
+    ) : "";
+    return '' +
+      '<div class="card"><div class="hero-meta">' +
+        '<div><div class="section-title">Seus pontos</div><div style="font-family:var(--font-display);font-size:28px;font-weight:700;">' + meusPontos + '</div><span class="level-pill ' + nivel.cls + '">' + nivel.nome + '</span></div>' +
+      '</div></div>' +
+      formNovaMissao +
+      '<div class="section-title" style="margin-top:16px;">Missões ativas</div>' +
+      (cards || '<div class="empty-state">Nenhuma missão criada ainda.</div>');
+  }
+
+  function bindRotina() {
+    document.querySelectorAll("[data-subtab]").forEach(function (btn) {
+      btn.addEventListener("click", function () { state.rotinaSubaba = btn.getAttribute("data-subtab"); rerenderScreenContent(); });
+    });
+    document.querySelectorAll("[data-cliente-id]").forEach(function (el) {
+      el.addEventListener("click", function () {
+        state.clienteSelecionado = el.getAttribute("data-cliente-id");
+        state.clienteAba = "cronograma"; state.screen = "perfil"; render();
+      });
+    });
+    document.querySelectorAll("[data-checklist-idx]").forEach(function (chk) {
+      chk.addEventListener("change", function () {
+        var semana = chaveSemanaAtual();
+        var key = "dboChecklist_" + state.perfil + "_" + semana;
+        var salvo = {};
+        try { salvo = JSON.parse(localStorage.getItem(key) || "{}"); } catch (e) {}
+        salvo[chk.getAttribute("data-checklist-idx")] = chk.checked;
+        localStorage.setItem(key, JSON.stringify(salvo));
+        rerenderScreenContent();
+      });
+    });
+    var btnCriar = document.getElementById("btnCriarMissao");
+    if (btnCriar) btnCriar.addEventListener("click", function () {
+      var atribuidoPara = Array.prototype.slice.call(document.querySelectorAll("[data-missao-pessoa]:checked")).map(function (c) { return c.getAttribute("data-missao-pessoa"); });
+      var missao = {
+        titulo: document.getElementById("missaoTitulo").value,
+        descricao: document.getElementById("missaoDescricao").value,
+        pontos: Number(document.getElementById("missaoPontos").value) || 0,
+        prazo: document.getElementById("missaoPrazo").value,
+        atribuidoPara: atribuidoPara
+      };
+      if (!missao.titulo || !atribuidoPara.length) { toast("Preencha o título e escolha ao menos uma pessoa."); return; }
+      withGsRun(function (res) {
+        state.missoes.push({ id: res.id, titulo: missao.titulo, descricao: missao.descricao, pontos: missao.pontos, prazo: missao.prazo, criadoPor: state.perfil, criadoEm: new Date().toISOString().slice(0, 10), atribuicoes: atribuidoPara.map(function (p) { return { pessoa: p, completo: false, completoEm: null }; }) });
+        toast("Missão criada.");
+        rerenderScreenContent();
+      }).createMissao(state.session.token, missao, state.perfil);
+    });
+    document.querySelectorAll("[data-completar-missao]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.getAttribute("data-completar-missao");
+        withGsRun(function () {
+          var m = state.missoes.filter(function (x) { return x.id === id; })[0];
+          if (m) m.atribuicoes.forEach(function (a) { if (a.pessoa === state.perfil) { a.completo = true; a.completoEm = new Date().toISOString().slice(0, 10); } });
+          toast("Missão concluída!");
+          rerenderScreenContent();
+        }).completeMissaoTask(state.session.token, id, state.perfil);
+      });
+    });
+    document.querySelectorAll("[data-remover-missao]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.getAttribute("data-remover-missao");
+        if (!confirm("Remover esta missão?")) return;
+        withGsRun(function () {
+          state.missoes = state.missoes.filter(function (x) { return x.id !== id; });
+          rerenderScreenContent();
+        }).deleteMissao(state.session.token, id, state.perfil);
+      });
+    });
+  }
+
   applyTheme();
   render();
 </script>
