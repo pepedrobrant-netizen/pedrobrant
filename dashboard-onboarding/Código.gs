@@ -61,13 +61,17 @@ var STATUS_JORNADA_ATIVA = [
   "Activation & Monitoring"
 ];
 
+// Overlay de CRM — campos que só existem no app (o mockup de UI que define esses
+// campos: telefone, e-mail, endereço, aniversário, evento, contrato, brinde, meta de
+// faturamento, Hotmart Cast, equipe do cliente, ações de relacionamento e fotos).
 var OVERLAY_HEADERS = [
-  "hotmartId", "observacoes", "contratoAssinado", "brindeEnviado", "lancamento",
-  "fotos", "atualizadoEm", "atualizadoPor"
+  "hotmartId", "telefone", "email", "endereco", "aniversario", "evento", "contrato",
+  "brinde", "metaFaturamento", "hotmartCast", "hotmartCastData", "hotmartCastHora",
+  "equipeExtra", "relacExtra", "fotos", "atualizadoEm", "atualizadoPor"
 ];
 
 var MISSOES_HEADERS = [
-  "id", "titulo", "descricao", "pontos", "prazo", "criadoPor", "criadoEm", "atribuicoes"
+  "id", "titulo", "descricao", "pontos", "destinatario", "criadoPor", "criadoEm", "completions"
 ];
 
 // ---------- Web app ----------
@@ -211,6 +215,10 @@ function diffDaysFromToday_(dateValue, today) {
 
 // Lê a aba "[SF] On" inteira e devolve um array de registros já: deduplicados (última
 // linha de cada Hotmart ID vence), com os campos calculados e os campos ilustrativos.
+//
+// As chaves de cada registro usam os MESMOS nomes de campo (em português, com
+// espaços/acentos) que o mockup de UI já usa — não é um capricho, é pra bater
+// exatamente com o front-end sem precisar de nenhuma camada de tradução no meio.
 function readPortfolioRows_(spreadsheet) {
   var sheet = findSheetByName_(spreadsheet, CONFIG.SHEET_ON);
   var lastRow = sheet.getLastRow();
@@ -245,43 +253,43 @@ function readPortfolioRows_(spreadsheet) {
     var illustrative = illustrativeFields_(hotmartId, today);
 
     return {
-      hotmartId: hotmartId,
-      nome: toStringOrNull_(row[COL.nome]),
-      gmv: gmv,
-      cw: formatDateOnly_(row[COL.cw]),
-      ativacao: ativacao,
-      status: toStringOrNull_(row[COL.status]),
-      sdr: toStringOrNull_(row[COL.sdr]),
-      closer: toStringOrNull_(row[COL.closer]),
-      daysCarteira: daysCarteira,
-      sow: toStringOrNull_(row[COL.sow]),
-      amount3Meses: amount3Meses,
-      taxaAtual: toNumberOrNull_(row[COL.taxaAtual]),
-      periodo: toStringOrNull_(row[COL.periodo]),
-      platAnterior: toStringOrNull_(row[COL.platAnterior]),
-      uf: toStringOrNull_(row[COL.uf]),
-      op: formatDateOnly_(row[COL.op]),
-      segmento: toStringOrNull_(row[COL.segmento]),
-      amount12Meses: toNumberOrNull_(row[COL.amount12Meses]),
-      ownerFirstName: toStringOrNull_(row[COL.ownerFirstName]),
+      "Hotmart ID": hotmartId,
+      "Nome": toStringOrNull_(row[COL.nome]),
+      "GMV": gmv,
+      "CW": formatDateOnly_(row[COL.cw]),
+      "Ativação": ativacao,
+      "Status": toStringOrNull_(row[COL.status]),
+      "SDR": toStringOrNull_(row[COL.sdr]),
+      "Closer": toStringOrNull_(row[COL.closer]),
+      "Days carteira": daysCarteira,
+      "SOW": toStringOrNull_(row[COL.sow]),
+      "Amount 3 meses": amount3Meses,
+      "Taxa atual": toNumberOrNull_(row[COL.taxaAtual]),
+      "Período": toStringOrNull_(row[COL.periodo]),
+      "Plat. anterior": toStringOrNull_(row[COL.platAnterior]),
+      "UF": toStringOrNull_(row[COL.uf]),
+      "OP": formatDateOnly_(row[COL.op]),
+      "Segmento": toStringOrNull_(row[COL.segmento]),
+      "Amount 12 meses": toNumberOrNull_(row[COL.amount12Meses]),
+      "Owner First Name": toStringOrNull_(row[COL.ownerFirstName]), // só pro filtro/agrupamento, não exibido
 
       // Campos calculados
-      amountReal: amountReal,       // "Amount esperado hoje"
-      pctAtingido: pctAtingido,       // "Percentual de atingimento total"
-      pctAmount: pctAmount,             // "Tracking GMV atual"
-      diasAtivado: diasAtivado,
-      vds: 0,                             // preenchido depois, em applyVdCounts_
+      "Amount real*": amountReal,
+      "% atingido": pctAtingido,
+      "% amount": pctAmount,
+      "Dias ativado": diasAtivado,
+      "VDs": 0, // preenchido depois, em applyVdCounts_
 
       // Campos ainda sem fonte na planilha — ficam null/false até existir mapeamento
-      observacoes: null,
-      col_13: null,
-      lancamento: null,
-      col_26: false,
+      "Observações": null,
+      "col_13": null,
+      "Lançamento": null,
+      "col_26": false,
 
       // Campos ilustrativos determinísticos (hash do Hotmart ID, nunca aleatório)
-      _cronogramaProgress: illustrative.cronogramaProgress,
-      _ultimoContatoDias: illustrative.ultimoContatoDias,
-      _ultimoContatoData: illustrative.ultimoContatoData
+      "_cronogramaProgress": illustrative.cronogramaProgress,
+      "_ultimoContatoDias": illustrative.ultimoContatoDias,
+      "_ultimoContatoData": illustrative.ultimoContatoData
     };
   });
 }
@@ -304,15 +312,17 @@ function readVdCounts_(spreadsheet) {
 
 function applyVdCounts_(records, counts) {
   records.forEach(function (rec) {
-    rec.vds = counts[rec.hotmartId] || 0;
+    rec["VDs"] = counts[rec["Hotmart ID"]] || 0;
   });
   return records;
 }
 
 // Devolve { madu: [...], pedro: [...], josiane: [...], ilana: [...] }, cada array já
-// filtrado pelo primeiro nome do Owner. Quem não bate com nenhum dos 4 nomes
-// conhecidos (carteira de outra pessoa, por exemplo) não entra em nenhum grupo —
-// Amanda/Julia veem o consolidado calculado no próprio front-end (união dos 4).
+// filtrado pelo primeiro nome do Owner e com o campo "Responsavel" preenchido (nome
+// "bonito" do consultor, usado só pra exibição — o filtro real usa Owner First Name).
+// Quem não bate com nenhum dos 4 nomes conhecidos (carteira de outra pessoa, por
+// exemplo) não entra em nenhum grupo — Amanda/Julia veem o consolidado calculado no
+// próprio front-end (união dos 4).
 function getFullPortfolioData_() {
   var ss = getPortfolioSpreadsheet_();
   var records = readPortfolioRows_(ss);
@@ -322,9 +332,12 @@ function getFullPortfolioData_() {
   CONFIG.ONBOARDERS.forEach(function (nome) { grouped[nome.toLowerCase()] = []; });
 
   records.forEach(function (rec) {
-    var owner = (rec.ownerFirstName || "").trim().toLowerCase();
+    var owner = (rec["Owner First Name"] || "").trim().toLowerCase();
     var match = CONFIG.ONBOARDERS.filter(function (nome) { return nome.toLowerCase() === owner; })[0];
-    if (match) grouped[match.toLowerCase()].push(rec);
+    if (match) {
+      rec["Responsavel"] = match;
+      grouped[match.toLowerCase()].push(rec);
+    }
   });
 
   return grouped;
@@ -382,17 +395,28 @@ function overlayRowsToMap_(sheet) {
   values.forEach(function (row) {
     var hotmartId = row[0];
     if (!hotmartId) return;
-    var fotos = [];
-    try { fotos = row[5] ? JSON.parse(row[5]) : []; } catch (e) {}
+    var equipeExtra = [], relacExtra = [], fotos = [];
+    try { equipeExtra = row[12] ? JSON.parse(row[12]) : []; } catch (e) {}
+    try { relacExtra = row[13] ? JSON.parse(row[13]) : []; } catch (e) {}
+    try { fotos = row[14] ? JSON.parse(row[14]) : []; } catch (e) {}
     map[hotmartId] = {
       hotmartId: hotmartId,
-      observacoes: row[1] || "",
-      contratoAssinado: !!row[2],
-      brindeEnviado: !!row[3],
-      lancamento: row[4] || "",
-      fotos: fotos, // [{fileId, legenda, uploadedBy, uploadedAt}] — sem os bytes, ver getClientPhotos
-      atualizadoEm: formatDateOnly_(row[6]),
-      atualizadoPor: row[7] || ""
+      telefone: row[1] || "",
+      email: row[2] || "",
+      endereco: row[3] || "",
+      aniversario: row[4] || "",
+      evento: row[5] || "",
+      contrato: row[6] || "",
+      brinde: row[7] || "",
+      metaFaturamento: row[8] || "",
+      hotmartCast: row[9] || "",
+      hotmartCastData: row[10] || "",
+      hotmartCastHora: row[11] || "",
+      equipeExtra: equipeExtra, // [{nome, cargo, telefone}]
+      relacExtra: relacExtra, // [{data, texto}]
+      fotos: fotos, // [{fileId, legenda, data, nomeArquivo, uploadedBy, uploadedAt}] — sem bytes, ver getClientPhotosBase64
+      atualizadoEm: formatDateOnly_(row[15]),
+      atualizadoPor: row[16] || ""
     };
   });
   return map;
@@ -422,22 +446,39 @@ function withLock_(fn) {
   }
 }
 
-// patch: { observacoes?, contratoAssinado?, brindeEnviado?, lancamento? }
+var OVERLAY_DEFAULTS_ = {
+  hotmartId: "", telefone: "", email: "", endereco: "", aniversario: "", evento: "",
+  contrato: "", brinde: "", metaFaturamento: "", hotmartCast: "", hotmartCastData: "",
+  hotmartCastHora: "", equipeExtra: [], relacExtra: [], fotos: []
+};
+
+// patch: qualquer subconjunto dos campos do overlay (telefone, email, endereco,
+// aniversario, evento, contrato, brinde, metaFaturamento, hotmartCast,
+// hotmartCastData, hotmartCastHora, equipeExtra[], relacExtra[], fotos[]).
 function saveOverlayFields(token, hotmartId, patch, autorNome) {
   requireSession_(token);
   return withLock_(function () {
     var sheet = getOverlaySheet_();
     var rowIdx = findOverlayRowIndex_(sheet, hotmartId);
     var current = rowIdx === -1
-      ? { hotmartId: hotmartId, observacoes: "", contratoAssinado: false, brindeEnviado: false, lancamento: "", fotos: [] }
+      ? Object.assign({}, OVERLAY_DEFAULTS_, { hotmartId: hotmartId })
       : overlayRowsToMap_(sheet)[hotmartId];
     var merged = Object.assign({}, current, patch);
     var row = [
       hotmartId,
-      merged.observacoes || "",
-      !!merged.contratoAssinado,
-      !!merged.brindeEnviado,
-      merged.lancamento || "",
+      merged.telefone || "",
+      merged.email || "",
+      merged.endereco || "",
+      merged.aniversario || "",
+      merged.evento || "",
+      merged.contrato || "",
+      merged.brinde || "",
+      merged.metaFaturamento || "",
+      merged.hotmartCast || "",
+      merged.hotmartCastData || "",
+      merged.hotmartCastHora || "",
+      JSON.stringify(merged.equipeExtra || []),
+      JSON.stringify(merged.relacExtra || []),
       JSON.stringify(merged.fotos || []),
       new Date(),
       autorNome || ""
@@ -470,14 +511,16 @@ function getPhotosFolder_() {
 
 // base64DataUrl no formato "data:image/jpeg;base64,....". Redimensionar/comprimir a
 // imagem é feito no navegador (canvas) ANTES de chamar esta função, pra não estourar o
-// limite de tamanho de uma chamada do google.script.run.
-function uploadClientPhoto(token, hotmartId, base64DataUrl, filename, legenda, autorNome) {
+// limite de tamanho de uma chamada do google.script.run. `dataFoto` é a data da foto
+// (evento, entrega de brinde etc.), editável pelo time — não confundir com
+// `uploadedAt`, que é quando o arquivo foi de fato enviado.
+function uploadClientPhoto(token, hotmartId, base64DataUrl, nomeArquivo, legenda, dataFoto, autorNome) {
   requireSession_(token);
   var match = /^data:(.+?);base64,(.+)$/.exec(base64DataUrl || "");
   if (!match) throw new Error("Formato de imagem inválido.");
   var contentType = match[1];
   var bytes = Utilities.base64Decode(match[2]);
-  var blob = Utilities.newBlob(bytes, contentType, filename || (hotmartId + "-foto.jpg"));
+  var blob = Utilities.newBlob(bytes, contentType, nomeArquivo || (hotmartId + "-foto.jpg"));
 
   var folder = getPhotosFolder_();
   var file = folder.createFile(blob);
@@ -485,16 +528,34 @@ function uploadClientPhoto(token, hotmartId, base64DataUrl, filename, legenda, a
 
   return withLock_(function () {
     var sheet = getOverlaySheet_();
-    var current = overlayRowsToMap_(sheet)[hotmartId] || { fotos: [] };
+    var current = overlayRowsToMap_(sheet)[hotmartId] || Object.assign({}, OVERLAY_DEFAULTS_, { hotmartId: hotmartId });
     var fotos = current.fotos || [];
-    fotos.push({
+    var registro = {
       fileId: file.getId(),
       legenda: legenda || "",
+      data: dataFoto || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd"),
+      nomeArquivo: nomeArquivo || "",
       uploadedBy: autorNome || "",
       uploadedAt: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm")
+    };
+    fotos.unshift(registro);
+    saveOverlayFields(token, hotmartId, { fotos: fotos }, autorNome);
+    return { ok: true, foto: registro, dataUrl: base64DataUrl };
+  });
+}
+
+function updateClientPhotoField(token, hotmartId, fileId, field, value, autorNome) {
+  requireSession_(token);
+  if (["legenda", "data"].indexOf(field) === -1) throw new Error("Campo de foto inválido: " + field);
+  return withLock_(function () {
+    var current = overlayRowsToMap_(getOverlaySheet_())[hotmartId];
+    if (!current) throw new Error("Cliente sem overlay ainda.");
+    var fotos = (current.fotos || []).map(function (f) {
+      if (f.fileId === fileId) { var copy = Object.assign({}, f); copy[field] = value; return copy; }
+      return f;
     });
     saveOverlayFields(token, hotmartId, { fotos: fotos }, autorNome);
-    return { ok: true, fileId: file.getId() };
+    return { ok: true };
   });
 }
 
@@ -505,8 +566,7 @@ function deleteClientPhoto(token, hotmartId, fileId, autorNome) {
     file.setTrashed(true);
   } catch (e) { /* arquivo já removido — segue o baile */ }
   return withLock_(function () {
-    var sheet = getOverlaySheet_();
-    var current = overlayRowsToMap_(sheet)[hotmartId] || { fotos: [] };
+    var current = overlayRowsToMap_(getOverlaySheet_())[hotmartId] || { fotos: [] };
     var fotos = (current.fotos || []).filter(function (f) { return f.fileId !== fileId; });
     saveOverlayFields(token, hotmartId, { fotos: fotos }, autorNome);
     return { ok: true };
@@ -526,19 +586,22 @@ function getClientPhotosBase64(hotmartId) {
       return {
         fileId: foto.fileId,
         legenda: foto.legenda,
-        uploadedBy: foto.uploadedBy,
-        uploadedAt: foto.uploadedAt,
+        data: foto.data,
+        nomeArquivo: foto.nomeArquivo,
         dataUrl: "data:" + blob.getContentType() + ";base64," + base64
       };
     } catch (e) {
-      return { fileId: foto.fileId, legenda: foto.legenda, error: "Arquivo não encontrado no Drive." };
+      return { fileId: foto.fileId, legenda: foto.legenda, data: foto.data, error: "Arquivo não encontrado no Drive." };
     }
   });
 }
 
-// ---------- Missões (aba Rotina) ----------
+// ---------- Missões (Rotina — gamificação) ----------
 //
-// Amanda/Julia criam, qualquer onboarder marca sua própria atribuição como concluída.
+// Amanda/Julia criam (pra toda a equipe ou pra uma pessoa específica), qualquer
+// onboarder marca/desmarca sua própria conclusão. `destinatario` é "todos" ou o nome
+// de um onboarder; `completions` é um mapa { "Ilana": true, ... } — só entra quem já
+// concluiu, ausência de chave = pendente.
 
 function getMissoesSheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -558,17 +621,17 @@ function missoesRowsToObjects_(sheet) {
   return values
     .filter(function (row) { return row[0]; })
     .map(function (row) {
-      var atribuicoes = [];
-      try { atribuicoes = row[7] ? JSON.parse(row[7]) : []; } catch (e) {}
+      var completions = {};
+      try { completions = row[7] ? JSON.parse(row[7]) : {}; } catch (e) {}
       return {
         id: row[0],
         titulo: row[1] || "",
         descricao: row[2] || "",
         pontos: Number(row[3]) || 0,
-        prazo: formatDateOnly_(row[4]),
+        destinatario: row[4] || "todos",
         criadoPor: row[5] || "",
         criadoEm: formatDateOnly_(row[6]),
-        atribuicoes: atribuicoes // [{pessoa, completo, completoEm}]
+        completions: completions
       };
     });
 }
@@ -587,7 +650,7 @@ function findMissaoRowIndex_(sheet, id) {
   return -1;
 }
 
-// missao: { titulo, descricao, pontos, prazo, atribuidoPara: ["Ilana","Pedro",...] }
+// missao: { titulo, descricao, pontos, destinatario: "todos" | "Ilana" | ... }
 function createMissao(token, missao, autorNome) {
   requireSession_(token);
   if (CONFIG.ADMINS.indexOf(autorNome) === -1) {
@@ -596,43 +659,35 @@ function createMissao(token, missao, autorNome) {
   return withLock_(function () {
     var sheet = getMissoesSheet_();
     var id = Utilities.getUuid();
-    var atribuicoes = (missao.atribuidoPara || []).map(function (pessoa) {
-      return { pessoa: pessoa, completo: false, completoEm: null };
-    });
     sheet.appendRow([
       id,
       missao.titulo || "",
       missao.descricao || "",
       Number(missao.pontos) || 0,
-      missao.prazo || "",
+      missao.destinatario || "todos",
       autorNome,
       new Date(),
-      JSON.stringify(atribuicoes)
+      JSON.stringify({})
     ]);
     return { ok: true, id: id };
   });
 }
 
-function completeMissaoTask(token, missaoId, pessoa) {
+// Alterna concluído/pendente pra `pessoa` (não é só marcar — desmarcar também é
+// permitido, igual ao mockup de UI).
+function toggleMissionComplete(token, missaoId, pessoa) {
   requireSession_(token);
   return withLock_(function () {
     var sheet = getMissoesSheet_();
     var rowIdx = findMissaoRowIndex_(sheet, missaoId);
     if (rowIdx === -1) throw new Error("Missão não encontrada.");
     var raw = sheet.getRange(rowIdx, 8).getValue();
-    var atribuicoes = [];
-    try { atribuicoes = raw ? JSON.parse(raw) : []; } catch (e) {}
-    var found = false;
-    atribuicoes = atribuicoes.map(function (a) {
-      if (a.pessoa === pessoa) {
-        found = true;
-        return { pessoa: pessoa, completo: true, completoEm: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd") };
-      }
-      return a;
-    });
-    if (!found) throw new Error("Essa missão não está atribuída a " + pessoa + ".");
-    sheet.getRange(rowIdx, 8).setValue(JSON.stringify(atribuicoes));
-    return { ok: true };
+    var completions = {};
+    try { completions = raw ? JSON.parse(raw) : {}; } catch (e) {}
+    if (completions[pessoa]) delete completions[pessoa];
+    else completions[pessoa] = true;
+    sheet.getRange(rowIdx, 8).setValue(JSON.stringify(completions));
+    return { ok: true, completo: !!completions[pessoa] };
   });
 }
 
