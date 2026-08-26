@@ -295,7 +295,890 @@
   var BOOT_ERROR = <?!= JSON.stringify(bootError) ?>;
 </script>
 <script>
-  // O restante do JS do app é anexado aqui embaixo, no mesmo arquivo — exigência do
-  // projeto: só 3 arquivos (Código.gs, Index.html, appsscript.json), tudo inline, sem
-  // build step.
+  // ================= Helpers gerais =================
+  var PESSOAS = {
+    Madu: { role: "Onboarder" }, Pedro: { role: "Onboarder" },
+    Josiane: { role: "Onboarder" }, Ilana: { role: "Onboarder" },
+    Amanda: { role: "Administrador" }, Julia: { role: "Administrador" }
+  };
+  var ADMIN_NOMES = ["Amanda", "Julia"];
+  var STATUS_JORNADA_ATIVA = ["Pre Onboarding", "Welcome", "Product Migration", "Ready for Activation", "Activation & Monitoring"];
+  var STATUS_TODOS = STATUS_JORNADA_ATIVA.concat(["Accomplished", "Unaccomplished"]);
+
+  var FIELD_DEFS = [
+    { key: "hotmartId", label: "Hotmart ID", fixed: true },
+    { key: "nome", label: "Nome", fixed: true },
+    { key: "status", label: "Status", type: "status" },
+    { key: "closer", label: "Closer" },
+    { key: "gmv", label: "GMV", type: "brl" },
+    { key: "cw", label: "CW", type: "date" },
+    { key: "daysCarteira", label: "Days carteira", type: "num" },
+    { key: "pctAtingido", label: "% atingido", type: "pct" },
+    { key: "vds", label: "VDs", type: "num" },
+    { key: "ativacao", label: "Ativação", type: "date" },
+    { key: "sdr", label: "SDR" },
+    { key: "sow", label: "SOW" },
+    { key: "amount3Meses", label: "Amount 3 meses", type: "brl" },
+    { key: "taxaAtual", label: "Taxa atual", type: "pct-raw" },
+    { key: "periodo", label: "Período" },
+    { key: "platAnterior", label: "Plat. anterior" },
+    { key: "uf", label: "UF" },
+    { key: "op", label: "OP", type: "date" },
+    { key: "segmento", label: "Segmento" },
+    { key: "amount12Meses", label: "Amount 12 meses", type: "brl" },
+    { key: "amountReal", label: "Amount esperado hoje", type: "brl" },
+    { key: "pctAmount", label: "Tracking GMV atual", type: "pct" },
+    { key: "diasAtivado", label: "Dias ativado", type: "num" },
+    { key: "observacoes", label: "Observações" },
+    { key: "lancamento", label: "Lançamento" },
+    { key: "_cronogramaProgress", label: "Progresso do cronograma", type: "pct-raw" },
+    { key: "_ultimoContatoDias", label: "Último contato (dias)", type: "num" },
+    { key: "_ultimoContatoData", label: "Último contato (data)", type: "date" }
+  ];
+  var DEFAULT_VISIBLE_COLS = ["status", "closer", "gmv", "cw", "daysCarteira", "pctAtingido", "vds"];
+
+  function fmtBRL(v) {
+    if (v === null || typeof v === "undefined" || isNaN(v)) return "—";
+    return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+  }
+  function fmtPct(v) {
+    if (v === null || typeof v === "undefined" || isNaN(v)) return "—";
+    return (v * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 }) + "%";
+  }
+  function fmtPctRaw(v) {
+    if (v === null || typeof v === "undefined" || isNaN(v)) return "—";
+    return v + "%";
+  }
+  function fmtDate(v) {
+    if (!v) return "—";
+    var parts = String(v).split("-");
+    if (parts.length !== 3) return v;
+    return parts[2] + "/" + parts[1] + "/" + parts[0];
+  }
+  function fmtNum(v) { return (v === null || typeof v === "undefined") ? "—" : v; }
+  function fmtCell(field, value) {
+    if (value === null || typeof value === "undefined" || value === "") return "—";
+    switch (field.type) {
+      case "brl": return fmtBRL(value);
+      case "pct": return fmtPct(value);
+      case "pct-raw": return fmtPctRaw(value);
+      case "date": return fmtDate(value);
+      case "num": return fmtNum(value);
+      case "status": return statusBadge(value);
+      default: return escapeHtml(String(value));
+    }
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function initials(nome) {
+    if (!nome) return "?";
+    var parts = String(nome).trim().split(/\s+/);
+    return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+  }
+  function statusBadgeClass(status) {
+    var map = {
+      "Pre Onboarding": "gray", "Welcome": "blue", "Product Migration": "purple",
+      "Ready for Activation": "yellow", "Activation & Monitoring": "orange",
+      "Accomplished": "lemon", "Unaccomplished": "maroon"
+    };
+    return map[status] || "gray";
+  }
+  function statusBadge(status) {
+    if (!status) return "—";
+    var cls = statusBadgeClass(status);
+    if (cls === "yellow") cls = "orange"; // sem classe .badge.yellow definida — reaproveita a paleta existente
+    return '<span class="badge ' + cls + '">' + escapeHtml(status) + '</span>';
+  }
+  function daysSince(dateStr) {
+    if (!dateStr) return null;
+    var d = new Date(dateStr + "T00:00:00");
+    if (isNaN(d.getTime())) return null;
+    return Math.floor((Date.now() - d.getTime()) / 86400000);
+  }
+  function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+
+  function toast(msg) {
+    var el = document.createElement("div");
+    el.className = "toast";
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 3200);
+  }
+
+  function withGsRun(successCb, failureCb) {
+    // Wrapper fino sobre google.script.run — quando aberto fora do Apps Script (ex.:
+    // prévia local no navegador), google.script.run não existe; nesse caso a própria
+    // prévia substitui esta função por uma versão mock (ver preview.html).
+    if (typeof google === "undefined" || !google.script || !google.script.run) {
+      (failureCb || function () {})({ message: "google.script.run indisponível neste ambiente." });
+      return null;
+    }
+    return google.script.run.withSuccessHandler(successCb).withFailureHandler(failureCb || function (err) {
+      toast("Erro: " + (err && err.message ? err.message : err));
+    });
+  }
+
+  // ================= Estado =================
+  var state = {
+    theme: localStorage.getItem("dboTheme") || "light",
+    stage: "login", // login -> profile -> app
+    session: null, // { token }
+    perfil: null, // nome escolhido ("Ilana", "Amanda", ...)
+    screen: "carteira",
+    ownerView: null, // p/ admin: null = "Todos", ou um nome específico
+    overlay: OVERLAY_DATA || {},
+    missoes: MISSOES_DATA || [],
+    carteira: {
+      statusFiltro: STATUS_JORNADA_ATIVA.slice(),
+      closerFiltro: [],
+      marco: "",
+      busca: "",
+      soAlerta: false,
+      colunasVisiveis: DEFAULT_VISIBLE_COLS.slice(),
+      sortKey: "cw",
+      sortDir: "desc"
+    },
+    clienteSelecionado: null, // hotmartId
+    clienteAba: "cronograma",
+    kpiHistorico: null // hotmartId do modal de "novos no mês" aberto
+  };
+
+  function applyTheme() {
+    document.documentElement.setAttribute("data-theme", state.theme);
+  }
+  function toggleTheme() {
+    state.theme = state.theme === "dark" ? "light" : "dark";
+    localStorage.setItem("dboTheme", state.theme);
+    applyTheme();
+    render();
+  }
+
+  function isAdmin() { return ADMIN_NOMES.indexOf(state.perfil) !== -1; }
+
+  // Lista de clientes "efetiva" pro perfil atual: um onboarder só vê a própria
+  // carteira; admin vê a carteira escolhida no seletor, ou a união das 4 (consolidado).
+  function clientesDoPerfil() {
+    if (!isAdmin()) return PORTFOLIO_DATA[state.perfil.toLowerCase()] || [];
+    if (state.ownerView) return PORTFOLIO_DATA[state.ownerView.toLowerCase()] || [];
+    var todos = [];
+    ["madu", "pedro", "josiane", "ilana"].forEach(function (k) {
+      todos = todos.concat(PORTFOLIO_DATA[k] || []);
+    });
+    return todos;
+  }
+
+  function clientePorId(hotmartId) {
+    var todos = [];
+    ["madu", "pedro", "josiane", "ilana"].forEach(function (k) { todos = todos.concat(PORTFOLIO_DATA[k] || []); });
+    return todos.filter(function (c) { return c.hotmartId === hotmartId; })[0] || null;
+  }
+
+  // ================= Montagem / roteador =================
+  function render() {
+    var root = document.getElementById("app");
+    if (state.stage === "login") { root.innerHTML = renderLogin(); bindLogin(); return; }
+    if (state.stage === "profile") { root.innerHTML = renderProfileSelect(); bindProfileSelect(); return; }
+    root.innerHTML = renderShell();
+    bindShell();
+  }
+
+  // ================= Login =================
+  function renderLogin() {
+    return '' +
+      '<div class="fullscreen"><div>' +
+        '<div class="brand-mark"><span class="brand-dot"></span><h1 class="display" style="font-size:22px;">Dashboard Onboarding</h1></div>' +
+        '<div class="panel">' +
+          '<h1>Login do time</h1>' +
+          '<p class="sub">Senha compartilhada da equipe de onboarding.</p>' +
+          '<form id="loginForm">' +
+            '<div class="field"><label>Senha</label><input type="password" id="loginPassword" autofocus /></div>' +
+            '<button class="btn block" type="submit">Entrar</button>' +
+            '<div class="error-msg" id="loginError"></div>' +
+          '</form>' +
+        '</div>' +
+        '<div class="tagline">Hotmart. Aqui acontece.</div>' +
+      '</div></div>';
+  }
+  function bindLogin() {
+    var form = document.getElementById("loginForm");
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var pass = document.getElementById("loginPassword").value;
+      var errEl = document.getElementById("loginError");
+      errEl.textContent = "";
+      withGsRun(function (result) {
+        state.session = { token: result.token };
+        state.stage = "profile";
+        render();
+      }, function (err) {
+        errEl.textContent = (err && err.message) || "Não foi possível entrar.";
+      }).login(pass);
+    });
+  }
+
+  // ================= Seleção de perfil =================
+  function loadProfilePhoto(nome) {
+    return localStorage.getItem("dboFoto_" + nome) || "";
+  }
+  function saveProfilePhoto(nome, dataUrl) {
+    try { localStorage.setItem("dboFoto_" + nome, dataUrl); } catch (e) { toast("Não foi possível salvar a foto (armazenamento local cheio)."); }
+  }
+  function renderProfileSelect() {
+    var cards = Object.keys(PESSOAS).map(function (nome) {
+      var foto = loadProfilePhoto(nome);
+      return '' +
+        '<div class="profile-card" data-nome="' + nome + '">' +
+          '<button class="profile-photo-edit" data-edit-foto="' + nome + '" title="Editar foto">✎</button>' +
+          '<label for="fotoInput_' + nome + '">' +
+            '<div class="profile-avatar">' + (foto ? '<img src="' + foto + '"/>' : initials(nome)) + '</div>' +
+          '</label>' +
+          '<input type="file" accept="image/*" id="fotoInput_' + nome + '" class="hidden" data-foto-input="' + nome + '" />' +
+          '<div class="profile-name">' + nome + '</div>' +
+          '<div class="profile-role">' + PESSOAS[nome].role + '</div>' +
+          '<button class="btn subtle profile-pick" data-pick="' + nome + '">Selecionar</button>' +
+        '</div>';
+    }).join("");
+    return '' +
+      '<div class="fullscreen"><div style="max-width:680px;">' +
+        '<div class="brand-mark"><span class="brand-dot"></span><h1 class="display" style="font-size:20px;">Quem é você?</h1></div>' +
+        '<div class="profiles-grid">' + cards + '</div>' +
+        '<div class="tagline">Hotmart. Aqui acontece.</div>' +
+      '</div></div>';
+  }
+  function bindProfileSelect() {
+    document.querySelectorAll("[data-pick]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        state.perfil = btn.getAttribute("data-pick");
+        state.ownerView = null;
+        state.stage = "app";
+        render();
+      });
+    });
+    document.querySelectorAll("[data-edit-foto]").forEach(function (btn) {
+      btn.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        var nome = btn.getAttribute("data-edit-foto");
+        document.querySelector('[data-foto-input="' + nome + '"]').click();
+      });
+    });
+    document.querySelectorAll("[data-foto-input]").forEach(function (input) {
+      input.addEventListener("change", function () {
+        var nome = input.getAttribute("data-foto-input");
+        var file = input.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          saveProfilePhoto(nome, reader.result);
+          render();
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+  }
+
+  // ================= Shell principal (topbar + navegação) =================
+  var NAV_ITEMS = [
+    { id: "carteira", label: "Carteira" },
+    { id: "perfil", label: "Perfil do Cliente" },
+    { id: "meta", label: "Meta" },
+    { id: "analytics", label: "Analytics" },
+    { id: "rotina", label: "Rotina" }
+  ];
+
+  function contarAlertas() {
+    return clientesDoPerfil().filter(isClienteEmAlerta).length;
+  }
+
+  function renderShell() {
+    var foto = loadProfilePhoto(state.perfil);
+    var nav = NAV_ITEMS.map(function (item) {
+      return '<button class="nav-tab' + (state.screen === item.id ? ' active' : '') + '" data-nav="' + item.id + '">' + item.label + '</button>';
+    }).join("");
+    var alertas = contarAlertas();
+    var bootBanner = BOOT_ERROR ? '<div class="boot-error">⚠️ Não foi possível carregar os dados da planilha: ' + escapeHtml(BOOT_ERROR) + '</div>' : "";
+    return '' +
+      '<div class="topbar">' +
+        '<div class="brand"><span class="brand-dot" style="width:10px;height:10px;border-radius:3px;background:var(--accent);display:inline-block;"></span> Dashboard Onboarding</div>' +
+        '<div class="nav-tabs">' + nav + '</div>' +
+        '<div class="topbar-right">' +
+          '<button class="icon-btn" id="btnTheme" title="Alternar tema">' + (state.theme === "dark" ? "☀️" : "🌙") + '</button>' +
+          '<button class="icon-btn" id="btnAlertas" title="Alertas">🔔' + (alertas > 0 ? '<span class="dot"></span>' : '') + '</button>' +
+          '<div style="position:relative;">' +
+            '<button class="chip" id="btnProfileMenu">' +
+              (foto ? '<img src="' + foto + '"/>' : '<span class="ph">' + initials(state.perfil) + '</span>') +
+              '<span>' + state.perfil + '</span>' +
+            '</button>' +
+            '<div id="profileMenuPop" class="menu-pop hidden">' +
+              '<button id="btnTrocarPerfil">Trocar perfil</button>' +
+              '<button id="btnSair">Sair</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<main class="screen">' + bootBanner + '<div id="screenContent">' + renderScreen() + '</div></main>';
+  }
+
+  function bindShell() {
+    document.querySelectorAll("[data-nav]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        state.screen = btn.getAttribute("data-nav");
+        if (state.screen !== "perfil") state.clienteSelecionado = null;
+        render();
+      });
+    });
+    document.getElementById("btnTheme").addEventListener("click", toggleTheme);
+    var menuBtn = document.getElementById("btnProfileMenu");
+    var pop = document.getElementById("profileMenuPop");
+    menuBtn.addEventListener("click", function (ev) { ev.stopPropagation(); pop.classList.toggle("hidden"); });
+    document.addEventListener("click", function () { pop.classList.add("hidden"); }, { once: true });
+    document.getElementById("btnTrocarPerfil").addEventListener("click", function () {
+      state.stage = "profile"; render();
+    });
+    document.getElementById("btnSair").addEventListener("click", function () {
+      var token = state.session && state.session.token;
+      state.session = null; state.perfil = null; state.stage = "login";
+      render();
+      if (token) withGsRun(function () {}, function () {}).logout(token);
+    });
+    document.getElementById("btnAlertas").addEventListener("click", function () {
+      state.screen = "carteira";
+      state.carteira.soAlerta = true;
+      render();
+    });
+    bindScreen();
+  }
+
+  function renderScreen() {
+    switch (state.screen) {
+      case "carteira": return renderCarteira();
+      case "perfil": return renderPerfilCliente();
+      case "meta": return renderMeta();
+      case "analytics": return renderAnalytics();
+      case "rotina": return renderRotina();
+      default: return "";
+    }
+  }
+  function bindScreen() {
+    switch (state.screen) {
+      case "carteira": return bindCarteira();
+      case "perfil": return bindPerfilCliente();
+      case "meta": return bindMeta();
+      case "analytics": return bindAnalytics();
+      case "rotina": return bindRotina();
+    }
+  }
+  function rerenderScreenContent() {
+    document.getElementById("screenContent").innerHTML = renderScreen();
+    bindScreen();
+  }
+
+  // ================= Carteira =================
+  // "Em alerta de prazo": ainda na jornada ativa mas há mais de 90 dias na carteira
+  // sem ativar — 90 é o mesmo período usado no cálculo de "Amount 3 meses" /
+  // amountReal. Heurística de primeira versão, fácil de trocar por uma regra oficial
+  // se o time definir uma (ex.: baseada em SLA por fase).
+  function isClienteEmAlerta(c) {
+    return STATUS_JORNADA_ATIVA.indexOf(c.status) !== -1 && c.daysCarteira !== null && c.daysCarteira > 90;
+  }
+
+  function closersDisponiveis() {
+    var set = {};
+    ["madu", "pedro", "josiane", "ilana"].forEach(function (k) {
+      (PORTFOLIO_DATA[k] || []).forEach(function (c) { if (c.closer) set[c.closer] = true; });
+    });
+    return Object.keys(set).sort();
+  }
+
+  function marcoDoGmv(gmv) {
+    if (gmv === null || typeof gmv === "undefined") return "";
+    if (gmv >= 1000000) return "1M";
+    if (gmv >= 100000) return "100k";
+    if (gmv >= 10000) return "10k";
+    return "";
+  }
+
+  function filtrarOrdenarCarteira() {
+    var f = state.carteira;
+    var lista = clientesDoPerfil().filter(function (c) {
+      if (f.statusFiltro.length && f.statusFiltro.indexOf(c.status) === -1) return false;
+      if (f.closerFiltro.length && f.closerFiltro.indexOf(c.closer) === -1) return false;
+      if (f.marco && marcoDoGmv(c.gmv) !== f.marco) return false;
+      if (f.soAlerta && !isClienteEmAlerta(c)) return false;
+      if (f.busca && (c.nome || "").toLowerCase().indexOf(f.busca.toLowerCase()) === -1) return false;
+      return true;
+    });
+    lista.sort(function (a, b) {
+      var av = a[f.sortKey], bv = b[f.sortKey];
+      if (av === null || typeof av === "undefined") av = "";
+      if (bv === null || typeof bv === "undefined") bv = "";
+      if (av < bv) return f.sortDir === "asc" ? -1 : 1;
+      if (av > bv) return f.sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+    return lista;
+  }
+
+  function historicoMensalPorCW() {
+    var todos = clientesDoPerfil();
+    var meses = {}; // "yyyy-MM" -> count
+    todos.forEach(function (c) {
+      if (!c.cw) return;
+      var chave = c.cw.slice(0, 7);
+      meses[chave] = (meses[chave] || 0) + 1;
+    });
+    return Object.keys(meses).sort().reverse().slice(0, 12).map(function (k) { return { mes: k, total: meses[k] }; });
+  }
+
+  function renderCarteira() {
+    var lista = filtrarOrdenarCarteira();
+    var todos = clientesDoPerfil();
+    var gmvTotal = todos.reduce(function (s, c) { return s + (c.gmv || 0); }, 0);
+    var progressoMedio = todos.length ? Math.round(todos.reduce(function (s, c) { return s + (c._cronogramaProgress || 0); }, 0) / todos.length) : 0;
+    var emAlerta = todos.filter(isClienteEmAlerta).length;
+    var mesAtual = new Date().toISOString().slice(0, 7);
+    var novosNoMes = todos.filter(function (c) { return c.cw && c.cw.slice(0, 7) === mesAtual; }).length;
+
+    var seletorConsultor = "";
+    if (isAdmin()) {
+      var opcoes = ["Madu", "Pedro", "Josiane", "Ilana"].map(function (n) {
+        return '<option value="' + n + '"' + (state.ownerView === n ? " selected" : "") + '>' + n + '</option>';
+      }).join("");
+      seletorConsultor = '<select id="selOwnerView"><option value=""' + (!state.ownerView ? " selected" : "") + '>Todos (consolidado)</option>' + opcoes + '</select>';
+    }
+
+    var statusOptions = STATUS_TODOS.map(function (s) {
+      var checked = state.carteira.statusFiltro.indexOf(s) !== -1;
+      return '<label><input type="checkbox" data-status-opt="' + s + '" ' + (checked ? "checked" : "") + '/> ' + s + '</label>';
+    }).join("");
+    var closerOptions = closersDisponiveis().map(function (c) {
+      var checked = state.carteira.closerFiltro.indexOf(c) !== -1;
+      return '<label><input type="checkbox" data-closer-opt="' + escapeHtml(c) + '" ' + (checked ? "checked" : "") + '/> ' + escapeHtml(c) + '</label>';
+    }).join("");
+
+    var colOptions = FIELD_DEFS.filter(function (f) { return !f.fixed; }).map(function (f) {
+      var checked = state.carteira.colunasVisiveis.indexOf(f.key) !== -1;
+      return '<label><input type="checkbox" data-col-opt="' + f.key + '" ' + (checked ? "checked" : "") + '/> ' + f.label + '</label>';
+    }).join("");
+
+    var colunasAtivas = FIELD_DEFS.filter(function (f) { return f.fixed || state.carteira.colunasVisiveis.indexOf(f.key) !== -1; });
+    var theadCols = colunasAtivas.map(function (f) {
+      var sorted = state.carteira.sortKey === f.key;
+      return '<th class="' + (sorted ? "sorted" : "") + '" data-sort-key="' + f.key + '">' + f.label + '</th>';
+    }).join("");
+    var rows = lista.map(function (c) {
+      var tds = colunasAtivas.map(function (f) { return '<td>' + fmtCell(f, c[f.key]) + '</td>'; }).join("");
+      var alertaTag = isClienteEmAlerta(c) ? ' style="border-left:3px solid var(--c-orange);"' : "";
+      return '<tr data-cliente-id="' + c.hotmartId + '"' + alertaTag + '>' + tds + '</tr>';
+    }).join("");
+
+    return '' +
+      '<div class="kpi-row">' +
+        '<div class="kpi-card"><div class="label">Clientes na carteira</div><div class="value">' + todos.length + '</div></div>' +
+        '<div class="kpi-card"><div class="label">GMV total</div><div class="value">' + fmtBRL(gmvTotal) + '</div></div>' +
+        '<div class="kpi-card"><div class="label">Progresso médio</div><div class="value">' + progressoMedio + '%</div></div>' +
+        '<div class="kpi-card"><div class="label">Em alerta de prazo</div><div class="value">' + emAlerta + '</div></div>' +
+        '<div class="kpi-card clickable" id="kpiNovosMes"><div class="label">Novos no mês</div><div class="value">' + novosNoMes + '</div></div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="toolbar">' +
+          (seletorConsultor ? seletorConsultor : "") +
+          '<div class="multi-select"><button class="multi-select-btn" data-toggle-pop="statusPop">Status (' + state.carteira.statusFiltro.length + ')</button>' +
+            '<div class="multi-select-pop hidden" id="statusPop">' + statusOptions + '</div></div>' +
+          '<div class="multi-select"><button class="multi-select-btn" data-toggle-pop="closerPop">Closer (' + (state.carteira.closerFiltro.length || "todos") + ')</button>' +
+            '<div class="multi-select-pop hidden" id="closerPop">' + closerOptions + '</div></div>' +
+          '<select id="selMarco"><option value="">Todos os marcos</option>' +
+            '<option value="10k"' + (state.carteira.marco === "10k" ? " selected" : "") + '>10k</option>' +
+            '<option value="100k"' + (state.carteira.marco === "100k" ? " selected" : "") + '>100k</option>' +
+            '<option value="1M"' + (state.carteira.marco === "1M" ? " selected" : "") + '>1M</option>' +
+          '</select>' +
+          '<input type="text" id="buscaNome" placeholder="Buscar por nome..." value="' + escapeHtml(state.carteira.busca) + '"/>' +
+          '<label class="toggle-switch"><input type="checkbox" id="chkSoAlerta" ' + (state.carteira.soAlerta ? "checked" : "") + '/> Só em alerta</label>' +
+          '<div class="multi-select" style="margin-left:auto;"><button class="multi-select-btn cols-btn" data-toggle-pop="colsPop">⚙ Colunas</button>' +
+            '<div class="multi-select-pop hidden" id="colsPop" style="right:0;left:auto;">' + colOptions + '</div></div>' +
+        '</div>' +
+        '<div class="table-scroll">' +
+          '<table class="data-table"><thead><tr>' + theadCols + '</tr></thead><tbody>' +
+          (rows || '<tr><td colspan="' + colunasAtivas.length + '"><div class="empty-state">Nenhum cliente encontrado com esses filtros.</div></td></tr>') +
+          '</tbody></table>' +
+        '</div>' +
+      '</div>' +
+      (state.kpiHistorico ? renderHistoricoModal() : "");
+  }
+
+  function renderHistoricoModal() {
+    var hist = historicoMensalPorCW();
+    var maxTotal = Math.max.apply(null, hist.map(function (h) { return h.total; }).concat([1]));
+    var linhas = hist.map(function (h) {
+      var pct = Math.round((h.total / maxTotal) * 100);
+      return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">' +
+        '<div style="width:70px;font-size:12px;color:var(--c-gray);">' + h.mes + '</div>' +
+        '<div style="flex:1;background:var(--surface-2);border-radius:6px;overflow:hidden;height:16px;">' +
+          '<div style="width:' + pct + '%;background:var(--accent);height:100%;"></div>' +
+        '</div>' +
+        '<div style="width:24px;text-align:right;font-weight:700;">' + h.total + '</div>' +
+      '</div>';
+    }).join("");
+    return '<div class="modal-backdrop" id="histBackdrop"><div class="modal">' +
+      '<h3 style="margin-bottom:14px;">Novos clientes por mês (CW)</h3>' + linhas +
+      '<button class="btn ghost block" id="btnFecharHist" style="margin-top:10px;">Fechar</button>' +
+    '</div></div>';
+  }
+
+  function bindCarteira() {
+    if (isAdmin() && document.getElementById("selOwnerView")) {
+      document.getElementById("selOwnerView").addEventListener("change", function () {
+        state.ownerView = this.value || null;
+        rerenderScreenContent();
+      });
+    }
+    document.querySelectorAll("[data-toggle-pop]").forEach(function (btn) {
+      btn.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        var pop = document.getElementById(btn.getAttribute("data-toggle-pop"));
+        var wasHidden = pop.classList.contains("hidden");
+        document.querySelectorAll(".multi-select-pop").forEach(function (p) { p.classList.add("hidden"); });
+        if (wasHidden) pop.classList.remove("hidden");
+      });
+    });
+    document.addEventListener("click", function () {
+      document.querySelectorAll(".multi-select-pop").forEach(function (p) { p.classList.add("hidden"); });
+    }, { once: true });
+    document.querySelectorAll("[data-status-opt]").forEach(function (chk) {
+      chk.addEventListener("change", function () {
+        var v = chk.getAttribute("data-status-opt");
+        var arr = state.carteira.statusFiltro;
+        var i = arr.indexOf(v);
+        if (chk.checked && i === -1) arr.push(v);
+        if (!chk.checked && i !== -1) arr.splice(i, 1);
+        rerenderScreenContent();
+      });
+    });
+    document.querySelectorAll("[data-closer-opt]").forEach(function (chk) {
+      chk.addEventListener("change", function () {
+        var v = chk.getAttribute("data-closer-opt");
+        var arr = state.carteira.closerFiltro;
+        var i = arr.indexOf(v);
+        if (chk.checked && i === -1) arr.push(v);
+        if (!chk.checked && i !== -1) arr.splice(i, 1);
+        rerenderScreenContent();
+      });
+    });
+    document.querySelectorAll("[data-col-opt]").forEach(function (chk) {
+      chk.addEventListener("change", function () {
+        var v = chk.getAttribute("data-col-opt");
+        var arr = state.carteira.colunasVisiveis;
+        var i = arr.indexOf(v);
+        if (chk.checked && i === -1) arr.push(v);
+        if (!chk.checked && i !== -1) arr.splice(i, 1);
+        rerenderScreenContent();
+      });
+    });
+    var selMarco = document.getElementById("selMarco");
+    if (selMarco) selMarco.addEventListener("change", function () { state.carteira.marco = this.value; rerenderScreenContent(); });
+    var busca = document.getElementById("buscaNome");
+    if (busca) busca.addEventListener("input", function () { state.carteira.busca = this.value; rerenderScreenContent(); });
+    var chkAlerta = document.getElementById("chkSoAlerta");
+    if (chkAlerta) chkAlerta.addEventListener("change", function () { state.carteira.soAlerta = this.checked; rerenderScreenContent(); });
+    document.querySelectorAll("[data-sort-key]").forEach(function (th) {
+      th.addEventListener("click", function () {
+        var key = th.getAttribute("data-sort-key");
+        if (state.carteira.sortKey === key) {
+          state.carteira.sortDir = state.carteira.sortDir === "asc" ? "desc" : "asc";
+        } else {
+          state.carteira.sortKey = key; state.carteira.sortDir = "desc";
+        }
+        rerenderScreenContent();
+      });
+    });
+    document.querySelectorAll("[data-cliente-id]").forEach(function (tr) {
+      tr.addEventListener("click", function () {
+        state.clienteSelecionado = tr.getAttribute("data-cliente-id");
+        state.clienteAba = "cronograma";
+        state.screen = "perfil";
+        render();
+      });
+    });
+    var kpiNovos = document.getElementById("kpiNovosMes");
+    if (kpiNovos) kpiNovos.addEventListener("click", function () { state.kpiHistorico = true; rerenderScreenContent(); });
+    var histBackdrop = document.getElementById("histBackdrop");
+    if (histBackdrop) {
+      histBackdrop.addEventListener("click", function (ev) { if (ev.target === histBackdrop) { state.kpiHistorico = null; rerenderScreenContent(); } });
+      document.getElementById("btnFecharHist").addEventListener("click", function () { state.kpiHistorico = null; rerenderScreenContent(); });
+    }
+  }
+
+  // ================= Perfil do Cliente =================
+  var FASES_PADRAO = [
+    "Setup de Conta", "Treinamento: Configurações Básicas", "Treinamento: Club (Área de Membros)",
+    "Acabamentos e Configurações Finais", "Checklist Pré-venda", "Ativação",
+    "Relatórios Gerenciais (pós-ativação)", "Acompanhamento"
+  ];
+  var state_fotosCache = {}; // hotmartId -> array de fotos (com dataUrl), preenchido sob demanda
+  var state_novaFotoModal = null; // { hotmartId } quando o modal de upload está aberto
+
+  function fasesDoCliente(c) {
+    var pct = c._cronogramaProgress || 0;
+    var doneCount = Math.round((pct / 100) * FASES_PADRAO.length);
+    return FASES_PADRAO.map(function (nome, i) {
+      return { nome: nome, done: i < doneCount, current: i === doneCount };
+    });
+  }
+
+  function renderPerfilCliente() {
+    if (!state.clienteSelecionado) return renderGaleriaClientes();
+    var c = clientePorId(state.clienteSelecionado);
+    if (!c) { state.clienteSelecionado = null; return renderGaleriaClientes(); }
+    return renderDetalheCliente(c);
+  }
+
+  function renderGaleriaClientes() {
+    var lista = clientesDoPerfil();
+    var cards = lista.map(function (c) {
+      return '' +
+        '<div class="client-card" data-cliente-id="' + c.hotmartId + '">' +
+          '<div class="avatar">' + initials(c.nome) + '</div>' +
+          '<div style="font-weight:700;">' + escapeHtml(c.nome || "—") + '</div>' +
+          '<div style="margin:4px 0;">' + statusBadge(c.status) + '</div>' +
+          '<div style="font-size:13px;color:var(--c-gray);">' + fmtBRL(c.gmv) + ' · ' + escapeHtml(c.closer || "—") + '</div>' +
+          '<div class="progress-bar"><div style="width:' + (c._cronogramaProgress || 0) + '%;"></div></div>' +
+        '</div>';
+    }).join("");
+    return '<div class="section-title">Clientes</div><div class="gallery-grid">' +
+      (cards || '<div class="empty-state">Nenhum cliente nesta carteira.</div>') + '</div>';
+  }
+
+  function renderDetalheCliente(c) {
+    var tabs = ["cronograma", "crm", "saude"].map(function (t) {
+      var label = { cronograma: "Cronograma", crm: "CRM", saude: "Saúde" }[t];
+      return '<button class="tab-btn' + (state.clienteAba === t ? " active" : "") + '" data-tab="' + t + '">' + label + '</button>';
+    }).join("");
+    var conteudo = state.clienteAba === "cronograma" ? renderAbaCronograma(c)
+      : state.clienteAba === "crm" ? renderAbaCrm(c)
+      : renderAbaSaude(c);
+    return '' +
+      '<button class="btn ghost small" id="btnVoltarGaleria" style="margin-bottom:14px;">← Voltar</button>' +
+      '<div class="detail-header">' +
+        '<div class="avatar-lg">' + initials(c.nome) + '</div>' +
+        '<div><h2 style="font-size:20px;">' + escapeHtml(c.nome || "—") + '</h2>' +
+        '<div style="color:var(--c-gray);font-size:13px;">' + escapeHtml(c.hotmartId || "") + ' · ' + escapeHtml(c.closer || "—") + '</div></div>' +
+        '<div style="margin-left:auto;">' + statusBadge(c.status) + '</div>' +
+      '</div>' +
+      '<div class="tabs">' + tabs + '</div>' +
+      '<div class="card">' + conteudo + '</div>';
+  }
+
+  function renderAbaCronograma(c) {
+    var fases = fasesDoCliente(c);
+    var rows = fases.map(function (f, i) {
+      var cls = f.done ? "done" : (f.current ? "current" : "");
+      return '<div class="phase-row"><div class="phase-num ' + cls + '">' + (i + 1) + '</div>' +
+        '<div style="flex:1;">' + f.nome + (f.current ? ' <span class="badge orange" style="margin-left:6px;">Em andamento</span>' : (f.done ? ' <span class="badge lemon" style="margin-left:6px;">Concluída</span>' : "")) + '</div>' +
+        (f.current ? '<div style="font-size:12px;color:var(--c-gray);">📅 Lembrete simulado no Google Calendar</div>' : '') +
+      '</div>';
+    }).join("");
+    return '<div class="section-title">Progresso: ' + (c._cronogramaProgress || 0) + '%</div>' +
+      '<div class="progress-bar" style="margin-bottom:16px;"><div style="width:' + (c._cronogramaProgress || 0) + '%;"></div></div>' +
+      rows +
+      '<p style="font-size:11px;color:var(--c-gray);margin-top:14px;">Progresso ilustrativo (ainda sem fonte real de datas por fase na planilha) — os lembretes de calendário mostrados aqui são simulados, não criam eventos de verdade.</p>';
+  }
+
+  function renderAbaCrm(c) {
+    var overlay = state.overlay[c.hotmartId] || { observacoes: "", contratoAssinado: false, brindeEnviado: false, lancamento: "" };
+    var fotos = state_fotosCache[c.hotmartId];
+    var fotosHtml;
+    if (typeof fotos === "undefined") {
+      fotosHtml = '<div class="empty-state">Carregando fotos…</div>';
+    } else if (!fotos.length) {
+      fotosHtml = '<div class="empty-state">Nenhuma foto ainda.</div>';
+    } else {
+      fotosHtml = '<div class="photos-grid">' + fotos.map(function (f, i) {
+        if (f.error) return '<div class="photo-thumb"><div class="empty-state" style="font-size:11px;">' + escapeHtml(f.error) + '</div></div>';
+        return '<div class="photo-thumb" data-foto-idx="' + i + '"><img src="' + f.dataUrl + '"/>' +
+          (f.legenda ? '<div class="cap">' + escapeHtml(f.legenda) + '</div>' : '') + '</div>';
+      }).join("") + '</div>';
+    }
+    return '' +
+      '<div class="crm-grid">' +
+        '<div class="crm-field" style="grid-column:1/-1;"><label>Observações</label><textarea id="crmObservacoes" rows="3">' + escapeHtml(overlay.observacoes || "") + '</textarea></div>' +
+        '<div class="crm-field"><label>Lançamento</label><input type="text" id="crmLancamento" value="' + escapeHtml(overlay.lancamento || "") + '"/></div>' +
+        '<div class="crm-field crm-checkbox"><input type="checkbox" id="crmContrato" ' + (overlay.contratoAssinado ? "checked" : "") + '/> <label style="margin:0;">Contrato assinado</label></div>' +
+        '<div class="crm-field crm-checkbox"><input type="checkbox" id="crmBrinde" ' + (overlay.brindeEnviado ? "checked" : "") + '/> <label style="margin:0;">Brinde enviado</label></div>' +
+      '</div>' +
+      '<button class="btn" id="btnSalvarCrm" style="margin-top:14px;">Salvar</button>' +
+      '<div class="section-title" style="margin-top:24px;">Fotos do cliente</div>' +
+      fotosHtml +
+      '<button class="btn subtle small" id="btnAdicionarFoto" style="margin-top:10px;">+ Adicionar foto</button>' +
+      (state_novaFotoModal ? renderModalNovaFoto() : "");
+  }
+
+  function renderModalNovaFoto() {
+    return '<div class="modal-backdrop" id="fotoModalBackdrop"><div class="modal">' +
+      '<h3 style="margin-bottom:14px;">Nova foto</h3>' +
+      '<div class="field"><label>Arquivo</label><input type="file" accept="image/*" id="inputNovaFoto"/></div>' +
+      '<div id="previewNovaFoto"></div>' +
+      '<div class="field"><label>Legenda</label><input type="text" id="legendaNovaFoto"/></div>' +
+      '<div style="display:flex;gap:8px;">' +
+        '<button class="btn" id="btnConfirmarFoto">Enviar</button>' +
+        '<button class="btn ghost" id="btnCancelarFoto">Cancelar</button>' +
+      '</div>' +
+    '</div></div>';
+  }
+
+  function renderAbaSaude(c) {
+    var campos = [
+      ["GMV", fmtBRL(c.gmv)], ["Amount 3 meses", fmtBRL(c.amount3Meses)], ["Amount 12 meses", fmtBRL(c.amount12Meses)],
+      ["Amount esperado hoje", fmtBRL(c.amountReal)], ["% atingido", fmtPct(c.pctAtingido)], ["Tracking GMV atual", fmtPct(c.pctAmount)],
+      ["Taxa atual", fmtPctRaw(c.taxaAtual)], ["SOW", c.sow || "—"], ["Days carteira", fmtNum(c.daysCarteira)],
+      ["Dias ativado", fmtNum(c.diasAtivado)], ["VDs", fmtNum(c.vds)], ["UF", c.uf || "—"],
+      ["Segmento", c.segmento || "—"], ["Plat. anterior", c.platAnterior || "—"], ["Período", c.periodo || "—"],
+      ["OP", fmtDate(c.op)], ["CW", fmtDate(c.cw)], ["Ativação", fmtDate(c.ativacao)], ["SDR", c.sdr || "—"]
+    ];
+    return '<div class="crm-grid">' + campos.map(function (kv) {
+      return '<div class="crm-field"><label>' + kv[0] + '</label><div style="font-weight:700;">' + kv[1] + '</div></div>';
+    }).join("") + '</div>';
+  }
+
+  function resizeImageFile(file, maxDim, quality, cb) {
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      var img = new Image();
+      img.onload = function () {
+        var scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        var canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        cb(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function bindPerfilCliente() {
+    if (!state.clienteSelecionado) {
+      document.querySelectorAll("[data-cliente-id]").forEach(function (el) {
+        el.addEventListener("click", function () {
+          state.clienteSelecionado = el.getAttribute("data-cliente-id");
+          state.clienteAba = "cronograma";
+          rerenderScreenContent();
+        });
+      });
+      return;
+    }
+    var c = clientePorId(state.clienteSelecionado);
+    var btnVoltar = document.getElementById("btnVoltarGaleria");
+    if (btnVoltar) btnVoltar.addEventListener("click", function () { state.clienteSelecionado = null; rerenderScreenContent(); });
+    document.querySelectorAll("[data-tab]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        state.clienteAba = btn.getAttribute("data-tab");
+        if (state.clienteAba === "crm" && typeof state_fotosCache[c.hotmartId] === "undefined") {
+          carregarFotos(c.hotmartId);
+        }
+        rerenderScreenContent();
+      });
+    });
+    if (state.clienteAba === "crm") {
+      if (typeof state_fotosCache[c.hotmartId] === "undefined") carregarFotos(c.hotmartId);
+      var btnSalvar = document.getElementById("btnSalvarCrm");
+      if (btnSalvar) btnSalvar.addEventListener("click", function () {
+        var patch = {
+          observacoes: document.getElementById("crmObservacoes").value,
+          lancamento: document.getElementById("crmLancamento").value,
+          contratoAssinado: document.getElementById("crmContrato").checked,
+          brindeEnviado: document.getElementById("crmBrinde").checked
+        };
+        withGsRun(function () {
+          state.overlay[c.hotmartId] = Object.assign({}, state.overlay[c.hotmartId], patch);
+          toast("CRM salvo.");
+        }).saveOverlayFields(state.session.token, c.hotmartId, patch, state.perfil);
+      });
+      var btnAddFoto = document.getElementById("btnAdicionarFoto");
+      if (btnAddFoto) btnAddFoto.addEventListener("click", function () { state_novaFotoModal = { hotmartId: c.hotmartId }; rerenderScreenContent(); });
+      var fotoModalBackdrop = document.getElementById("fotoModalBackdrop");
+      if (fotoModalBackdrop) bindModalNovaFoto(c);
+      document.querySelectorAll("[data-foto-idx]").forEach(function (thumb) {
+        thumb.addEventListener("click", function () {
+          var foto = state_fotosCache[c.hotmartId][Number(thumb.getAttribute("data-foto-idx"))];
+          abrirLightbox(c.hotmartId, foto);
+        });
+      });
+    }
+  }
+
+  function carregarFotos(hotmartId) {
+    state_fotosCache[hotmartId] = null; // marca "carregando" sem disparar nova chamada
+    withGsRun(function (fotos) {
+      state_fotosCache[hotmartId] = fotos;
+      if (state.clienteSelecionado === hotmartId && state.clienteAba === "crm") rerenderScreenContent();
+    }, function (err) {
+      state_fotosCache[hotmartId] = [];
+      toast("Erro ao carregar fotos: " + (err && err.message));
+    }).getClientPhotosBase64(hotmartId);
+  }
+
+  function bindModalNovaFoto(c) {
+    document.getElementById("inputNovaFoto").addEventListener("change", function () {
+      var file = this.files[0];
+      if (!file) return;
+      resizeImageFile(file, 1600, 0.82, function (dataUrl) {
+        document.getElementById("previewNovaFoto").innerHTML = '<img src="' + dataUrl + '" style="max-width:100%;border-radius:8px;margin:8px 0;"/>';
+        document.getElementById("btnConfirmarFoto").setAttribute("data-data-url", "1");
+        window._novaFotoDataUrl = dataUrl;
+      });
+    });
+    document.getElementById("btnConfirmarFoto").addEventListener("click", function () {
+      if (!window._novaFotoDataUrl) { toast("Escolha uma imagem primeiro."); return; }
+      var legenda = document.getElementById("legendaNovaFoto").value;
+      var dataUrl = window._novaFotoDataUrl;
+      withGsRun(function () {
+        window._novaFotoDataUrl = null;
+        state_novaFotoModal = null;
+        toast("Foto enviada.");
+        carregarFotos(c.hotmartId);
+        rerenderScreenContent();
+      }).uploadClientPhoto(state.session.token, c.hotmartId, dataUrl, "foto.jpg", legenda, state.perfil);
+    });
+    document.getElementById("btnCancelarFoto").addEventListener("click", function () {
+      window._novaFotoDataUrl = null; state_novaFotoModal = null; rerenderScreenContent();
+    });
+    document.getElementById("fotoModalBackdrop").addEventListener("click", function (ev) {
+      if (ev.target === this) { window._novaFotoDataUrl = null; state_novaFotoModal = null; rerenderScreenContent(); }
+    });
+  }
+
+  function abrirLightbox(hotmartId, foto) {
+    var el = document.createElement("div");
+    el.className = "lightbox";
+    el.innerHTML = '<img src="' + foto.dataUrl + '"/>' +
+      '<div style="color:#fff;font-size:13px;">' + escapeHtml(foto.legenda || "") + '</div>' +
+      '<div style="display:flex;gap:8px;">' +
+        '<button class="btn subtle" id="lbDownload">Baixar</button>' +
+        '<button class="btn subtle" id="lbApagar">Apagar</button>' +
+        '<button class="btn ghost" id="lbFechar" style="color:#fff;border-color:#fff;">Fechar</button>' +
+      '</div>';
+    document.body.appendChild(el);
+    el.addEventListener("click", function (ev) { if (ev.target === el) el.remove(); });
+    el.querySelector("#lbFechar").addEventListener("click", function () { el.remove(); });
+    el.querySelector("#lbDownload").addEventListener("click", function () {
+      var a = document.createElement("a");
+      a.href = foto.dataUrl; a.download = (foto.legenda || "foto") + ".jpg";
+      document.body.appendChild(a); a.click(); a.remove();
+    });
+    el.querySelector("#lbApagar").addEventListener("click", function () {
+      if (!confirm("Apagar esta foto definitivamente?")) return;
+      withGsRun(function () {
+        el.remove();
+        delete state_fotosCache[hotmartId];
+        toast("Foto apagada.");
+        rerenderScreenContent();
+      }).deleteClientPhoto(state.session.token, hotmartId, foto.fileId, state.perfil);
+    });
+  }
+
+  applyTheme();
+  render();
 </script>
