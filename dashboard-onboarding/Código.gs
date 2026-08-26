@@ -95,11 +95,11 @@ function doGet(e) {
     template.bootError = String((err && err.message) || err);
   }
   template.baseUrl = ScriptApp.getService().getUrl();
-  return template
-    .evaluate()
-    .setTitle("Dashboard Onboarding")
-    .addMetaTag("viewport", "width=device-width, initial-scale=1")
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  var output = template.evaluate();
+  output.setTitle("Dashboard Onboarding");
+  output.addMetaTag("viewport", "width=device-width, initial-scale=1");
+  output.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  return output;
 }
 
 function include(filename) {
@@ -113,17 +113,17 @@ function include(filename) {
 // quebram uma comparação exata (getSheetByName) silenciosamente. Por isso toda busca
 // de aba por nome passa por aqui em vez de usar getSheetByName diretamente.
 function normalizeSheetName_(name) {
-  return String(name || "")
-    // Remove espacos/zero-width "invisiveis" que costumam entrar ao colar nomes
-    // de aba de um chat/editor: zero-width space/joiner/non-joiner, BOM, NBSP,
-    // word joiner, separador mongol, a faixa de espacos U+2000-U+200A e o espaco
-    // ideografico U+3000. Sempre por \uXXXX explicito aqui -- nunca colar o
-    // caractere invisivel "de verdade" neste arquivo: e exatamente esse tipo de
-    // erro silencioso que ja custou um ciclo de debug inteiro numa tentativa
-    // anterior.
-    .replace(/[\u200B\u200C\u200D\uFEFF\u00A0\u2060\u180E\u2000-\u200A\u3000]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  // Remove espacos/zero-width "invisiveis" que costumam entrar ao colar nomes
+  // de aba de um chat/editor: zero-width space/joiner/non-joiner, BOM, NBSP,
+  // word joiner, separador mongol, a faixa de espacos U+2000-U+200A e o espaco
+  // ideografico U+3000. Sempre por \uXXXX explicito aqui -- nunca colar o
+  // caractere invisivel "de verdade" neste arquivo: e exatamente esse tipo de
+  // erro silencioso que ja custou um ciclo de debug inteiro numa tentativa
+  // anterior.
+  var s = String(name || "");
+  s = s.replace(/[\u200B\u200C\u200D\uFEFF\u00A0\u2060\u180E\u2000-\u200A\u3000]/g, "");
+  s = s.replace(/\s+/g, " ");
+  return s.trim();
 }
 
 function findSheetByName_(spreadsheet, targetName) {
@@ -618,22 +618,21 @@ function missoesRowsToObjects_(sheet) {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
   var values = sheet.getRange(2, 1, lastRow - 1, MISSOES_HEADERS.length).getValues();
-  return values
-    .filter(function (row) { return row[0]; })
-    .map(function (row) {
-      var completions = {};
-      try { completions = row[7] ? JSON.parse(row[7]) : {}; } catch (e) {}
-      return {
-        id: row[0],
-        titulo: row[1] || "",
-        descricao: row[2] || "",
-        pontos: Number(row[3]) || 0,
-        destinatario: row[4] || "todos",
-        criadoPor: row[5] || "",
-        criadoEm: formatDateOnly_(row[6]),
-        completions: completions
-      };
-    });
+  var withId = values.filter(function (row) { return row[0]; });
+  return withId.map(function (row) {
+    var completions = {};
+    try { completions = row[7] ? JSON.parse(row[7]) : {}; } catch (e) {}
+    return {
+      id: row[0],
+      titulo: row[1] || "",
+      descricao: row[2] || "",
+      pontos: Number(row[3]) || 0,
+      destinatario: row[4] || "todos",
+      criadoPor: row[5] || "",
+      criadoEm: formatDateOnly_(row[6]),
+      completions: completions
+    };
+  });
 }
 
 function getMissoesData_() {
