@@ -2,7 +2,7 @@
 //
 // Fonte única de dados "de verdade" (somente leitura, ao vivo, sem cache): a planilha
 // externa "Gestão de carteira unificada" (sincronizada do Salesforce), abas
-// "[SF] On" (uma linha por oportunidade/cliente) e "[SF] VD" (log de touchpoints,
+// "SF On" (uma linha por oportunidade/cliente) e "SF VD" (log de touchpoints,
 // usado só pra contar VDs por cliente). Este script NUNCA escreve nessas duas abas.
 //
 // O app também guarda um pequeno conjunto de campos que só existem aqui (não vêm do
@@ -18,8 +18,8 @@
 // appsscript.json (`"access": "DOMAIN"`) e o passo a passo em README.md.
 
 var CONFIG = {
-  SHEET_ON: "[SF] On",
-  SHEET_VD: "[SF] VD",
+  SHEET_ON: "SF On",
+  SHEET_VD: "SF VD",
   OVERLAY_SHEET: "App - Overlay CRM",
   MISSOES_SHEET: "App - Missões",
   SESSION_TTL_SECONDS: 6 * 60 * 60, // 6 horas — teto do CacheService
@@ -27,7 +27,7 @@ var CONFIG = {
   ADMINS: ["Amanda", "Julia"]
 };
 
-// Índices de coluna (0-based) na aba "[SF] On" — mapeamento confirmado, não mexer sem
+// Índices de coluna (0-based) na aba "SF On" — mapeamento confirmado, não mexer sem
 // reconferir com a planilha de origem.
 var COL = {
   hotmartId: 0,        // A  — Hotmart ID
@@ -213,7 +213,7 @@ function diffDaysFromToday_(dateValue, today) {
   return Math.floor(ms / (1000 * 60 * 60 * 24));
 }
 
-// Lê a aba "[SF] On" inteira e devolve um array de registros já: deduplicados (última
+// Lê a aba "SF On" inteira e devolve um array de registros já: deduplicados (última
 // linha de cada Hotmart ID vence), com os campos calculados e os campos ilustrativos.
 //
 // As chaves de cada registro usam os MESMOS nomes de campo (em português, com
@@ -294,7 +294,7 @@ function readPortfolioRows_(spreadsheet) {
   });
 }
 
-// Lê a aba "[SF] VD" e conta quantas linhas cada Hotmart ID (coluna A) tem —
+// Lê a aba "SF VD" e conta quantas linhas cada Hotmart ID (coluna A) tem —
 // equivalente a um COUNTIF.
 function readVdCounts_(spreadsheet) {
   var sheet = findSheetByName_(spreadsheet, CONFIG.SHEET_VD);

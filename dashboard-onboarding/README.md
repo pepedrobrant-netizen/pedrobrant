@@ -1,7 +1,7 @@
 # Dashboard Onboarding — publicar no Google Apps Script
 
 Este app foi montado seguindo à risca a especificação de produto e a arquitetura de
-dados originais (schema de campos da `[SF] On`/`[SF] VD`, dedup por Hotmart ID,
+dados originais (schema de campos da `SF On`/`SF VD`, dedup por Hotmart ID,
 campos calculados, as 5 telas, identidade visual Hotmart) e, depois, **redesenhado
 em cima de um mockup de UI/UX aprovado** que você enviou — mesma folha de estilo,
 estrutura de telas e componentes do mockup, com a fiação de dados trocada pra
@@ -25,11 +25,16 @@ o produto; **não é o arquivo que vai pro Apps Script**.
 
 ## 1. Mapeamento de campos (confirmado pelo mockup)
 
-- **Mapeamento de colunas da `[SF] On`**: está em `Código.gs`, objeto `COL` (0-based,
+- **Mapeamento de colunas da `SF On`**: está em `Código.gs`, objeto `COL` (0-based,
   comentado com a letra da coluna ao lado). Se algo mudou na planilha desde a última
   vez, é só esse objeto que precisa de ajuste.
-- **Nomes das abas**: `[SF] On` e `[SF] VD`, com colchetes literais, buscadas via
-  `findSheetByName_` (normaliza caracteres invisíveis — ver comentário no código).
+- **Nomes das abas**: `SF On` e `SF VD` — **sem colchetes** (a especificação original
+  dizia `[SF] On`/`[SF] VD`, mas ao abrir a planilha real "Gestão de carteira
+  unificada" pelo link que você mandou, as abas estão nomeadas só `SF On`/`SF VD`,
+  sem colchetes; já ajustei o `CONFIG.SHEET_ON`/`CONFIG.SHEET_VD` do `Código.gs` pra
+  bater com isso). A busca continua passando por `findSheetByName_`, que normaliza
+  caracteres invisíveis — útil se o nome ganhar um espaço extra no futuro, mas não
+  teria resolvido essa diferença de colchetes sozinha.
 - **Dedup**: última linha de cada Hotmart ID vence — em `readPortfolioRows_`.
 - **Campos calculados**: fórmulas de `"Amount real*"`, `"% atingido"`, `"% amount"`,
   `"Dias ativado"` — mesma definição de sempre, só a chave de saída mudou de
@@ -38,6 +43,35 @@ o produto; **não é o arquivo que vai pro Apps Script**.
   preenchido automaticamente por `getFullPortfolioData_` a partir do grupo em que o
   registro caiu (o mesmo `Owner First Name` que já era usado só pro filtro).
 
+### Validado direto contra a planilha real
+
+Você compartilhou o link da "Gestão de carteira unificada" e eu baixei uma cópia
+(via Google Drive) só pra conferir a estrutura — não gravei nada nela, e não guardei
+os dados dos clientes em nenhum lugar deste repositório. Resultado:
+
+- As 27 colunas mapeadas em `COL` (`Código.gs`) batem **exatamente** com os
+  cabeçalhos reais da aba `SF On` (`Hotmart ID`, `Onboarding: Name`, `GMV BRL after
+  closed won`, `Closed Date`, ..., `Owner First Name` na coluna AB) — nenhum ajuste
+  de índice foi necessário.
+- `Owner First Name` tem só os 4 valores esperados: `Madu`, `Pedro`, `Josiane`,
+  `Ilana` — o agrupamento por carteira funciona sem "sobras".
+- Existem **26 Hotmart IDs duplicados** na planilha real (oportunidades reabertas) —
+  confirma que a regra "última linha vence" em `readPortfolioRows_` é necessária, não
+  só uma precaução teórica.
+- Os valores de `Status` incluem dois que não estavam na lista original —
+  `New Onboarding` e `Active` — além dos que já eram esperados. Não fazem parte da
+  "jornada ativa" (`STATUS_JORNADA_ATIVA`), então não mudam o filtro padrão, mas
+  aparecem nas opções de filtro de Status normalmente.
+- **A única divergência real**: os nomes das abas não têm colchetes (ver item acima).
+  Foi a única correção de fato necessária depois de testar contra os dados reais.
+
+Não validei ainda a aba `App - Overlay CRM`/`App - Missões` contra nada (elas são
+criadas do zero pelo próprio app, na planilha vinculada ao script, não na "Gestão de
+carteira unificada") nem testei a leitura ao vivo via Apps Script propriamente dita
+(isso só dá pra confirmar depois de publicar e rodar `testarLeituraPlanilha` — ver
+checklist abaixo) — o que fiz aqui foi conferir a estrutura da planilha de origem
+com uma ferramenta de fora do Apps Script.
+
 ## 2. CRM e Missões — redesenhados pro schema do mockup
 
 O mockup define um CRM bem mais rico do que a primeira versão deste app tinha:
@@ -45,7 +79,7 @@ telefone, e-mail, endereço, aniversário, "vai a evento", contrato, brinde, met
 faturamento, Hotmart Cast (+ data/hora), equipe do cliente (contatos além do
 responsável/SDR), histórico de ações (somativo, computado dos campos reais da
 planilha) e ações de relacionamento (notas livres com data). Nenhum desses campos
-existe na `[SF] On`/`[SF] VD` — como antes, ficam numa aba própria (`App - Overlay
+existe na `SF On`/`SF VD` — como antes, ficam numa aba própria (`App - Overlay
 CRM`), na planilha **vinculada a este script** (não na `Gestão de carteira
 unificada`), criada automaticamente na primeira gravação. Isso preserva a regra
 "nunca escrever na planilha do Salesforce" e dá um lugar real pra esses dados
@@ -120,7 +154,7 @@ Marque cada item, nesta ordem:
 
 1. [ ] Rodei `diagnosticarConfiguracao` no editor — `PORTFOLIO_SHEET_ID` e
    `TEAM_PASSWORD` configuradas, planilha abre sem erro.
-2. [ ] Rodei `diagnosticarAbas` — as duas abas (`[SF] On`, `[SF] VD`) foram
+2. [ ] Rodei `diagnosticarAbas` — as duas abas (`SF On`, `SF VD`) foram
    encontradas pela comparação normalizada.
 3. [ ] Rodei `testarLeituraPlanilha` — total de clientes lido é maior que zero (ou
    exatamente o esperado).
