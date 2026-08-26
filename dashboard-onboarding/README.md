@@ -1,24 +1,29 @@
 # Dashboard Onboarding — publicar no Google Apps Script
 
-Este app foi montado do zero (não a partir dos arquivos de uma tentativa anterior,
-que não chegaram a ser colados nesta conversa) seguindo à risca a especificação de
-produto e a arquitetura de dados descritas no prompt original: schema de campos da
-`[SF] On`/`[SF] VD`, dedup por Hotmart ID, campos calculados, as 5 telas, a
-identidade visual Hotmart, e os 3 arquivos exigidos por requisito técnico
-(`Código.gs`, `Index.html`, `appsscript.json`) — mais `Diagnostico.gs`, que não conta
-como um 4º arquivo do app em si (não é referenciado pelo `doGet`), só ajuda você a
-testar a configuração pelo editor antes de publicar.
+Este app foi montado seguindo à risca a especificação de produto e a arquitetura de
+dados originais (schema de campos da `[SF] On`/`[SF] VD`, dedup por Hotmart ID,
+campos calculados, as 5 telas, identidade visual Hotmart) e, depois, **redesenhado
+em cima de um mockup de UI/UX aprovado** que você enviou — mesma folha de estilo,
+estrutura de telas e componentes do mockup, com a fiação de dados trocada pra
+`Código.gs`/`google.script.run` de verdade em vez de dados estáticos em memória.
+São os 3 arquivos exigidos por requisito técnico (`Código.gs`, `Index.html`,
+`appsscript.json`) — mais `Diagnostico.gs`, que não conta como um 4º arquivo do app
+em si (não é referenciado pelo `doGet`), só ajuda você a testar a configuração pelo
+editor antes de publicar.
+
+O mockup trouxe uma amostra de dados reais da planilha, o que confirmou os nomes de
+campo exatos — em português, com espaços e acentos (`"Hotmart ID"`, `"GMV"`,
+`"Amount real*"` etc.) — em vez das chaves em camelCase que eu tinha usado numa
+primeira versão. `Código.gs` já usa esses nomes exatos na saída de
+`getFullPortfolioData_`, então o front-end lê os campos direto, sem nenhuma camada de
+tradução no meio.
 
 Antes de qualquer coisa: **a prévia local** (`preview.html`, já enviada nesta
 conversa) mostra a interface inteira com dados fictícios, sem tocar em nenhuma
 planilha real — abra no navegador, senha `preview123`. Ela existe só pra você validar
 o produto; **não é o arquivo que vai pro Apps Script**.
 
-## 1. O que revisar antes de colar (não há divergência a resolver — é código novo)
-
-Como não recebi os arquivos da tentativa anterior, não há um diff pra revisar contra
-eles. O que importa checar é se este código bate com o que você já validou como
-correto na sua tentativa anterior:
+## 1. Mapeamento de campos (confirmado pelo mockup)
 
 - **Mapeamento de colunas da `[SF] On`**: está em `Código.gs`, objeto `COL` (0-based,
   comentado com a letra da coluna ao lado). Se algo mudou na planilha desde a última
@@ -26,26 +31,33 @@ correto na sua tentativa anterior:
 - **Nomes das abas**: `[SF] On` e `[SF] VD`, com colchetes literais, buscadas via
   `findSheetByName_` (normaliza caracteres invisíveis — ver comentário no código).
 - **Dedup**: última linha de cada Hotmart ID vence — em `readPortfolioRows_`.
-- **Campos calculados**: fórmulas de `amountReal`, `pctAtingido`, `pctAmount`,
-  `diasAtivado` — mesma definição do prompt.
+- **Campos calculados**: fórmulas de `"Amount real*"`, `"% atingido"`, `"% amount"`,
+  `"Dias ativado"` — mesma definição de sempre, só a chave de saída mudou de
+  `amountReal`/`pctAtingido`/... pra essas strings exatas.
+- **Campo novo**: `"Responsavel"` — nome do consultor (Madu/Pedro/Josiane/Ilana),
+  preenchido automaticamente por `getFullPortfolioData_` a partir do grupo em que o
+  registro caiu (o mesmo `Owner First Name` que já era usado só pro filtro).
 
-## 2. Decisão de arquitetura que fui obrigado a tomar (fora do que estava "confirmado")
+## 2. CRM e Missões — redesenhados pro schema do mockup
 
-A especificação de dados deixa claro que a `[SF] On`/`[SF] VD` são **só leitura**, sem
-nenhum dado próprio do app gravado nelas. Mas a especificação de produto pede campos
-que só existem dentro do app (observações, contrato assinado, brinde enviado, fotos
-do cliente, e as missões da Rotina) — esses não têm de onde vir. Resolvi isso criando
-duas abas **próprias**, numa planilha diferente (a planilha **vinculada a este
-script**, não a `Gestão de carteira unificada`): `App - Overlay CRM` e
-`App - Missões`, criadas automaticamente na primeira gravação. Isso preserva a regra
-"nunca escrever na planilha do Salesforce" e ainda dá um lugar real pra esses dados
-persistirem. Fotos ficam no Google Drive (pasta própria, criada automaticamente),
-não na planilha — só o ID do arquivo fica salvo, e as imagens são servidas de volta
-como base64 (nunca por um link público do Drive), pra não abrir uma superfície de
-acesso nova.
+O mockup define um CRM bem mais rico do que a primeira versão deste app tinha:
+telefone, e-mail, endereço, aniversário, "vai a evento", contrato, brinde, meta de
+faturamento, Hotmart Cast (+ data/hora), equipe do cliente (contatos além do
+responsável/SDR), histórico de ações (somativo, computado dos campos reais da
+planilha) e ações de relacionamento (notas livres com data). Nenhum desses campos
+existe na `[SF] On`/`[SF] VD` — como antes, ficam numa aba própria (`App - Overlay
+CRM`), na planilha **vinculada a este script** (não na `Gestão de carteira
+unificada`), criada automaticamente na primeira gravação. Isso preserva a regra
+"nunca escrever na planilha do Salesforce" e dá um lugar real pra esses dados
+persistirem. Fotos ficam no Google Drive (pasta própria, criada automaticamente), não
+na planilha — só o ID do arquivo fica salvo, e as imagens são servidas de volta como
+base64 (nunca por um link público do Drive), pra não abrir uma superfície de acesso
+nova.
 
-Se isso não bater com o que você já tinha resolvido de outro jeito na tentativa
-anterior, me fala qual era a solução de lá que eu ajusto.
+Missões também mudaram de formato: cada missão tem um `destinatario` (`"todos"` ou o
+nome de um onboarder) e um mapa `completions` (`{ "Madu": true, ... }`) — mais simples
+que o modelo anterior de lista de atribuições, e permite desmarcar uma missão
+concluída por engano (o mockup faz isso).
 
 ## 3. A causa mais provável do travamento — e o que fazer antes de tentar publicar
 
@@ -211,20 +223,28 @@ Google.
 
 Sem o passo 2, a URL pública continua servindo a versão antiga.
 
-## 7. Limitações desta primeira versão
+## 7. Limitações desta versão
 
 - **Segurança da senha do time**: o `doGet` injeta os dados das 4 carteiras direto
-  no HTML (requisito técnico do projeto), então qualquer conta `@hotmart.com` que
-  abrir o link já recebe os dados na fonte da página, antes mesmo de digitar a
-  senha — o domínio Google (`access: DOMAIN`) é o controle de acesso real; a senha do
-  time é uma tela de UX/perfil, não um segredo de dados.
+  no HTML (requisito técnico do projeto, e também como o mockup funciona), então
+  qualquer conta `@hotmart.com` que abrir o link já recebe os dados na fonte da
+  página, antes mesmo de digitar a senha — o domínio Google (`access: DOMAIN`) é o
+  controle de acesso real; a senha do time é uma tela de UX/perfil, não um segredo de
+  dados.
 - **Fotos**: guardadas no Drive da conta que publicou o Web App, servidas por base64
   via `google.script.run` — sem link público, mas o armazenamento fica todo numa
   única conta.
-- **Rotina (Semana/Diário/Checklist/Por tipo/Mensal)**: a especificação não detalhou
-  os dados dessas sub-abas, então implementei versões funcionais e razoáveis (ver
-  comentários no código) — mais fáceis de ajustar depois que o time usar e apontar o
-  que falta.
-- **Cronograma, % Ferramentas, Bônus, Analytics**: campos explicitamente marcados
-  como ilustrativos na especificação continuam ilustrativos aqui (hash determinístico
-  do Hotmart ID, nunca aleatório a cada carregamento).
+- **Cronograma (datas de fase/tarefa)**: como no mockup, o progresto de cada fase vem
+  do campo ilustrativo `_cronogramaProgress`; já as datas que o time agenda por fase/
+  tarefa (com o "lembrete simulado") ficam só no `localStorage` do navegador — não são
+  gravadas na planilha nem persistem entre computadores diferentes. Se o time quiser
+  um cronograma de datas real e compartilhado entre todo mundo, dá pra mover isso pra
+  uma aba própria (mesmo padrão do overlay de CRM) numa próxima rodada.
+- **Rotina — Semana/Mensal**: os itens editáveis (tema do dia, itens da semana, lista
+  mensal) ficam no `localStorage` por perfil, não na planilha — é a rotina de cada
+  pessoa, não um dado do cliente. Diário/Checklist semanal/Por tipo de cliente usam o
+  conteúdo fixo do mockup (baseado no processo real de onboarding descrito por vocês).
+- **% Ferramentas, Bônus, Analytics**: campos explicitamente marcados como
+  ilustrativos (🧪) no mockup continuam ilustrativos aqui (hash determinístico do
+  Hotmart ID/mês, nunca aleatório a cada carregamento) — ver a caixa de "Integração
+  com o Power BI"/"Protótipo visual" em cada tela.
