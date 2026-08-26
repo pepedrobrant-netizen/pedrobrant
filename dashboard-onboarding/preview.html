@@ -1,6 +1,15 @@
 <!-- Dashboard Onboarding — frontend inteiro num arquivo só (HTML + CSS + JS inline),
      sem build step, como exige rodar dentro do Google Apps Script (HtmlService). -->
+<!doctype html>
+<html lang="pt-BR">
+<head>
 <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dashboard Onboarding — Prévia local</title>
+<!-- Prévia local, gerada a partir do dashboard-onboarding/Index.html real, trocando
+     os dados vindos do Código.gs por dados fictícios + um mock de google.script.run
+     que grava em localStorage. NÃO é o arquivo publicado no Apps Script — é só pra
+     visualizar a interface no navegador antes do deploy de verdade. -->
 <style>
   /* ---------- Identidade visual Hotmart ---------- */
   :root {
@@ -280,22 +289,197 @@
     .topbar { flex-wrap: wrap; }
   }
 </style>
-
+</head>
+<body>
 <div id="app"></div>
 
 <script>
-  // ---------- Dados injetados pelo servidor (Código.gs / doGet) ----------
-  // NÃO reabrir esse mapeamento de campos: já foi validado contra a planilha real.
+  // ---------- PRÉVIA LOCAL — dados fictícios no lugar do que o Código.gs injetaria ----------
+  // Este arquivo (preview.html) NÃO é publicado no Apps Script — é só pra visualizar a
+  // interface no navegador, com dados de mentira no mesmo formato exato da planilha
+  // real, e um mock de google.script.run que grava em localStorage em vez da planilha.
+  var PREVIEW_PASSWORD = "preview123";
+
+  function hashSeed_(str) {
+    var hash = 5381, s = String(str || "");
+    for (var i = 0; i < s.length; i++) hash = ((hash << 5) + hash + s.charCodeAt(i)) & 0xffffffff;
+    return Math.abs(hash);
+  }
+  function seededRand_(seed, i) { return (hashSeed_(seed + "|" + i) % 1000) / 1000; }
+
+  var NOMES_FICTICIOS = [
+    "Cursos Aurora", "Instituto Vértice", "Método Bússola", "Academia Trilha", "Escola Prisma",
+    "Mentoria Norte", "Clube do Saber", "Formação Ígnea", "Espaço Órbita", "Grupo Zênite",
+    "Educa Mais", "Ateliê Digital", "Núcleo Impulso", "Escola Raiz", "Formação Cume"
+  ];
+  var SEGMENTOS = ["Educação", "Saúde e Bem-estar", "Negócios", "Idiomas", "Desenvolvimento Pessoal", "Fitness"];
+  var UFS = ["SP", "RJ", "MG", "RS", "PR", "BA", "SC"];
+  var PLATAFORMAS = ["Eduzz", "Kiwify", "Braip", "Nenhuma", "Monetizze"];
+  var CLOSERS = ["Rafael Souza", "Camila Alves", "Bruno Lima", "Fernanda Costa"];
+  var STATUS_POOL = ["Pre Onboarding", "Welcome", "Product Migration", "Ready for Activation", "Activation & Monitoring", "Accomplished", "Unaccomplished"];
+
+  function gerarClientesFicticios(owner, qtd) {
+    var out = [];
+    for (var i = 0; i < qtd; i++) {
+      var seed = owner + i;
+      var hotmartId = "HM-" + owner.toUpperCase().slice(0, 3) + "-" + (1000 + i);
+      var nome = NOMES_FICTICIOS[(hashSeed_(seed) + i) % NOMES_FICTICIOS.length] + " " + (i + 1);
+      var status = STATUS_POOL[hashSeed_(seed + "st") % STATUS_POOL.length];
+      var daysCarteira = 5 + (hashSeed_(seed + "d") % 160);
+      var gmv = Math.round(seededRand_(seed, "gmv") * 250000);
+      var amount3Meses = Math.round(8000 + seededRand_(seed, "a3") * 180000);
+      var amount12Meses = amount3Meses * (3 + Math.round(seededRand_(seed, "a12") * 3));
+      var amountReal = (amount3Meses / 90) * daysCarteira;
+      var ativou = seededRand_(seed, "ativou") > 0.45;
+      var hoje = new Date();
+      var cwDate = new Date(hoje.getTime() - daysCarteira * 86400000);
+      var ativacaoDate = ativou ? new Date(cwDate.getTime() + Math.round(seededRand_(seed, "diasAtiv") * 60) * 86400000) : null;
+      var opDate = new Date(cwDate.getTime() - Math.round(seededRand_(seed, "op") * 20) * 86400000);
+      function fmt(d) { return d ? d.toISOString().slice(0, 10) : null; }
+      var illustrative = { progress: hashSeed_(hotmartId) % 101, diasContato: (hashSeed_(hotmartId) % 30) + 1 };
+      var dataContato = new Date(hoje.getTime() - illustrative.diasContato * 86400000);
+      out.push({
+        hotmartId: hotmartId, nome: nome, gmv: gmv, cw: fmt(cwDate), ativacao: fmt(ativacaoDate),
+        status: status, sdr: "SDR " + ((hashSeed_(seed + "sdr") % 4) + 1), closer: CLOSERS[hashSeed_(seed + "cl") % CLOSERS.length],
+        daysCarteira: daysCarteira, sow: (10 + hashSeed_(seed + "sow") % 90) + "%", amount3Meses: amount3Meses,
+        taxaAtual: 4 + (hashSeed_(seed + "tx") % 6), periodo: "FY" + hoje.getFullYear() + "-Q" + (1 + (hashSeed_(seed) % 4)),
+        platAnterior: PLATAFORMAS[hashSeed_(seed + "pl") % PLATAFORMAS.length], uf: UFS[hashSeed_(seed + "uf") % UFS.length],
+        op: fmt(opDate), segmento: SEGMENTOS[hashSeed_(seed + "sg") % SEGMENTOS.length], amount12Meses: amount12Meses,
+        ownerFirstName: owner,
+        amountReal: amountReal, pctAtingido: amount3Meses ? gmv / amount3Meses : null, pctAmount: amountReal ? gmv / amountReal : null,
+        diasAtivado: ativacaoDate ? Math.floor((hoje - ativacaoDate) / 86400000) : null,
+        vds: hashSeed_(seed + "vd") % 12,
+        observacoes: null, col_13: null, lancamento: null, col_26: false,
+        _cronogramaProgress: illustrative.progress, _ultimoContatoDias: illustrative.diasContato, _ultimoContatoData: fmt(dataContato)
+      });
+    }
+    return out;
+  }
+
   var PORTFOLIO_DATA = {
-    madu: <?!= maduJson ?>,
-    pedro: <?!= pedroJson ?>,
-    josiane: <?!= josianeJson ?>,
-    ilana: <?!= ilanaJson ?>
+    madu: gerarClientesFicticios("Madu", 14),
+    pedro: gerarClientesFicticios("Pedro", 11),
+    josiane: gerarClientesFicticios("Josiane", 9),
+    ilana: gerarClientesFicticios("Ilana", 13)
   };
-  var OVERLAY_DATA = <?!= overlayJson ?>;
-  var MISSOES_DATA = <?!= missoesJson ?>;
-  var BOOT_ERROR = <?!= JSON.stringify(bootError) ?>;
+  var OVERLAY_DATA = JSON.parse(localStorage.getItem("dboPreviewOverlay") || "{}");
+  var MISSOES_DATA = JSON.parse(localStorage.getItem("dboPreviewMissoes") || "[]");
+  var BOOT_ERROR = "";
+
+  // ---------- Mock de google.script.run (grava em localStorage, nunca numa planilha) ----------
+  //
+  // IMPORTANTE: o mock NÃO deve mutar MISSOES_DATA/OVERLAY_DATA diretamente — esses
+  // objetos já viraram `state.missoes`/`state.overlay` no app (por referência!), e o
+  // próprio front-end (Index.html) já atualiza `state.*` no callback de sucesso de cada
+  // chamada, exatamente como faria contra o backend real (onde o servidor nunca teria
+  // acesso à cópia em memória do cliente). Se o mock também escrevesse ali, cada ação
+  // apareceria duplicada nesta prévia — foi exatamente esse bug que apareceu e foi
+  // corrigido aqui. Por isso o mock sempre lê/escreve sua PRÓPRIA cópia via
+  // getMissoesStore/getOverlayStore, independente do que o app já tem em memória.
+  (function () {
+    function getOverlayStore() { try { return JSON.parse(localStorage.getItem("dboPreviewOverlay") || "{}"); } catch (e) { return {}; } }
+    function setOverlayStore(o) { localStorage.setItem("dboPreviewOverlay", JSON.stringify(o)); }
+    function getMissoesStore() { try { return JSON.parse(localStorage.getItem("dboPreviewMissoes") || "[]"); } catch (e) { return []; } }
+    function setMissoesStore(arr) { localStorage.setItem("dboPreviewMissoes", JSON.stringify(arr)); }
+    function persistPhotos(store) { localStorage.setItem("dboPreviewPhotos", JSON.stringify(store)); }
+    function getPhotoStore() { try { return JSON.parse(localStorage.getItem("dboPreviewPhotos") || "{}"); } catch (e) { return {}; } }
+
+    var IMPL = {
+      login: function (pass) {
+        if (String(pass) !== PREVIEW_PASSWORD) throw new Error("Senha incorreta. Nesta prévia local, use: " + PREVIEW_PASSWORD);
+        return { token: "preview-token" };
+      },
+      logout: function () { return { ok: true }; },
+      saveOverlayFields: function (token, hotmartId, patch) {
+        var store = getOverlayStore();
+        var atual = store[hotmartId] || { hotmartId: hotmartId, observacoes: "", contratoAssinado: false, brindeEnviado: false, lancamento: "", fotos: [] };
+        store[hotmartId] = Object.assign({}, atual, patch);
+        setOverlayStore(store);
+        return { ok: true };
+      },
+      uploadClientPhoto: function (token, hotmartId, dataUrl, filename, legenda, autor) {
+        var fileId = "preview-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+        var photoStore = getPhotoStore();
+        photoStore[fileId] = dataUrl;
+        persistPhotos(photoStore);
+        var store = getOverlayStore();
+        var atual = store[hotmartId] || { hotmartId: hotmartId, observacoes: "", contratoAssinado: false, brindeEnviado: false, lancamento: "", fotos: [] };
+        atual.fotos = (atual.fotos || []).concat([{ fileId: fileId, legenda: legenda || "", uploadedBy: autor || "", uploadedAt: new Date().toISOString().slice(0, 16).replace("T", " ") }]);
+        store[hotmartId] = atual;
+        setOverlayStore(store);
+        return { ok: true, fileId: fileId };
+      },
+      deleteClientPhoto: function (token, hotmartId, fileId) {
+        var photoStore = getPhotoStore();
+        delete photoStore[fileId];
+        persistPhotos(photoStore);
+        var store = getOverlayStore();
+        var atual = store[hotmartId];
+        if (atual) { atual.fotos = (atual.fotos || []).filter(function (f) { return f.fileId !== fileId; }); setOverlayStore(store); }
+        return { ok: true };
+      },
+      getClientPhotosBase64: function (hotmartId) {
+        var store = getOverlayStore();
+        var overlay = store[hotmartId];
+        var photoStore = getPhotoStore();
+        if (!overlay || !overlay.fotos) return [];
+        return overlay.fotos.map(function (f) {
+          return { fileId: f.fileId, legenda: f.legenda, uploadedBy: f.uploadedBy, uploadedAt: f.uploadedAt, dataUrl: photoStore[f.fileId] || "" };
+        });
+      },
+      createMissao: function (token, missao, autor) {
+        var id = "preview-missao-" + Date.now();
+        var store = getMissoesStore();
+        store.push({
+          id: id, titulo: missao.titulo, descricao: missao.descricao, pontos: Number(missao.pontos) || 0,
+          prazo: missao.prazo || "", criadoPor: autor, criadoEm: new Date().toISOString().slice(0, 10),
+          atribuicoes: (missao.atribuidoPara || []).map(function (p) { return { pessoa: p, completo: false, completoEm: null }; })
+        });
+        setMissoesStore(store);
+        return { ok: true, id: id };
+      },
+      completeMissaoTask: function (token, missaoId, pessoa) {
+        var store = getMissoesStore();
+        var m = store.filter(function (x) { return x.id === missaoId; })[0];
+        if (!m) throw new Error("Missão não encontrada.");
+        m.atribuicoes.forEach(function (a) { if (a.pessoa === pessoa) { a.completo = true; a.completoEm = new Date().toISOString().slice(0, 10); } });
+        setMissoesStore(store);
+        return { ok: true };
+      },
+      deleteMissao: function (token, missaoId) {
+        var store = getMissoesStore().filter(function (x) { return x.id !== missaoId; });
+        setMissoesStore(store);
+        return { ok: true };
+      }
+    };
+
+    function makeRunner() {
+      var successHandler = null, failureHandler = null;
+      var runner = {
+        withSuccessHandler: function (cb) { successHandler = cb; return runner; },
+        withFailureHandler: function (cb) { failureHandler = cb; return runner; }
+      };
+      Object.keys(IMPL).forEach(function (name) {
+        runner[name] = function () {
+          var args = Array.prototype.slice.call(arguments);
+          var sh = successHandler, fh = failureHandler;
+          successHandler = null; failureHandler = null;
+          setTimeout(function () {
+            try {
+              var result = IMPL[name].apply(null, args);
+              if (sh) sh(result);
+            } catch (err) {
+              if (fh) fh(err); else console.error(err);
+            }
+          }, 180);
+        };
+      });
+      return runner;
+    }
+    window.google = { script: { run: makeRunner() } };
+  })();
 </script>
+
 <script>
   // ================= Helpers gerais =================
   var PESSOAS = {
@@ -1627,3 +1811,6 @@
   applyTheme();
   render();
 </script>
+
+</body>
+</html>
