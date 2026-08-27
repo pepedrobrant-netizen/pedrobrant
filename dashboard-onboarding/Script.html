@@ -193,25 +193,29 @@
     }).login(pw);
   }
 
+  function profileCardHtml(p) {
+    return `
+      <div class="profile-card" onclick="selectProfile('${p.key}')">
+        <div class="avatar-wrap">
+          ${avatarHtml(p.key, p.nome, 'avatar-lg')}
+          <button class="avatar-edit-btn" onclick="triggerPhotoInput(event,'${p.key}')" title="Trocar foto">✏️</button>
+          <input type="file" accept="image/*" id="photoInput_${p.key}" style="display:none" onclick="event.stopPropagation()" onchange="onPhotoSelected('${p.key}',this)">
+        </div>
+        <div class="nome">${p.nome}</div>
+        <div class="papel">${p.papel}</div>
+      </div>
+    `;
+  }
   function renderProfiles() {
     const el = document.getElementById('screenProfiles');
+    const cardsHtml = PROFILES.map(profileCardHtml).join('');
     el.innerHTML = `
       <div class="profiles-screen">
         <div class="profiles-logo">${FLAME_ICON}hotmart</div>
         <div class="profiles-title">Quem está acessando?</div>
         <div class="profiles-sub">Escolha seu perfil para ver sua carteira, cronograma e rotina</div>
         <div class="profiles-grid">
-          ${PROFILES.map(p => `
-            <div class="profile-card" onclick="selectProfile('${p.key}')">
-              <div class="avatar-wrap">
-                ${avatarHtml(p.key, p.nome, 'avatar-lg')}
-                <button class="avatar-edit-btn" onclick="triggerPhotoInput(event,'${p.key}')" title="Trocar foto">✏️</button>
-                <input type="file" accept="image/*" id="photoInput_${p.key}" style="display:none" onclick="event.stopPropagation()" onchange="onPhotoSelected('${p.key}',this)">
-              </div>
-              <div class="nome">${p.nome}</div>
-              <div class="papel">${p.papel}</div>
-            </div>
-          `).join('')}
+          ${cardsHtml}
         </div>
       </div>
     `;
@@ -502,58 +506,71 @@
   function updateRotinaSemanaItem(diaIdx, itemIdx, value) { ROTINA_SEMANA[diaIdx].itens[itemIdx] = value; showToast('💾 Agenda atualizada'); }
   function addRotinaSemanaItem(diaIdx) { ROTINA_SEMANA[diaIdx].itens.push(''); renderRotina(); }
   function removeRotinaSemanaItem(diaIdx, itemIdx) { ROTINA_SEMANA[diaIdx].itens.splice(itemIdx, 1); renderRotina(); }
+  function rotinaDayItemRowHtml(it, di, ii) {
+    return `
+      <div class="rotina-day-item-row">
+        <input class="rotina-day-item-input" value="${it}" title="${it}" onchange="updateRotinaSemanaItem(${di},${ii},this.value)">
+        <button class="rotina-day-item-remove" onclick="removeRotinaSemanaItem(${di},${ii})" title="Remover">✕</button>
+      </div>
+    `;
+  }
+  function rotinaDayCardHtml(d, di) {
+    const itemsHtml = d.itens.map((it, ii) => rotinaDayItemRowHtml(it, di, ii)).join('');
+    return `
+      <div class="rotina-day-card">
+        <div class="rotina-day-head">
+          <div class="dia">${d.dia}</div>
+          <input class="rotina-day-tema-input" value="${d.tema}" onchange="updateRotinaSemanaTema(${di},this.value)">
+        </div>
+        <div class="rotina-day-body">
+          ${itemsHtml}
+          <button class="rotina-day-add-btn" onclick="addRotinaSemanaItem(${di})">+ Adicionar item</button>
+        </div>
+      </div>
+    `;
+  }
   function renderRotinaSemana() {
+    const cardsHtml = ROTINA_SEMANA.map((d, di) => rotinaDayCardHtml(d, di)).join('');
     return `
       <div class="rotina-week-grid">
-        ${ROTINA_SEMANA.map((d, di) => `
-          <div class="rotina-day-card">
-            <div class="rotina-day-head">
-              <div class="dia">${d.dia}</div>
-              <input class="rotina-day-tema-input" value="${d.tema}" onchange="updateRotinaSemanaTema(${di},this.value)">
-            </div>
-            <div class="rotina-day-body">
-              ${d.itens.map((it, ii) => `
-                <div class="rotina-day-item-row">
-                  <input class="rotina-day-item-input" value="${it}" title="${it}" onchange="updateRotinaSemanaItem(${di},${ii},this.value)">
-                  <button class="rotina-day-item-remove" onclick="removeRotinaSemanaItem(${di},${ii})" title="Remover">✕</button>
-                </div>
-              `).join('')}
-              <button class="rotina-day-add-btn" onclick="addRotinaSemanaItem(${di})">+ Adicionar item</button>
-            </div>
-          </div>
-        `).join('')}
+        ${cardsHtml}
       </div>
     `;
   }
 
-  function renderRotinaDiario() {
-    return ROTINA_DIARIO.map(g => `
+  function rotinaChecklistItemHtml(scope, checksObj, key, text) {
+    const done = !!checksObj[key];
+    return `<div class="rotina-item ${done?'done':''}" onclick="toggleRotinaItem('${scope}','${key}')">${rotinaCheckIcon(done)}<span class="rotina-item-text">${text}</span></div>`;
+  }
+  function rotinaDiarioGroupHtml(g) {
+    const itemsHtml = g.itens.map((it, i) => rotinaChecklistItemHtml('diario', rotinaChecks.diario, g.key + '_' + i, it)).join('');
+    return `
       <div class="rotina-section-title">${g.titulo}</div>
       <div class="rotina-group">
-        ${g.itens.map((it, i) => {
-          const key = `${g.key}_${i}`;
-          const done = !!rotinaChecks.diario[key];
-          return `<div class="rotina-item ${done?'done':''}" onclick="toggleRotinaItem('diario','${key}')">${rotinaCheckIcon(done)}<span class="rotina-item-text">${it}</span></div>`;
-        }).join('')}
+        ${itemsHtml}
       </div>
-    `).join('');
+    `;
+  }
+  function renderRotinaDiario() {
+    return ROTINA_DIARIO.map(rotinaDiarioGroupHtml).join('');
   }
 
+  function rotinaSemanalGroupHtml(g) {
+    const itemsHtml = g.itens.map((it, i) => rotinaChecklistItemHtml('semanal', rotinaChecks.semanal, g.key + '_' + i, it)).join('');
+    return `
+      <div class="rotina-section-title">${g.titulo}</div>
+      <div class="rotina-group">
+        ${itemsHtml}
+      </div>
+    `;
+  }
   function renderRotinaSemanal() {
-    const allItems = ROTINA_SEMANAL.flatMap(g => g.itens.map((it,i) => rotinaChecks.semanal[`${g.key}_${i}`]));
+    const allItems = ROTINA_SEMANAL.flatMap(g => g.itens.map((it,i) => rotinaChecks.semanal[g.key + '_' + i]));
     const prog = rotinaProgress(allItems);
+    const groupsHtml = ROTINA_SEMANAL.map(rotinaSemanalGroupHtml).join('');
     return `
       <div class="rotina-progress-note">${prog.done}/${prog.total} itens concluídos esta semana</div>
-      ${ROTINA_SEMANAL.map(g => `
-        <div class="rotina-section-title">${g.titulo}</div>
-        <div class="rotina-group">
-          ${g.itens.map((it, i) => {
-            const key = `${g.key}_${i}`;
-            const done = !!rotinaChecks.semanal[key];
-            return `<div class="rotina-item ${done?'done':''}" onclick="toggleRotinaItem('semanal','${key}')">${rotinaCheckIcon(done)}<span class="rotina-item-text">${it}</span></div>`;
-          }).join('')}
-        </div>
-      `).join('')}
+      ${groupsHtml}
       <div class="rotina-alert-box">
         <div class="rotina-alert-title">📝 Comentário Semanal (SF) — obrigatório</div>
         <div class="rotina-template-box">${ROTINA_COMENTARIO_TEMPLATE}</div>
@@ -562,19 +579,20 @@
     `;
   }
 
+  function rotinaPorTipoCardHtml(g) {
+    const itemsHtml = g.itens.map((it, i) => rotinaChecklistItemHtml('porTipo', rotinaChecks.porTipo, g.key + '_' + i, it)).join('');
+    return `
+      <div class="rotina-tipo-card">
+        <div class="rotina-tipo-head">${g.emoji} ${g.titulo}</div>
+        ${itemsHtml}
+      </div>
+    `;
+  }
   function renderRotinaPorTipo() {
+    const cardsHtml = ROTINA_POR_TIPO.map(rotinaPorTipoCardHtml).join('');
     return `
       <div class="rotina-tipo-grid">
-        ${ROTINA_POR_TIPO.map(g => `
-          <div class="rotina-tipo-card">
-            <div class="rotina-tipo-head">${g.emoji} ${g.titulo}</div>
-            ${g.itens.map((it, i) => {
-              const key = `${g.key}_${i}`;
-              const done = !!rotinaChecks.porTipo[key];
-              return `<div class="rotina-item ${done?'done':''}" onclick="toggleRotinaItem('porTipo','${key}')">${rotinaCheckIcon(done)}<span class="rotina-item-text">${it}</span></div>`;
-            }).join('')}
-          </div>
-        `).join('')}
+        ${cardsHtml}
       </div>
     `;
   }
@@ -589,20 +607,22 @@
     saveRotinaChecks();
     renderRotina();
   }
+  function rotinaMensalItemHtml(it, i) {
+    const done = !!rotinaChecks.mensal[i];
+    return `
+      <div class="rotina-item editable ${done?'done':''}">
+        <span class="check-toggle" onclick="toggleRotinaItem('mensal',${i})">${rotinaCheckIcon(done)}</span>
+        <input class="rotina-item-input" value="${it.t}" onchange="updateRotinaMensalItem(${i},this.value)">
+        <button class="rotina-item-remove" onclick="removeRotinaMensalItem(${i})" title="Remover">✕</button>
+      </div>`;
+  }
   function renderRotinaMensal() {
     const prog = rotinaProgress(rotinaChecks.mensalItens.map((it,i) => rotinaChecks.mensal[i]));
+    const itemsHtml = rotinaChecks.mensalItens.map((it, i) => rotinaMensalItemHtml(it, i)).join('');
     return `
       <div class="rotina-progress-note">${prog.done}/${prog.total} itens concluídos este mês</div>
       <div class="rotina-group">
-        ${rotinaChecks.mensalItens.map((it, i) => {
-          const done = !!rotinaChecks.mensal[i];
-          return `
-          <div class="rotina-item editable ${done?'done':''}">
-            <span class="check-toggle" onclick="toggleRotinaItem('mensal',${i})">${rotinaCheckIcon(done)}</span>
-            <input class="rotina-item-input" value="${it.t}" onchange="updateRotinaMensalItem(${i},this.value)">
-            <button class="rotina-item-remove" onclick="removeRotinaMensalItem(${i})" title="Remover">✕</button>
-          </div>`;
-        }).join('')}
+        ${itemsHtml}
       </div>
       <button class="rotina-add-btn" onclick="addRotinaMensalItem()">+ Adicionar item</button>
     `;
@@ -632,6 +652,8 @@
           </div>
         `;
       }).join('');
+      const destinatarioOptionsHtml = PROFILES.filter(p=>!p.isAdmin).map(p => `<option value="${p.key}">${p.nome}</option>`).join('');
+      const rowsHtml = rows || '<div class="missoes-empty">Nenhuma missão enviada ainda — crie a primeira acima.</div>';
       return `
         <div class="mission-admin-form">
           <div class="row">
@@ -643,14 +665,14 @@
           <div class="row">
             <select id="missionDestinatario">
               <option value="todos">👥 Toda a equipe</option>
-              ${PROFILES.filter(p=>!p.isAdmin).map(p => `<option value="${p.key}">${p.nome}</option>`).join('')}
+              ${destinatarioOptionsHtml}
             </select>
             <input type="number" id="missionPontos" value="20" min="5" step="5" style="max-width:110px" title="Pontos">
             <button onclick="createMission()">🚀 Enviar missão</button>
           </div>
         </div>
         <div class="meta-section-title">Missões enviadas</div>
-        ${rows || `<div class="missoes-empty">Nenhuma missão enviada ainda — crie a primeira acima.</div>`}
+        ${rowsHtml}
       `;
     }
 
@@ -673,6 +695,7 @@
         </div>
       `;
     }).join('');
+    const cardsHtml = cards || '<div class="missoes-empty">Nenhuma missão da coordenação por enquanto — quando Amanda ou Julia enviarem uma, aparece aqui com alerta no sininho do topo. 🔔</div>';
     return `
       <div class="missoes-points-row">
         <div><div class="pts">${pts}</div><div class="pts-label">pontos acumulados</div></div>
@@ -681,7 +704,7 @@
         <div style="flex:1"></div>
         <div class="pts-label" style="text-align:right">${list.filter(m=>!m.completions[key]).length} missão(ões) pendente(s)</div>
       </div>
-      ${cards || `<div class="missoes-empty">Nenhuma missão da coordenação por enquanto — quando Amanda ou Julia enviarem uma, aparece aqui com alerta no sininho do topo. 🔔</div>`}
+      ${cardsHtml}
     `;
   }
   function renderRotina() {
@@ -1121,32 +1144,41 @@
         <div class="hist-bar-label">${monthLabelBR(mk)}</div>
       </div>
     `).join('');
+    const chartSectionHtml = recent.length
+      ? `<div class="hist-chart">${bars}</div><p class="hist-hint">Clique num mês pra ver quais clientes entraram nele.</p>`
+      : `<p style="font-size:13px;color:var(--text-secondary)">Sem histórico de entradas para esse consultor ainda.</p>`;
     openModal(`
       <button class="modal-close-btn" onclick="closeModal()">✕</button>
       <h3>Novos clientes por mês — ${activeConsultantLabel()}</h3>
       <p class="modal-sub">Contagem baseada na data de entrada na carteira (coluna <strong>CW</strong> da planilha) — dado real, sem estimativa.</p>
-      ${recent.length ? `<div class="hist-chart">${bars}</div><p class="hist-hint">Clique num mês pra ver quais clientes entraram nele.</p>` : `<p style="font-size:13px;color:var(--text-secondary)">Sem histórico de entradas para esse consultor ainda.</p>`}
+      ${chartSectionHtml}
       <div class="hist-total-row"><span>Total no histórico (${keys.length} meses com entradas)</span><span><strong>${fmtNum(total)}</strong> clientes</span></div>
     `);
+  }
+  function modalClientRowHtml(r) {
+    return `
+      <div class="modal-client-row" onclick="closeModal(); openPerfil(${r['Hotmart ID']}, 'carteira')">
+        <div class="modal-client-avatar">${initials(r['Nome'])}</div>
+        <div class="modal-client-info">
+          <div class="modal-client-nome">${r['Nome']}</div>
+          <div class="modal-client-sub">#${fmtId(r['Hotmart ID'])} · entrou em ${fmtDateBR(r['CW'])}</div>
+        </div>
+        ${statusBadge(r['Status'])}
+      </div>
+    `;
   }
   function openNovosClientesMesModal(mk) {
     const rows = currentRows();
     const clientes = rows.filter(r => monthKeyOf(r['CW']) === mk).sort((a,b) => (a['CW'] < b['CW'] ? 1 : -1));
+    const clientListHtml = clientes.length
+      ? `<div class="modal-client-list">${clientes.map(modalClientRowHtml).join('')}</div>`
+      : `<div class="modal-client-empty">Nenhum cliente encontrado pra esse mês.</div>`;
     openModal(`
       <button class="modal-close-btn" onclick="closeModal()">✕</button>
       <div class="back-link" onclick="openNovosClientesModal()">← Voltar para o histórico por mês</div>
       <h3>Novos clientes em ${monthLabelBR(mk)}</h3>
       <p class="modal-sub">${fmtNum(clientes.length)} cliente${clientes.length===1?'':'s'} que entraram na carteira de ${activeConsultantLabel()} nesse mês, pela data real de CW. Clique num cliente pra abrir o perfil completo.</p>
-      ${clientes.length ? `<div class="modal-client-list">${clientes.map(r => `
-        <div class="modal-client-row" onclick="closeModal(); openPerfil(${r['Hotmart ID']}, 'carteira')">
-          <div class="modal-client-avatar">${initials(r['Nome'])}</div>
-          <div class="modal-client-info">
-            <div class="modal-client-nome">${r['Nome']}</div>
-            <div class="modal-client-sub">#${fmtId(r['Hotmart ID'])} · entrou em ${fmtDateBR(r['CW'])}</div>
-          </div>
-          ${statusBadge(r['Status'])}
-        </div>
-      `).join('')}</div>` : `<div class="modal-client-empty">Nenhum cliente encontrado pra esse mês.</div>`}
+      ${clientListHtml}
     `);
   }
   function applyFilters() {
@@ -1184,17 +1216,34 @@
     renderCarteira();
   }
 
+  function consultantOptionHtml(o) {
+    return `<option value="${o.value}" ${authState.viewedConsultant===o.value?'selected':''}>${o.label}</option>`;
+  }
   function consultantSwitcherHtml() {
     if (!authState.profile || !authState.profile.isAdmin) return '';
     const options = PROFILES.filter(p => !p.isAdmin).map(p => ({ value: p.key, label: p.nome }));
     options.push({ value: 'todos', label: '👥 Todos (visão consolidada)' });
+    const optionsHtml = options.map(consultantOptionHtml).join('');
     return `
       <div class="consultant-switcher-row">
         👥 Visualizando carteira de:
         <select onchange="setViewedConsultant(this.value)">
-          ${options.map(o => `<option value="${o.value}" ${authState.viewedConsultant===o.value?'selected':''}>${o.label}</option>`).join('')}
+          ${optionsHtml}
         </select>
       </div>
+    `;
+  }
+  function carteiraColCellHtml(c, r) {
+    return `<td class="${c.numeric?'num':''}">${c.render(r)}</td>`;
+  }
+  function carteiraRowHtml(r, visible) {
+    const cellsHtml = visible.map(c => carteiraColCellHtml(c, r)).join('');
+    return `
+      <tr class="row-main" onclick="openPerfil(${r['Hotmart ID']}, 'carteira')">
+        <td class="id-cell">${fmtId(r['Hotmart ID'])}</td>
+        <td class="name-cell">${r['Nome']}</td>
+        ${cellsHtml}
+      </tr>
     `;
   }
   function renderCarteira() {
@@ -1212,6 +1261,7 @@
     }
     const visible = COLUMNS.filter(c => state.visibleColumns.has(c.key));
     const rows = sortRows(applyFilters());
+    const rowsHtml = rows.map(r => carteiraRowHtml(r, visible)).join('');
     el.innerHTML = `
       ${consultantSwitcherHtml()}
       <div class="kpi-row">${computeKPIs(applyFilters())}</div>
@@ -1241,13 +1291,7 @@
         <table>
           <thead>${renderHead(visible)}</thead>
           <tbody>
-            ${rows.map(r => `
-              <tr class="row-main" onclick="openPerfil(${r['Hotmart ID']}, 'carteira')">
-                <td class="id-cell">${fmtId(r['Hotmart ID'])}</td>
-                <td class="name-cell">${r['Nome']}</td>
-                ${visible.map(c => `<td class="${c.numeric?'num':''}">${c.render(r)}</td>`).join('')}
-              </tr>
-            `).join('')}
+            ${rowsHtml}
           </tbody>
         </table>
         </div>
@@ -1402,11 +1446,32 @@
       </div>`;
   }
 
-  function renderCronogramaTab(row) {
-    const fases = cronogramaForClient(row);
-    return fases.map((f, i) => {
-      const isFase8 = i === FASE8_INDEX;
-      return `
+  function faseTaskDateFieldHtml(row, i, ti, t) {
+    return `
+                <span class="task-date">📅 <input type="date" value="${t.data||''}" onchange="scheduleTaskDate(${row['Hotmart ID']}, ${i}, ${ti}, this.value)"></span>
+              `;
+  }
+  function faseTaskRowHtml(row, i, t, ti, isFase8) {
+    const dateHtml = isFase8 ? faseTaskDateFieldHtml(row, i, ti, t) : (t.done ? `<span class="task-date muted">concluída há ${t.daysAgo}d</span>` : '');
+    return `
+            <div class="task-row">
+              <span class="task-check ${t.done ? 'done' : 'pending'}">${t.done ? '✓' : ''}</span>
+              <span class="${t.done ? 'done-text' : ''}">${t.nome}</span>
+              ${dateHtml}
+            </div>
+          `;
+  }
+  function faseDateFieldHtml(row, i, f) {
+    return `
+          <div class="fase-date-field">
+            📅 <input type="date" value="${f.faseDate||''}" onchange="scheduleFaseDate(${row['Hotmart ID']}, ${i}, this.value)" onclick="event.stopPropagation()">
+          </div>`;
+  }
+  function faseCardHtml(row, f, i) {
+    const isFase8 = i === FASE8_INDEX;
+    const headRightHtml = isFase8 ? '<span class="milestone">Datas definidas por atividade ↓</span>' : faseDateFieldHtml(row, i, f);
+    const tasksHtml = f.tarefas.map((t, ti) => faseTaskRowHtml(row, i, t, ti, isFase8)).join('');
+    return `
       <div class="fase-card">
         <div class="fase-head">
           <div class="fase-head-left" onclick="toggleFase(${i})">
@@ -1416,31 +1481,65 @@
             <div class="bar-track"><div class="bar-fill" style="width:${f.pct}%;background:var(--brand-orange)"></div></div>
             <span>${f.pct}%</span>
           </div>
-          ${isFase8 ? `<span class="milestone">Datas definidas por atividade ↓</span>` : `
-          <div class="fase-date-field">
-            📅 <input type="date" value="${f.faseDate||''}" onchange="scheduleFaseDate(${row['Hotmart ID']}, ${i}, this.value)" onclick="event.stopPropagation()">
-          </div>`}
+          ${headRightHtml}
         </div>
         <div class="fase-tasks ${isFase8 ? 'open' : ''}" id="fase-tasks-${i}">
-          ${f.tarefas.map((t, ti) => `
-            <div class="task-row">
-              <span class="task-check ${t.done ? 'done' : 'pending'}">${t.done ? '✓' : ''}</span>
-              <span class="${t.done ? 'done-text' : ''}">${t.nome}</span>
-              ${isFase8 ? `
-                <span class="task-date">📅 <input type="date" value="${t.data||''}" onchange="scheduleTaskDate(${row['Hotmart ID']}, ${i}, ${ti}, this.value)"></span>
-              ` : (t.done ? `<span class="task-date muted">concluída há ${t.daysAgo}d</span>` : '')}
-            </div>
-          `).join('')}
+          ${tasksHtml}
         </div>
       </div>
     `;
-    }).join('');
+  }
+  function renderCronogramaTab(row) {
+    const fases = cronogramaForClient(row);
+    return fases.map((f, i) => faseCardHtml(row, f, i)).join('');
   }
   function toggleFase(i) {
     if (i === FASE8_INDEX) return;
     document.getElementById('fase-tasks-' + i).classList.toggle('open');
   }
 
+  function crmPhotoCardHtml(id, f) {
+    return `
+            <div class="crm-photo-card">
+              <img src="${f.dataUrl||''}" class="crm-photo-img" onclick="openClientPhotoLightbox(${id},'${f.fileId}')">
+              <input type="date" value="${f.data||''}" onchange="updateClientPhotoField(${id},'${f.fileId}','data',this.value)">
+              <input type="text" placeholder="Legenda — ex: evento anual, entrega do brinde…" value="${f.legenda||''}" onchange="updateClientPhotoField(${id},'${f.fileId}','legenda',this.value)">
+              <div class="crm-photo-actions">
+                <button onclick="downloadClientPhoto(${id},'${f.fileId}')" title="Baixar essa foto">⬇️</button>
+                <button onclick="removeClientPhoto(${id},'${f.fileId}')" title="Remover">✕</button>
+              </div>
+            </div>
+          `;
+  }
+  function actionRowHtml(a) {
+    return `<div class="action-row"><span class="date">${fmtDateBR(a.data)}</span><span>${a.descricao}</span></div>`;
+  }
+  function equipeRowHtml(id, p, idx) {
+    if (idx < 2) {
+      return `
+        <div class="team-row">
+          <span>${p.nome || '—'}</span><span class="muted">${p.cargo || '—'}</span><span class="muted">${p.telefone || '—'}</span><span></span>
+        </div>`;
+    }
+    return `
+        <div class="team-row">
+          <input placeholder="Nome" value="${p.nome}" onchange="updateEquipeField(${id},${idx-2},'nome',this.value)">
+          <input placeholder="Cargo" value="${p.cargo}" onchange="updateEquipeField(${id},${idx-2},'cargo',this.value)">
+          <input placeholder="Telefone" value="${p.telefone}" onchange="updateEquipeField(${id},${idx-2},'telefone',this.value)">
+          <button onclick="removeEquipeMember(${id},${idx-2})">✕</button>
+        </div>`;
+  }
+  function relacCardHtml(id, a, idx) {
+    return `
+        <div class="relac-card">
+          <div class="relac-top">
+            <input type="date" value="${a.data}" onchange="updateRelacField(${id},${idx},'data',this.value)">
+            <button class="remove-btn" onclick="removeRelacAction(${id},${idx})" title="Remover">✕</button>
+          </div>
+          <textarea placeholder="Ex.: almoço com o cliente, visita presencial ao escritório..." onchange="updateRelacField(${id},${idx},'texto',this.value)">${a.texto}</textarea>
+        </div>
+      `;
+  }
   function renderCrmTab(row) {
     const id = row['Hotmart ID'];
     const c = crmMockForClient(row);
@@ -1452,20 +1551,18 @@
         ? `<div class="relac-empty">Nenhuma foto registrada ainda — adicione fotos de eventos, entregas de brinde, almoços e outras interações presenciais.</div>`
         : `
         <div class="crm-photos-grid">
-          ${fotosCarregadas.map((f) => `
-            <div class="crm-photo-card">
-              <img src="${f.dataUrl||''}" class="crm-photo-img" onclick="openClientPhotoLightbox(${id},'${f.fileId}')">
-              <input type="date" value="${f.data||''}" onchange="updateClientPhotoField(${id},'${f.fileId}','data',this.value)">
-              <input type="text" placeholder="Legenda — ex: evento anual, entrega do brinde…" value="${f.legenda||''}" onchange="updateClientPhotoField(${id},'${f.fileId}','legenda',this.value)">
-              <div class="crm-photo-actions">
-                <button onclick="downloadClientPhoto(${id},'${f.fileId}')" title="Baixar essa foto">⬇️</button>
-                <button onclick="removeClientPhoto(${id},'${f.fileId}')" title="Remover">✕</button>
-              </div>
-            </div>
-          `).join('')}
+          ${fotosCarregadas.map((f) => crmPhotoCardHtml(id, f)).join('')}
         </div>
         <button class="relac-add-btn" onclick="downloadAllClientPhotos(${id})">⬇️ Baixar todas (${fotosCarregadas.length})</button>
         `;
+    const hotmartCastExtraHtml = c.hotmartCast === 'Sim' ? `
+        <div class="crm-field"><div class="k">Data do Cast</div><input type="date" value="${c.hotmartCastData||''}" onchange="updateCrmField(${id},'hotmartCastData',this.value)"></div>
+        <div class="crm-field"><div class="k">Hora do Cast</div><input type="time" value="${c.hotmartCastHora||''}" onchange="updateCrmField(${id},'hotmartCastHora',this.value)"></div>
+        ` : '';
+    const equipeHtml = c.equipe.map((p, idx) => equipeRowHtml(id, p, idx)).join('');
+    const acoesHtml = c.acoes.map(actionRowHtml).join('');
+    const relacEmptyHtml = c.relacoes.length === 0 ? '<div class="relac-empty">Nenhuma ação registrada ainda — use o botão abaixo para registrar um almoço, visita ou outra interação informal.</div>' : '';
+    const relacCardsHtml = c.relacoes.map((a, idx) => relacCardHtml(id, a, idx)).join('');
     return `
       <div class="crm-grid">
         <div class="crm-field"><div class="k">Telefone</div><input value="${c.telefone}" onchange="updateCrmField(${id},'telefone',this.value)"></div>
@@ -1489,36 +1586,15 @@
           <select onchange="updateCrmField(${id},'hotmartCast',this.value)">
             <option ${c.hotmartCast==='Sim'?'selected':''}>Sim</option><option ${c.hotmartCast==='Não'?'selected':''}>Não</option>
           </select></div>
-        ${c.hotmartCast === 'Sim' ? `
-        <div class="crm-field"><div class="k">Data do Cast</div><input type="date" value="${c.hotmartCastData||''}" onchange="updateCrmField(${id},'hotmartCastData',this.value)"></div>
-        <div class="crm-field"><div class="k">Hora do Cast</div><input type="time" value="${c.hotmartCastHora||''}" onchange="updateCrmField(${id},'hotmartCastHora',this.value)"></div>
-        ` : ''}
+        ${hotmartCastExtraHtml}
       </div>
       <div class="crm-section-title">Equipe do cliente <button onclick="addEquipeMember(${id})">+ Adicionar contato</button></div>
-      ${c.equipe.map((p, idx) => idx < 2 ? `
-        <div class="team-row">
-          <span>${p.nome || '—'}</span><span class="muted">${p.cargo || '—'}</span><span class="muted">${p.telefone || '—'}</span><span></span>
-        </div>` : `
-        <div class="team-row">
-          <input placeholder="Nome" value="${p.nome}" onchange="updateEquipeField(${id},${idx-2},'nome',this.value)">
-          <input placeholder="Cargo" value="${p.cargo}" onchange="updateEquipeField(${id},${idx-2},'cargo',this.value)">
-          <input placeholder="Telefone" value="${p.telefone}" onchange="updateEquipeField(${id},${idx-2},'telefone',this.value)">
-          <button onclick="removeEquipeMember(${id},${idx-2})">✕</button>
-        </div>`
-      ).join('')}
+      ${equipeHtml}
       <div class="crm-section-title">Histórico de ações</div>
-      ${c.acoes.map(a => `<div class="action-row"><span class="date">${fmtDateBR(a.data)}</span><span>${a.descricao}</span></div>`).join('')}
+      ${acoesHtml}
       <div class="crm-section-title">Ações de relacionamento</div>
-      ${c.relacoes.length === 0 ? `<div class="relac-empty">Nenhuma ação registrada ainda — use o botão abaixo para registrar um almoço, visita ou outra interação informal.</div>` : ''}
-      ${c.relacoes.map((a, idx) => `
-        <div class="relac-card">
-          <div class="relac-top">
-            <input type="date" value="${a.data}" onchange="updateRelacField(${id},${idx},'data',this.value)">
-            <button class="remove-btn" onclick="removeRelacAction(${id},${idx})" title="Remover">✕</button>
-          </div>
-          <textarea placeholder="Ex.: almoço com o cliente, visita presencial ao escritório..." onchange="updateRelacField(${id},${idx},'texto',this.value)">${a.texto}</textarea>
-        </div>
-      `).join('')}
+      ${relacEmptyHtml}
+      ${relacCardsHtml}
       <button class="relac-add-btn" onclick="addRelacionamentoAction(${id})">+ Registrar ação</button>
       <div class="crm-section-title">
         Fotos com o cliente
@@ -1544,22 +1620,8 @@
     `;
   }
 
-  function renderPerfilGaleria(el, rows) {
-    const q = (state.perfilGaleriaSearch || '').toLowerCase();
-    const byStatus = rows.filter(r => state.perfilGaleriaStatusFilter.has(r['Status'] ?? null));
-    const filtered = q ? byStatus.filter(r => (r['Nome']||'').toLowerCase().includes(q)) : byStatus;
-    el.innerHTML = `
-      ${consultantSwitcherHtml()}
-      <div class="perfil-galeria-toolbar">
-        <input type="search" id="perfilGaleriaSearchInput" placeholder="Buscar cliente por nome…" value="${state.perfilGaleriaSearch}">
-        <div class="col-chooser-wrap">
-          <button class="col-chooser-btn" id="perfilGaleriaStatusFilterBtn" onclick="togglePanel(event,'perfilGaleriaStatusPanelOpen','perfilGaleriaStatusFilterPanel')">🏷 <span id="perfilGaleriaStatusFilterLabel">Status</span></button>
-          <div class="col-panel ${state.perfilGaleriaStatusPanelOpen ? '' : 'hidden'}" id="perfilGaleriaStatusFilterPanel"></div>
-        </div>
-        <div class="perfil-galeria-count">${fmtNum(filtered.length)} de ${fmtNum(rows.length)} clientes</div>
-      </div>
-      <div class="perfil-galeria-grid">
-        ${filtered.length ? filtered.map(r => `
+  function perfilGaleriaCardHtml(r) {
+    return `
           <div class="perfil-card" onclick="openPerfil(${r['Hotmart ID']}, 'galeria')">
             <div class="perfil-card-top">
               <div class="perfil-card-avatar">${initials(r['Nome'])}</div>
@@ -1574,7 +1636,27 @@
               ${activationCell(r).html}
             </div>
           </div>
-        `).join('') : `<div class="perfil-galeria-empty">Nenhum cliente encontrado pra "${state.perfilGaleriaSearch}".</div>`}
+        `;
+  }
+  function renderPerfilGaleria(el, rows) {
+    const q = (state.perfilGaleriaSearch || '').toLowerCase();
+    const byStatus = rows.filter(r => state.perfilGaleriaStatusFilter.has(r['Status'] ?? null));
+    const filtered = q ? byStatus.filter(r => (r['Nome']||'').toLowerCase().includes(q)) : byStatus;
+    const galeriaGridHtml = filtered.length
+      ? filtered.map(perfilGaleriaCardHtml).join('')
+      : `<div class="perfil-galeria-empty">Nenhum cliente encontrado pra "${state.perfilGaleriaSearch}".</div>`;
+    el.innerHTML = `
+      ${consultantSwitcherHtml()}
+      <div class="perfil-galeria-toolbar">
+        <input type="search" id="perfilGaleriaSearchInput" placeholder="Buscar cliente por nome…" value="${state.perfilGaleriaSearch}">
+        <div class="col-chooser-wrap">
+          <button class="col-chooser-btn" id="perfilGaleriaStatusFilterBtn" onclick="togglePanel(event,'perfilGaleriaStatusPanelOpen','perfilGaleriaStatusFilterPanel')">🏷 <span id="perfilGaleriaStatusFilterLabel">Status</span></button>
+          <div class="col-panel ${state.perfilGaleriaStatusPanelOpen ? '' : 'hidden'}" id="perfilGaleriaStatusFilterPanel"></div>
+        </div>
+        <div class="perfil-galeria-count">${fmtNum(filtered.length)} de ${fmtNum(rows.length)} clientes</div>
+      </div>
+      <div class="perfil-galeria-grid">
+        ${galeriaGridHtml}
       </div>
     `;
     document.getElementById('perfilGaleriaSearchInput').addEventListener('input', e => setPerfilGaleriaSearch(e.target.value));
@@ -1739,29 +1821,45 @@
   }
   function metaChartDaysAxis(nDays) {
     const marks = [1, 5, 10, 15, 20, 25, nDays].filter((v,i,arr) => arr.indexOf(v) === i && v <= nDays);
-    return `<div class="meta-chart-days">${marks.map(d => `<span>${d}</span>`).join('')}</div>`;
+    const marksHtml = marks.map(d => `<span>${d}</span>`).join('');
+    return `<div class="meta-chart-days">${marksHtml}</div>`;
   }
   function ativadosTableHtml(list) {
     if (!list.length) return `<div class="meta-empty-mini">Nenhum cliente ativado nesse período ainda.</div>`;
+    const rowsHtml = list.map(r => `<tr><td>${r['Nome']}</td><td>${fmtDateBR(r['Ativação'])}</td><td class="num">${fmtCurrency(r['GMV'])}</td></tr>`).join('');
     return `
       <table class="meta-mini-table">
         <thead><tr><th>Cliente</th><th>Data</th><th class="num">GMV</th></tr></thead>
         <tbody>
-          ${list.map(r => `<tr><td>${r['Nome']}</td><td>${fmtDateBR(r['Ativação'])}</td><td class="num">${fmtCurrency(r['GMV'])}</td></tr>`).join('')}
+          ${rowsHtml}
         </tbody>
       </table>
     `;
   }
   function paraAtivarTableHtml(list) {
     if (!list.length) return `<div class="meta-empty-mini">Todos os clientes da carteira já foram ativados. 🎉</div>`;
+    const rowsHtml = list.map(x => `<tr><td>${x.row['Nome']}</td><td class="num">${fmtCurrency(x.gmvFaltante)}</td></tr>`).join('');
     return `
       <table class="meta-mini-table">
         <thead><tr><th>Cliente</th><th class="num">GMV faltante p/ meta</th></tr></thead>
         <tbody>
-          ${list.map(x => `<tr><td>${x.row['Nome']}</td><td class="num">${fmtCurrency(x.gmvFaltante)}</td></tr>`).join('')}
+          ${rowsHtml}
         </tbody>
       </table>
     `;
+  }
+  function leaderboardRowHtml(r, i) {
+    return `
+            <div class="meta-lb-row rank-${i+1}">
+              <div class="rank">${i+1}º</div>
+              <div class="nome">${r.nome}</div>
+              <div class="meta-bar-track"><div class="meta-bar-fill" style="width:${r.hasData?Math.min(100,Math.round(r.overall*100)):0}%;background:${metaBarColor(r.overall)}"></div></div>
+              <div class="pct-num">${r.hasData ? fmtPct(r.overall) : '—'}</div>
+            </div>
+          `;
+  }
+  function periodOptionHtml(mk, period) {
+    return `<option value="${mk}" ${mk===period?'selected':''}>${monthLabelBR(mk)}${mk===currentMonthKey()?' (mês vigente)':''}</option>`;
   }
   function renderMeta() {
     const el = document.getElementById('screenMeta');
@@ -1791,17 +1889,11 @@
         const pm = metaMetricsFor(p.key, pr);
         return { nome: p.nome, overall: pm.overall, hasData: pr.length > 0 };
       }).sort((a,b) => b.overall - a.overall);
+      const leaderboardRowsHtml = rows2.map(leaderboardRowHtml).join('');
       leaderboardHtml = `
         <div class="meta-section-title">Ranking da equipe</div>
         <div class="meta-leaderboard">
-          ${rows2.map((r,i) => `
-            <div class="meta-lb-row rank-${i+1}">
-              <div class="rank">${i+1}º</div>
-              <div class="nome">${r.nome}</div>
-              <div class="meta-bar-track"><div class="meta-bar-fill" style="width:${r.hasData?Math.min(100,Math.round(r.overall*100)):0}%;background:${metaBarColor(r.overall)}"></div></div>
-              <div class="pct-num">${r.hasData ? fmtPct(r.overall) : '—'}</div>
-            </div>
-          `).join('')}
+          ${leaderboardRowsHtml}
         </div>
       `;
     }
@@ -1810,13 +1902,15 @@
     const pm = metaPeriodMetrics(key, rows, period);
     const periodOptions = lastNMonthKeys(8);
     const isCurrentPeriod = period === currentMonthKey();
+    const periodOptionsHtml = periodOptions.map(mk => periodOptionHtml(mk, period)).join('');
+    const ativadosTituloSuffix = isCurrentPeriod ? ' este mês' : (' — ' + monthLabelBR(period));
 
     el.innerHTML = `
       ${consultantSwitcherHtml()}
       <div class="meta-period-row">
         📅 Período:
         <select onchange="setMetaPeriod(this.value)">
-          ${periodOptions.map(mk => `<option value="${mk}" ${mk===period?'selected':''}>${monthLabelBR(mk)}${mk===currentMonthKey()?' (mês vigente)':''}</option>`).join('')}
+          ${periodOptionsHtml}
         </select>
         <span class="meta-period-hint">· Ativação e Receita abaixo já refletem o mês escolhido, direto da planilha</span>
       </div>
@@ -1858,7 +1952,7 @@
       </div>
       <div class="meta-tables-row">
         <div class="meta-table-card">
-          <div class="title">✅ Clientes ativados${isCurrentPeriod ? ' este mês' : ` — ${monthLabelBR(period)}`}</div>
+          <div class="title">✅ Clientes ativados${ativadosTituloSuffix}</div>
           ${ativadosTableHtml(pm.ativadosList)}
         </div>
         <div class="meta-table-card">
@@ -1925,6 +2019,19 @@
     if (trendPct >= 0.08) return { cls: 'good', label: '🟢 Crescendo' };
     return { cls: 'neutral', label: '⚪ Estável' };
   }
+  function analyticsRowHtml(x) {
+    const b = dropBadge(x.trendPct);
+    return `
+              <tr onclick="openPerfil(${x.row['Hotmart ID']}, 'carteira')" style="cursor:pointer">
+                <td>${x.row['Nome']}</td>
+                <td>${miniSparkline(x.series, x.trendPct < 0 ? 'var(--status-critical)' : 'var(--status-good)')}</td>
+                <td class="num">${fmtCurrency(x.anterior)}</td>
+                <td class="num">${fmtCurrency(x.atual)}</td>
+                <td class="num" style="color:${x.trendPct < 0 ? 'var(--status-critical)' : 'var(--status-good)'}">${x.trendPct >= 0 ? '+' : ''}${fmtPct(x.trendPct)}</td>
+                <td><span class="badge badge-${b.cls}">${b.label}</span></td>
+              </tr>
+            `;
+  }
   function renderAnalytics() {
     const el = document.getElementById('screenAnalytics');
     const allRows = currentRows();
@@ -1960,6 +2067,8 @@
     const portfolioSeries = Array(months).fill(0);
     withDrop.forEach(x => x.series.forEach((v,i) => portfolioSeries[i] += v));
     const mkeys = lastNMonthKeys(months);
+    const mkeysHtml = mkeys.map(mk => `<span>${monthLabelBR(mk)}</span>`).join('');
+    const pioresRowsHtml = piores.map(analyticsRowHtml).join('');
 
     el.innerHTML = `
       ${consultantSwitcherHtml()}
@@ -1974,23 +2083,14 @@
       <div class="meta-chart-card" style="margin-bottom:20px">
         <div class="head"><span class="title">GMV da carteira — últimos 6 meses <span class="meta-mock-flag">🧪 ilustrativo</span></span></div>
         ${singleLineSvg(portfolioSeries, 'var(--brand-purple)')}
-        <div class="meta-chart-days">${mkeys.map(mk => `<span>${monthLabelBR(mk)}</span>`).join('')}</div>
+        <div class="meta-chart-days">${mkeysHtml}</div>
       </div>
       <div class="meta-section-title">Clientes com maior queda</div>
       <div class="meta-table-card">
         <table class="meta-mini-table">
           <thead><tr><th>Cliente</th><th>Tendência (6m)</th><th class="num">GMV anterior</th><th class="num">GMV atual</th><th class="num">Variação</th><th>Status</th></tr></thead>
           <tbody>
-            ${piores.map(x => { const b = dropBadge(x.trendPct); return `
-              <tr onclick="openPerfil(${x.row['Hotmart ID']}, 'carteira')" style="cursor:pointer">
-                <td>${x.row['Nome']}</td>
-                <td>${miniSparkline(x.series, x.trendPct < 0 ? 'var(--status-critical)' : 'var(--status-good)')}</td>
-                <td class="num">${fmtCurrency(x.anterior)}</td>
-                <td class="num">${fmtCurrency(x.atual)}</td>
-                <td class="num" style="color:${x.trendPct < 0 ? 'var(--status-critical)' : 'var(--status-good)'}">${x.trendPct >= 0 ? '+' : ''}${fmtPct(x.trendPct)}</td>
-                <td><span class="badge badge-${b.cls}">${b.label}</span></td>
-              </tr>
-            `; }).join('')}
+            ${pioresRowsHtml}
           </tbody>
         </table>
       </div>
