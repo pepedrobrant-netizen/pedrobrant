@@ -97,12 +97,6 @@ function testarDoGet() {
   Logger.log('Contém erro de boot (bootError)? ' + (conteudo.indexOf("bootError") !== -1 ? "variável presente no HTML, confira o valor" : "não encontrado"));
 }
 
-// 5) Só necessário se o app for usar upload de fotos (DriveApp). Força a tela de
-// autorização do Drive — autorizações de serviços do Google (Drive, Calendar etc.) só
-// aparecem quando uma função é rodada manualmente no editor, nunca sozinhas dentro de
-// um Web App. Rode uma vez, aprove o acesso, e o upload de fotos passa a funcionar
-// pra quem publicou o Web App.
-function autorizarDrive() {
-  var folder = getPhotosFolder_();
-  Logger.log('Pasta de fotos pronta: "' + folder.getName() + '" (ID: ' + folder.getId() + ")");
-}
+// 5) DESATIVADA — upload de fotos (e o uso de DriveApp) está temporariamente
+// desligado em Código.gs pra testar se o escopo do Drive é a causa da tela de
+// autorização travada no Web App publicado.

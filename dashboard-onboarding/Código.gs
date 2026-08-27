@@ -499,101 +499,25 @@ function saveOverlayFields(token, hotmartId, patch, autorNome) {
 // como base64 (via google.script.run), nunca por um link público do Drive — assim não
 // é preciso mudar o compartilhamento de nenhum arquivo nem abrir uma URL nova.
 
-function getPhotosFolder_() {
-  var folderId = PropertiesService.getScriptProperties().getProperty("PHOTOS_FOLDER_ID");
-  if (folderId) {
-    try { return DriveApp.getFolderById(folderId); } catch (e) { /* ID inválido, recria abaixo */ }
-  }
-  var folder = DriveApp.createFolder("Dashboard Onboarding — Fotos de clientes");
-  PropertiesService.getScriptProperties().setProperty("PHOTOS_FOLDER_ID", folder.getId());
-  return folder;
+// DESATIVADO TEMPORARIAMENTE — teste de diagnóstico pra descartar o escopo do Drive
+// como causa da tela de autorização travada no Web App publicado. Nenhuma chamada a
+// DriveApp fica no projeto enquanto isso estiver assim, então o Apps Script para de
+// pedir esse escopo no deploy. Reverter (voltar pro código original) assim que o
+// teste confirmar ou descartar essa hipótese.
+function uploadClientPhoto() {
+  throw new Error("Upload de fotos temporariamente desativado (teste de diagnóstico).");
 }
 
-// base64DataUrl no formato "data:image/jpeg;base64,....". Redimensionar/comprimir a
-// imagem é feito no navegador (canvas) ANTES de chamar esta função, pra não estourar o
-// limite de tamanho de uma chamada do google.script.run. `dataFoto` é a data da foto
-// (evento, entrega de brinde etc.), editável pelo time — não confundir com
-// `uploadedAt`, que é quando o arquivo foi de fato enviado.
-function uploadClientPhoto(token, hotmartId, base64DataUrl, nomeArquivo, legenda, dataFoto, autorNome) {
-  requireSession_(token);
-  var match = /^data:(.+?);base64,(.+)$/.exec(base64DataUrl || "");
-  if (!match) throw new Error("Formato de imagem inválido.");
-  var contentType = match[1];
-  var bytes = Utilities.base64Decode(match[2]);
-  var blob = Utilities.newBlob(bytes, contentType, nomeArquivo || (hotmartId + "-foto.jpg"));
-
-  var folder = getPhotosFolder_();
-  var file = folder.createFile(blob);
-  if (legenda) file.setDescription(legenda);
-
-  return withLock_(function () {
-    var sheet = getOverlaySheet_();
-    var current = overlayRowsToMap_(sheet)[hotmartId] || Object.assign({}, OVERLAY_DEFAULTS_, { hotmartId: hotmartId });
-    var fotos = current.fotos || [];
-    var registro = {
-      fileId: file.getId(),
-      legenda: legenda || "",
-      data: dataFoto || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd"),
-      nomeArquivo: nomeArquivo || "",
-      uploadedBy: autorNome || "",
-      uploadedAt: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm")
-    };
-    fotos.unshift(registro);
-    saveOverlayFields(token, hotmartId, { fotos: fotos }, autorNome);
-    return { ok: true, foto: registro, dataUrl: base64DataUrl };
-  });
+function updateClientPhotoField() {
+  throw new Error("Upload de fotos temporariamente desativado (teste de diagnóstico).");
 }
 
-function updateClientPhotoField(token, hotmartId, fileId, field, value, autorNome) {
-  requireSession_(token);
-  if (["legenda", "data"].indexOf(field) === -1) throw new Error("Campo de foto inválido: " + field);
-  return withLock_(function () {
-    var current = overlayRowsToMap_(getOverlaySheet_())[hotmartId];
-    if (!current) throw new Error("Cliente sem overlay ainda.");
-    var fotos = (current.fotos || []).map(function (f) {
-      if (f.fileId === fileId) { var copy = Object.assign({}, f); copy[field] = value; return copy; }
-      return f;
-    });
-    saveOverlayFields(token, hotmartId, { fotos: fotos }, autorNome);
-    return { ok: true };
-  });
+function deleteClientPhoto() {
+  throw new Error("Upload de fotos temporariamente desativado (teste de diagnóstico).");
 }
 
-function deleteClientPhoto(token, hotmartId, fileId, autorNome) {
-  requireSession_(token);
-  try {
-    var file = DriveApp.getFileById(fileId);
-    file.setTrashed(true);
-  } catch (e) { /* arquivo já removido — segue o baile */ }
-  return withLock_(function () {
-    var current = overlayRowsToMap_(getOverlaySheet_())[hotmartId] || { fotos: [] };
-    var fotos = (current.fotos || []).filter(function (f) { return f.fileId !== fileId; });
-    saveOverlayFields(token, hotmartId, { fotos: fotos }, autorNome);
-    return { ok: true };
-  });
-}
-
-// Devolve as fotos de um cliente já em base64, prontas pra <img src="data:...">. Não
-// exige sessão — leitura de imagem, mesmo nível de acesso que os dados da carteira.
-function getClientPhotosBase64(hotmartId) {
-  var overlay = getOverlayData_()[hotmartId];
-  if (!overlay || !overlay.fotos || !overlay.fotos.length) return [];
-  return overlay.fotos.map(function (foto) {
-    try {
-      var file = DriveApp.getFileById(foto.fileId);
-      var blob = file.getBlob();
-      var base64 = Utilities.base64Encode(blob.getBytes());
-      return {
-        fileId: foto.fileId,
-        legenda: foto.legenda,
-        data: foto.data,
-        nomeArquivo: foto.nomeArquivo,
-        dataUrl: "data:" + blob.getContentType() + ";base64," + base64
-      };
-    } catch (e) {
-      return { fileId: foto.fileId, legenda: foto.legenda, data: foto.data, error: "Arquivo não encontrado no Drive." };
-    }
-  });
+function getClientPhotosBase64() {
+  return [];
 }
 
 // ---------- Missões (Rotina — gamificação) ----------
