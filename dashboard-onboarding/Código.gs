@@ -7,9 +7,10 @@
 //
 // O app também guarda um pequeno conjunto de campos que só existem aqui (não vêm do
 // Salesforce): observações, contrato assinado, brinde enviado, fotos do cliente, e as
-// missões da aba Rotina. Isso fica numa aba própria ("App - Overlay CRM" e
-// "App - Missões"), criada automaticamente na planilha vinculada A ESTE SCRIPT (não na
-// planilha de origem) — assim nunca escrevemos na planilha sincronizada do Salesforce.
+// missões da aba Rotina. Isso fica em abas próprias ("App - Overlay CRM" e
+// "App - Missões"), criadas automaticamente na MESMA planilha "Gestão de carteira
+// unificada" (identificada por PORTFOLIO_SHEET_ID) — nunca nas abas sincronizadas do
+// Salesforce ("SF On"/"SF VD"), só em abas novas ao lado delas.
 //
 // Autenticação: senha única do time (Script Properties, chave TEAM_PASSWORD). Login
 // gera um token de sessão (6h, limite do CacheService) — exigido só pras operações de
@@ -76,13 +77,7 @@ var MISSOES_HEADERS = [
 
 // ---------- Web app ----------
 
-// TESTE TEMPORÁRIO DE DIAGNÓSTICO — REMOVER esta função e o "_real" abaixo dela
-// assim que o teste terminar, pra voltar ao doGet de verdade.
 function doGet(e) {
-  return HtmlService.createHtmlOutput("<h1>Teste direto no projeto real</h1>");
-}
-
-function doGet_ORIGINAL_(e) {
   var template = HtmlService.createTemplateFromFile("Index");
   try {
     var data = getFullPortfolioData_();
@@ -383,7 +378,7 @@ function requireSession_(token) {
 // origem do Salesforce) — criada automaticamente na primeira escrita.
 
 function getOverlaySheet_() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getPortfolioSpreadsheet_();
   var sheet = ss.getSheetByName(CONFIG.OVERLAY_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(CONFIG.OVERLAY_SHEET);
@@ -534,7 +529,7 @@ function getClientPhotosBase64() {
 // concluiu, ausência de chave = pendente.
 
 function getMissoesSheet_() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getPortfolioSpreadsheet_();
   var sheet = ss.getSheetByName(CONFIG.MISSOES_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(CONFIG.MISSOES_SHEET);
