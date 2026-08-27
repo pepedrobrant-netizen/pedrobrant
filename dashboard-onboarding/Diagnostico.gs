@@ -54,7 +54,7 @@ function diagnosticarAbas() {
     Logger.log('Aba "' + name + '" — códigos Unicode: [' + codes.join(" ") + "]");
   });
 
-  ["SF On", "SF VD"].forEach(function (esperado) {
+  ["[SF] On", "[SF] VD"].forEach(function (esperado) {
     try {
       var encontrada = findSheetByName_(ss, esperado);
       Logger.log('OK — aba esperada "' + esperado + '" encontrada como "' + encontrada.getName() + '" (comparação normalizada).');

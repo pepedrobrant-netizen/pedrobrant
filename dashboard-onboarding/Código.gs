@@ -18,8 +18,8 @@
 // appsscript.json (`"access": "DOMAIN"`) e o passo a passo em README.md.
 
 var CONFIG = {
-  SHEET_ON: "SF On",
-  SHEET_VD: "SF VD",
+  SHEET_ON: "[SF] On",
+  SHEET_VD: "[SF] VD",
   OVERLAY_SHEET: "App - Overlay CRM",
   MISSOES_SHEET: "App - Missões",
   SESSION_TTL_SECONDS: 6 * 60 * 60, // 6 horas — teto do CacheService
