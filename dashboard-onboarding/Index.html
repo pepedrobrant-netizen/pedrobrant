@@ -515,6 +515,28 @@
 </head>
 <body>
 
+<div id="fatalErrorOverlay" style="display:none;position:fixed;inset:0;z-index:99999;background:#fff;color:#900;padding:24px;font-family:monospace;font-size:13px;white-space:pre-wrap;overflow:auto;"></div>
+<script>
+  (function () {
+    function mostrarErro(txt) {
+      var el = document.getElementById('fatalErrorOverlay');
+      if (!el) return;
+      el.style.display = 'block';
+      el.textContent += txt + "\n\n";
+    }
+    window.addEventListener('error', function (e) {
+      mostrarErro(
+        'ERRO JS: ' + (e.message || '(sem mensagem)') +
+        '\nArquivo: ' + (e.filename || '?') + ' linha ' + (e.lineno || '?') + ' coluna ' + (e.colno || '?') +
+        (e.error && e.error.stack ? '\nStack:\n' + e.error.stack : '')
+      );
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+      mostrarErro('PROMISE REJEITADA: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+    });
+  })();
+</script>
+
 <div id="screenLogin"></div>
 <div id="screenProfiles" style="display:none"></div>
 
