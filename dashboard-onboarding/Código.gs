@@ -76,7 +76,13 @@ var MISSOES_HEADERS = [
 
 // ---------- Web app ----------
 
+// TESTE TEMPORÁRIO DE DIAGNÓSTICO — REMOVER esta função e o "_real" abaixo dela
+// assim que o teste terminar, pra voltar ao doGet de verdade.
 function doGet(e) {
+  return HtmlService.createHtmlOutput("<h1>Teste direto no projeto real</h1>");
+}
+
+function doGet_ORIGINAL_(e) {
   var template = HtmlService.createTemplateFromFile("Index");
   try {
     var data = getFullPortfolioData_();
