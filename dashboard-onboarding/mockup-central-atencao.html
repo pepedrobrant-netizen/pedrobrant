@@ -1,0 +1,521 @@
+<title>Sinais Proativos</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --surface-page:   #f5f3ef;
+    --surface-card:   #ffffff;
+    --surface-header: #0d0d0d;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --border:         rgba(11,11,11,0.10);
+    --brand-orange:   #ff4000;
+    --brand-yellow:   #ffd450;
+    --brand-gray:     #c3bfb8;
+    --brand-maroon:   #3e0f1d;
+    --brand-lemon:    #6dff96;
+    --brand-purple:   #b48eff;
+    --brand-blue:     #44d0ff;
+    --status-good:      #0ca30c;
+    --status-warning:   #fab219;
+    --status-serious:   #ec835a;
+    --status-critical:  #d03b3b;
+    --status-progress:  #2a78d6;
+    --success-text:    #006300;
+    --font-body: 'Hotmart Sans', 'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --font-display: 'Hotmart Display', Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface-page:   #0d0d0d;
+      --surface-card:   #1a1a19;
+      --surface-header: #000000;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --border:         rgba(255,255,255,0.12);
+      --brand-orange:   #ff5a24;
+      --status-critical:  #e66767;
+      --status-progress:  #3987e5;
+      --success-text:    #0ca30c;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-page:   #0d0d0d;
+    --surface-card:   #1a1a19;
+    --surface-header: #000000;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --gridline:       #2c2c2a;
+    --border:         rgba(255,255,255,0.12);
+    --brand-orange:   #ff5a24;
+    --status-critical:  #e66767;
+    --status-progress:  #3987e5;
+    --success-text:    #0ca30c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--surface-page); color: var(--text-primary); font-family: var(--font-body); }
+  h1, h2, h3 { font-family: var(--font-display); }
+
+  .topbar { background: var(--surface-header); color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .topbar .brand { display: flex; align-items: center; gap: 10px; }
+  .flame { width: 22px; height: 22px; display: inline-block; color: var(--brand-orange); flex-shrink: 0; }
+  .flame path { fill: currentColor; }
+  .topbar h1 { font-size: 15px; font-weight: 600; margin: 0; }
+  .topbar .sub { font-size: 12px; color: #c3c2b7; margin-top: 1px; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .bell-btn { position: relative; background: transparent; border: 1px solid rgba(255,255,255,0.25); color: #fff; border-radius: 10px; width: 32px; height: 32px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .bell-badge { position: absolute; top: -6px; right: -6px; background: var(--status-critical); color: #fff; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 999px; display: flex; align-items: center; justify-content: center; padding: 0 3px; }
+  .topbar-profile-btn { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid rgba(255,255,255,0.25); color: #fff; border-radius: 20px; padding: 4px 10px 4px 4px; font-size: 12.5px; font-family: inherit; }
+  .topbar-avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--brand-orange); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; flex-shrink: 0; }
+
+  .nav-tabs { background: var(--surface-header); padding: 0 24px; display: flex; gap: 4px; border-top: 1px solid rgba(255,255,255,0.08); }
+  .nav-tab { padding: 10px 16px; font-size: 13px; color: #b8b7ae; border-bottom: 2px solid transparent; }
+  .nav-tab.active { color: #fff; border-bottom-color: var(--brand-orange); font-weight: 600; }
+
+  .wrap { max-width: 1360px; margin: 0 auto; padding: 20px 24px 60px; }
+
+  .section-title { font-size: 13px; font-weight: 700; margin: 0 0 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+  .section-note { font-size: 12px; color: var(--text-muted); margin: -6px 0 16px; }
+
+  /* ===== Central de Atenção ===== */
+  .attn-block { margin-bottom: 26px; }
+  .attn-head-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .attn-summary { display: flex; gap: 8px; flex-wrap: wrap; }
+  .attn-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 999px; cursor: pointer; border: 1px solid transparent; }
+  .attn-pill .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .attn-pill.critico { background: color-mix(in srgb, var(--status-critical) 14%, var(--surface-card)); color: var(--status-critical); }
+  .attn-pill.critico .dot { background: var(--status-critical); }
+  .attn-pill.atencao { background: color-mix(in srgb, var(--status-warning) 20%, var(--surface-card)); color: #8a5a00; }
+  :root[data-theme="dark"] .attn-pill.atencao,
+  :root:not([data-theme="light"]) .attn-pill.atencao { color: var(--status-warning); }
+  .attn-pill.atencao .dot { background: var(--status-warning); }
+  .attn-pill.oportunidade { background: color-mix(in srgb, var(--brand-blue) 18%, var(--surface-card)); color: #0a7fa3; }
+  :root[data-theme="dark"] .attn-pill.oportunidade,
+  :root:not([data-theme="light"]) .attn-pill.oportunidade { color: var(--brand-blue); }
+  .attn-pill.oportunidade .dot { background: var(--brand-blue); }
+  .attn-pill.all { background: var(--surface-card); border-color: var(--border); color: var(--text-secondary); }
+
+  .attn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+  .attn-card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; gap: 12px; cursor: pointer; transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s; position: relative; overflow: hidden; }
+  .attn-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,0.08); }
+  .attn-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+  .attn-card.critico::before { background: var(--status-critical); }
+  .attn-card.atencao::before { background: var(--status-warning); }
+  .attn-card.oportunidade::before { background: var(--brand-blue); }
+  .attn-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--brand-orange); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; margin-left: 6px; }
+  .attn-body { flex: 1; min-width: 0; }
+  .attn-top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .attn-nome { font-weight: 700; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .attn-empresa { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .attn-tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 8px; border-radius: 999px; white-space: nowrap; flex-shrink: 0; }
+  .attn-card.critico .attn-tag { background: color-mix(in srgb, var(--status-critical) 16%, transparent); color: var(--status-critical); }
+  .attn-card.atencao .attn-tag { background: color-mix(in srgb, var(--status-warning) 22%, transparent); color: #8a5a00; }
+  :root[data-theme="dark"] .attn-card.atencao .attn-tag,
+  :root:not([data-theme="light"]) .attn-card.atencao .attn-tag { color: var(--status-warning); }
+  .attn-card.oportunidade .attn-tag { background: color-mix(in srgb, var(--brand-blue) 20%, transparent); color: #0a7fa3; }
+  :root[data-theme="dark"] .attn-card.oportunidade .attn-tag,
+  :root:not([data-theme="light"]) .attn-card.oportunidade .attn-tag { color: var(--brand-blue); }
+  .attn-signal { font-size: 12.5px; color: var(--text-primary); margin-top: 7px; line-height: 1.4; }
+  .attn-signal b { font-weight: 700; }
+  .attn-meta-row { display: flex; align-items: center; gap: 8px; margin-top: 9px; }
+  .attn-metric { font-size: 11px; color: var(--text-secondary); background: var(--surface-page); border: 1px solid var(--border); border-radius: 6px; padding: 2px 7px; font-variant-numeric: tabular-nums; }
+  .attn-extra { display: flex; align-items: center; gap: 7px; margin-top: 10px; padding-top: 9px; border-top: 1px dashed var(--gridline); font-size: 11.5px; color: var(--text-secondary); }
+  .attn-extra .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .attn-extra .dot.oportunidade { background: var(--brand-blue); }
+  .attn-extra .dot.atencao { background: var(--status-warning); }
+  .attn-extra .dot.critico { background: var(--status-critical); }
+
+  /* ===== Carteira table w/ inline indicator ===== */
+  .panel { background: var(--surface-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted); border-bottom: 1px solid var(--gridline); white-space: nowrap; }
+  tbody td { padding: 10px 12px; border-bottom: 1px solid var(--gridline); vertical-align: middle; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-page); }
+  .name-cell { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .row-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .row-dot.critico { background: var(--status-critical); box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-critical) 20%, transparent); }
+  .row-dot.atencao { background: var(--status-warning); box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-warning) 25%, transparent); }
+  .row-dot.oportunidade { background: var(--brand-blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-blue) 25%, transparent); }
+  .row-dot.none { background: var(--gridline); }
+  .muted { color: var(--text-muted); }
+  .num { font-variant-numeric: tabular-nums; text-align: right; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 3px 9px; border-radius: 100px; font-weight: 600; white-space: nowrap; }
+  .badge-progress { background: color-mix(in srgb, var(--status-progress) 15%, transparent); color: var(--status-progress); }
+  .table-legend { display: flex; gap: 18px; align-items: center; padding: 10px 16px; font-size: 11.5px; color: var(--text-muted); border-top: 1px solid var(--gridline); flex-wrap: wrap; }
+  .table-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .table-legend .row-dot { position: relative; top: 0; }
+
+  /* ===== Sinais no Perfil do Cliente ===== */
+  .profile-mini { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-top: 26px; }
+  .profile-mini-head { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; }
+  .profile-mini-avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--brand-orange); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 17px; flex-shrink: 0; }
+  .profile-mini-head h2 { margin: 0; font-size: 17px; }
+  .profile-mini-head .meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .signal-list { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .signal-item { display: flex; gap: 12px; align-items: flex-start; padding: 13px 15px; border-radius: 10px; background: var(--surface-page); border: 1px solid var(--border); border-left: 3px solid var(--border); }
+  .signal-item.critico { border-left-color: var(--status-critical); }
+  .signal-item.oportunidade { border-left-color: var(--brand-blue); }
+  .signal-icon { font-size: 17px; flex-shrink: 0; line-height: 1.3; }
+  .signal-body { flex: 1; }
+  .signal-title { font-weight: 700; font-size: 13.5px; }
+  .signal-detail { font-size: 12.5px; color: var(--text-secondary); margin-top: 3px; line-height: 1.5; }
+  .signal-action { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; margin-top: 9px; padding: 6px 12px; border-radius: 7px; border: none; cursor: pointer; font-family: inherit; }
+  .signal-item.critico .signal-action { background: var(--status-critical); color: #fff; }
+  .signal-item.oportunidade .signal-action { background: var(--brand-blue); color: #04303d; }
+
+  /* ===== Toggle Central de Atenção / Buscar cliente ===== */
+  .view-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; margin-bottom: 20px; }
+  .view-toggle button { padding: 8px 16px; font-size: 12.5px; font-weight: 600; border: none; background: var(--surface-card); color: var(--text-secondary); cursor: pointer; font-family: inherit; }
+  .view-toggle button.active { background: var(--brand-orange); color: #fff; }
+  .view-toggle button:not(.active):hover { background: var(--surface-page); }
+  .screen-panel { display: none; }
+  .screen-panel.active { display: block; }
+
+  .search-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .search-row input[type=search] { flex: 1; max-width: 360px; padding: 9px 12px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface-card); color: var(--text-primary); font-size: 13px; font-family: inherit; }
+  .search-count { font-size: 12.5px; color: var(--text-secondary); white-space: nowrap; }
+  .galeria-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+  .galeria-card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 16px 14px; cursor: pointer; transition: border-color 0.15s, transform 0.15s; display: flex; flex-direction: column; gap: 9px; }
+  .galeria-card:hover { border-color: var(--brand-orange); transform: translateY(-2px); }
+  .galeria-top { display: flex; align-items: center; justify-content: space-between; }
+  .galeria-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--brand-orange); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12.5px; flex-shrink: 0; position: relative; }
+  .galeria-avatar .row-dot { position: absolute; top: -2px; right: -2px; box-shadow: 0 0 0 2px var(--surface-card); }
+  .galeria-id { font-size: 10.5px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .galeria-nome { font-weight: 700; font-size: 13.5px; }
+  .galeria-empresa { font-size: 11.5px; color: var(--text-muted); margin-top: -6px; }
+  .galeria-gmv { font-size: 15px; font-weight: 800; }
+
+  .divider-note { text-align: center; font-size: 11.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 34px 0 18px; display: flex; align-items: center; gap: 12px; }
+  .divider-note::before, .divider-note::after { content: ''; flex: 1; height: 1px; background: var(--gridline); }
+
+  @media (max-width: 900px) {
+    .attn-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="topbar">
+  <div class="brand">
+    <svg class="flame" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 2C11 8 8 12 8 18C8 23.52 11.58 28 16 28C20.42 28 24 23.52 24 18C24 14.2 21.6 11.2 19.2 9.2C19.9 12 18.2 14 18.2 14C18.2 14 18.6 9.4 16 2Z"/></svg>
+    <div>
+      <h1>Dashboard Onboarding</h1>
+      <div class="sub">Carteira, cronograma e CRM em um só lugar</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <button class="bell-btn">🔔<span class="bell-badge">3</span></button>
+    <div class="topbar-profile-btn"><span class="topbar-avatar">PE</span> Pedro <span style="font-size:9px;color:#c3c2b7">▾</span></div>
+  </div>
+</div>
+<div class="nav-tabs">
+  <div class="nav-tab">📋 Carteira</div>
+  <div class="nav-tab active">🔔 Central de Atenção</div>
+  <div class="nav-tab">🎯 Meta</div>
+  <div class="nav-tab">📉 Analytics</div>
+  <div class="nav-tab">🧭 Rotina</div>
+</div>
+
+<div class="wrap">
+
+  <div class="section-note" style="margin:-4px 0 4px;font-size:12.5px">Essa tela substitui a antiga galeria "Perfil do Cliente" — abrir alguém pela Carteira já leva direto pro perfil, então aqui o espaço vira quem precisa de você agora. Buscar um cliente específico continua possível, só que como visão secundária.</div>
+
+  <div class="view-toggle">
+    <button class="active" onclick="showScreen('atencao', this)">🔔 Central de Atenção</button>
+    <button onclick="showScreen('buscar', this)">🔍 Buscar cliente</button>
+  </div>
+
+  <div id="screen-atencao" class="screen-panel active">
+  <div class="attn-block">
+    <div class="attn-head-row">
+      <div>
+        <div class="section-title" style="margin-bottom:2px">Central de Atenção</div>
+        <div class="section-note" style="margin:0">5 clientes precisam de uma ação sua esta semana — um card por cliente, mesmo quando ele tem mais de um sinal (a cor mostra sempre o mais grave)</div>
+      </div>
+      <div class="attn-summary">
+        <span class="attn-pill all">Todos · 5</span>
+        <span class="attn-pill critico"><span class="dot"></span>Crítico · 2</span>
+        <span class="attn-pill atencao"><span class="dot"></span>Atenção · 1</span>
+        <span class="attn-pill oportunidade"><span class="dot"></span>Oportunidade · 2</span>
+      </div>
+    </div>
+
+    <div class="attn-grid">
+      <div class="attn-card critico">
+        <div class="attn-avatar">AF</div>
+        <div class="attn-body">
+          <div class="attn-top-row">
+            <div>
+              <div class="attn-nome">Ana Beatriz Ferreira</div>
+              <div class="attn-empresa">Trend Moda Feminina</div>
+            </div>
+            <span class="attn-tag">Crítico</span>
+          </div>
+          <div class="attn-signal">Meta em risco: só <b>22% atingido</b> aos 78 de 90 dias de carteira.</div>
+          <div class="attn-meta-row">
+            <span class="attn-metric">GMV R$ 8.400</span>
+            <span class="attn-metric">meta R$ 38.000</span>
+          </div>
+          <div class="attn-extra"><span class="dot oportunidade"></span>+ aniversário em 6 dias</div>
+        </div>
+      </div>
+
+      <div class="attn-card critico">
+        <div class="attn-avatar">MV</div>
+        <div class="attn-body">
+          <div class="attn-top-row">
+            <div>
+              <div class="attn-nome">Marcos Villela</div>
+              <div class="attn-empresa">Direito Fácil Cursos</div>
+            </div>
+            <span class="attn-tag">Crítico</span>
+          </div>
+          <div class="attn-signal">Sem nenhum touchpoint (VD) registrado há <b>19 dias</b>.</div>
+          <div class="attn-meta-row">
+            <span class="attn-metric">último VD: 12/08</span>
+            <span class="attn-metric">Status: Monitoring</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="attn-card atencao">
+        <div class="attn-avatar">RN</div>
+        <div class="attn-body">
+          <div class="attn-top-row">
+            <div>
+              <div class="attn-nome">Rodrigo Nakamura</div>
+              <div class="attn-empresa">Nakamura Idiomas</div>
+            </div>
+            <span class="attn-tag">Atenção</span>
+          </div>
+          <div class="attn-signal">Parado em <b>"Ready for Activation"</b> há 21 dias sem avançar de etapa.</div>
+          <div class="attn-meta-row">
+            <span class="attn-metric">Status desde: 05/08</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="attn-card oportunidade">
+        <div class="attn-avatar">BS</div>
+        <div class="attn-body">
+          <div class="attn-top-row">
+            <div>
+              <div class="attn-nome">Beatriz Salles</div>
+              <div class="attn-empresa">Salão Bela Beatriz</div>
+            </div>
+            <span class="attn-tag">Oportunidade</span>
+          </div>
+          <div class="attn-signal">Aniversário em <b>3 dias</b> (03/09) — boa hora pra uma mensagem.</div>
+          <div class="attn-meta-row">
+            <span class="attn-metric">83% da meta</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="attn-card oportunidade">
+        <div class="attn-avatar">TP</div>
+        <div class="attn-body">
+          <div class="attn-top-row">
+            <div>
+              <div class="attn-nome">Thiago Prado</div>
+              <div class="attn-empresa">Prado Fitness Academy</div>
+            </div>
+            <span class="attn-tag">Oportunidade</span>
+          </div>
+          <div class="attn-signal"><b>94% da meta</b> aos 61 dias — bom candidato a case de sucesso/depoimento.</div>
+          <div class="attn-meta-row">
+            <span class="attn-metric">marco de 60 dias</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="profile-mini">
+    <div class="section-title" style="margin-bottom:14px">Ao clicar num card acima, cai direto aqui — não existe mais uma galeria no meio do caminho</div>
+    <div class="profile-mini-head">
+      <div class="profile-mini-avatar">AF</div>
+      <div>
+        <h2>Ana Beatriz Ferreira</h2>
+        <div class="meta">Trend Moda Feminina · Hotmart ID 2481773 · Closer: Renata Souza</div>
+      </div>
+    </div>
+    <div class="signal-list">
+      <div class="signal-item critico">
+        <div class="signal-icon">🔴</div>
+        <div class="signal-body">
+          <div class="signal-title">Meta em risco</div>
+          <div class="signal-detail">Aos 78 de 90 dias de carteira, o GMV está em R$ 8.400 — só 22% da meta de R$ 38.000 pros 3 primeiros meses. Faltam 12 dias pra fechar a janela.</div>
+          <button class="signal-action">Registrar ação de recuperação</button>
+        </div>
+      </div>
+      <div class="signal-item oportunidade">
+        <div class="signal-icon">🎂</div>
+        <div class="signal-body">
+          <div class="signal-title">Aniversário em 6 dias</div>
+          <div class="signal-detail">09/09 — pode ser combinado com a conversa de recuperação de meta, sem parecer só cobrança.</div>
+          <button class="signal-action">Agendar lembrete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div id="screen-buscar" class="screen-panel">
+    <div class="search-row">
+      <input type="search" placeholder="Buscar por nome, empresa ou Hotmart ID…">
+      <div class="search-count">154 clientes na sua carteira</div>
+    </div>
+    <div class="galeria-grid">
+      <div class="galeria-card">
+        <div class="galeria-top">
+          <div class="galeria-avatar">AF<span class="row-dot critico"></span></div>
+          <div class="galeria-id">2481773</div>
+        </div>
+        <div class="galeria-nome">Ana Beatriz Ferreira</div>
+        <div class="galeria-empresa">Trend Moda Feminina</div>
+        <div class="galeria-gmv">R$ 8.400</div>
+      </div>
+      <div class="galeria-card">
+        <div class="galeria-top">
+          <div class="galeria-avatar">MV<span class="row-dot critico"></span></div>
+          <div class="galeria-id">2479021</div>
+        </div>
+        <div class="galeria-nome">Marcos Villela</div>
+        <div class="galeria-empresa">Direito Fácil Cursos</div>
+        <div class="galeria-gmv">R$ 14.100</div>
+      </div>
+      <div class="galeria-card">
+        <div class="galeria-top">
+          <div class="galeria-avatar">RN<span class="row-dot atencao"></span></div>
+          <div class="galeria-id">2483350</div>
+        </div>
+        <div class="galeria-nome">Rodrigo Nakamura</div>
+        <div class="galeria-empresa">Nakamura Idiomas</div>
+        <div class="galeria-gmv">R$ 9.700</div>
+      </div>
+      <div class="galeria-card">
+        <div class="galeria-top">
+          <div class="galeria-avatar">JP</div>
+          <div class="galeria-id">2477640</div>
+        </div>
+        <div class="galeria-nome">Juliana Prates</div>
+        <div class="galeria-empresa">Prates Contabilidade</div>
+        <div class="galeria-gmv">R$ 15.600</div>
+      </div>
+      <div class="galeria-card">
+        <div class="galeria-top">
+          <div class="galeria-avatar">BS<span class="row-dot oportunidade"></span></div>
+          <div class="galeria-id">2485102</div>
+        </div>
+        <div class="galeria-nome">Beatriz Salles</div>
+        <div class="galeria-empresa">Salão Bela Beatriz</div>
+        <div class="galeria-gmv">R$ 17.200</div>
+      </div>
+      <div class="galeria-card">
+        <div class="galeria-top">
+          <div class="galeria-avatar">TP<span class="row-dot oportunidade"></span></div>
+          <div class="galeria-id">2469981</div>
+        </div>
+        <div class="galeria-nome">Thiago Prado</div>
+        <div class="galeria-empresa">Prado Fitness Academy</div>
+        <div class="galeria-gmv">R$ 22.900</div>
+      </div>
+      <div class="galeria-card">
+        <div class="galeria-top">
+          <div class="galeria-avatar">LC</div>
+          <div class="galeria-id">2471205</div>
+        </div>
+        <div class="galeria-nome">Lucas Cardoso</div>
+        <div class="galeria-empresa">Cardoso Marcenaria</div>
+        <div class="galeria-gmv">R$ 6.100</div>
+      </div>
+      <div class="galeria-card">
+        <div class="galeria-top">
+          <div class="galeria-avatar">FA</div>
+          <div class="galeria-id">2482991</div>
+        </div>
+        <div class="galeria-nome">Fernanda Alencar</div>
+        <div class="galeria-empresa">Alencar Nutrição</div>
+        <div class="galeria-gmv">R$ 12.300</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider-note">Pra referência — o mesmo sinal também aparece na tela Carteira</div>
+
+  <div class="panel">
+    <table>
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Status</th>
+          <th>Days carteira</th>
+          <th class="num">GMV</th>
+          <th class="num">% atingido</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="name-cell"><span class="row-dot critico" title="Crítico: meta em risco"></span>Ana Beatriz Ferreira</td>
+          <td><span class="badge badge-progress">Activation &amp; Monitoring</span></td>
+          <td>78</td>
+          <td class="num">R$ 8.400</td>
+          <td class="num">22%</td>
+        </tr>
+        <tr>
+          <td class="name-cell"><span class="row-dot critico" title="Crítico: sem contato há 19 dias"></span>Marcos Villela</td>
+          <td><span class="badge badge-progress">Activation &amp; Monitoring</span></td>
+          <td>52</td>
+          <td class="num">R$ 14.100</td>
+          <td class="num">61%</td>
+        </tr>
+        <tr>
+          <td class="name-cell"><span class="row-dot atencao" title="Atenção: parado na etapa"></span>Rodrigo Nakamura</td>
+          <td><span class="badge badge-progress">Ready for Activation</span></td>
+          <td>41</td>
+          <td class="num">R$ 9.700</td>
+          <td class="num">49%</td>
+        </tr>
+        <tr>
+          <td class="name-cell"><span class="row-dot none"></span>Juliana Prates</td>
+          <td><span class="badge badge-progress">Activation &amp; Monitoring</span></td>
+          <td>33</td>
+          <td class="num">R$ 15.600</td>
+          <td class="num">71%</td>
+        </tr>
+        <tr>
+          <td class="name-cell"><span class="row-dot oportunidade" title="Oportunidade: aniversário em 3 dias"></span>Beatriz Salles</td>
+          <td><span class="badge badge-progress">Activation &amp; Monitoring</span></td>
+          <td>29</td>
+          <td class="num">R$ 17.200</td>
+          <td class="num">83%</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="table-legend">
+      <span><span class="row-dot critico"></span>Crítico</span>
+      <span><span class="row-dot atencao"></span>Atenção</span>
+      <span><span class="row-dot oportunidade"></span>Oportunidade</span>
+      <span><span class="row-dot none"></span>Sem sinal ativo</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function showScreen(name, btn) {
+    document.querySelectorAll('.screen-panel').forEach(function (el) { el.classList.remove('active'); });
+    document.getElementById('screen-' + name).classList.add('active');
+    btn.parentElement.querySelectorAll('button').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+  }
+</script>
