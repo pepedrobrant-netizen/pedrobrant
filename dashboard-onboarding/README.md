@@ -6,10 +6,12 @@ campos calculados, as 5 telas, identidade visual Hotmart) e, depois, **redesenha
 em cima de um mockup de UI/UX aprovado** que você enviou — mesma folha de estilo,
 estrutura de telas e componentes do mockup, com a fiação de dados trocada pra
 `Código.gs`/`google.script.run` de verdade em vez de dados estáticos em memória.
-São os 3 arquivos exigidos por requisito técnico (`Código.gs`, `Index.html`,
-`appsscript.json`) — mais `Diagnostico.gs`, que não conta como um 4º arquivo do app
-em si (não é referenciado pelo `doGet`), só ajuda você a testar a configuração pelo
-editor antes de publicar.
+São 6 arquivos: `Código.gs`, `Index.html`, `Estilos.html`, `Script.html` e
+`appsscript.json` compõem o app; `Diagnostico.gs` não é referenciado pelo `doGet`,
+só ajuda a testar a configuração pelo editor antes de publicar. O `Index.html` foi
+dividido em três (`Index`/`Estilos`/`Script`) porque o Apps Script trava (tela
+branca) quando um arquivo processado como template fica grande demais — ver seção 3
+pra entender por quê e o que ainda falta investigar.
 
 O mockup trouxe uma amostra de dados reais da planilha, o que confirmou os nomes de
 campo exatos — em português, com espaços e acentos (`"Hotmart ID"`, `"GMV"`,
@@ -93,161 +95,203 @@ nome de um onboarder) e um mapa `completions` (`{ "Madu": true, ... }`) — mais
 que o modelo anterior de lista de atribuições, e permite desmarcar uma missão
 concluída por engano (o mockup faz isso).
 
-## 3. A causa mais provável do travamento — e o que fazer antes de tentar publicar
+## 3. Estado atual da investigação do "travamento em tela branca" (31/ago)
 
-Pelos sintomas descritos (funciona limpo no editor, trava em "Authorization
-required"/"Revisar permissões" pra qualquer conta `@hotmart.com`, em qualquer
-navegador, mesmo revogando e reconcedendo, mesmo com o código validado), e já
-eliminadas as causas de extensão, popup, escopo do script, dados, política geral da
-Hotmart e rótulo de DLP — o suspeito mais forte continua sendo o que você já
-apontou: **o projeto Apps Script está rodando no projeto GCP "Padrão" (automático,
-oculto)**, que:
+**Isto substitui qualquer teoria anterior sobre GCP customizado, Tela de
+Consentimento OAuth, Controle de Acesso a Apps, cookies de terceiros ou múltiplas
+contas — todas foram testadas e descartadas nesta sessão.** Ficam registradas aqui só
+pra não repetir esse trabalho.
 
-- não expõe a Tela de Consentimento OAuth pra configuração nenhuma;
-- normalmente fica em modo **"Externo" + "Teste"**, com um teto de 100 usuários de
-  teste e uma tela de aviso extra ("app não verificado pelo Google") no meio do
-  fluxo de autorização;
-- é exatamente esse tipo de tela extra, dentro do iframe isolado que o Apps Script
-  usa pra servir a página, que costuma travar sem avançar — é um padrão conhecido em
-  vários relatos de outras empresas com a mesma configuração de Workspace.
+### O que foi definitivamente descartado (testado, não é isso)
 
-**A correção**: migrar pra um projeto GCP **customizado** (criado por você, não o
-automático), e configurar a Tela de Consentimento OAuth desse projeto como
-**Interno** — disponível porque `hotmart.com` é uma organização Google Workspace.
-Consentimento "Interno" não passa pela verificação do Google, não tem teto de 100
-usuários, e não mostra a tela de aviso "app não verificado" — qualquer conta
-`@hotmart.com` autoriza direto. O passo a passo completo está na seção 5.
+- Extensão de navegador, pop-up bloqueado, política de TI da máquina, DevTools
+  desabilitado — testado em computador da empresa, computador/celular pessoal, e
+  com outra pessoa (usando cópia própria do código, conta própria): mesmo resultado
+  em todos.
+- Bloqueio geral do Workspace a apps não verificados — descartado porque projetos
+  de teste **menores**, na mesma conta/domínio, publicam e abrem normalmente.
+- Escopo do Google Drive (upload de fotos) — descartado com um teste específico
+  (app sem nenhuma chamada a `DriveApp`, mesmo resultado).
+- Acesso à planilha (`SpreadsheetApp.openById`) isolado — funciona perfeitamente
+  sozinho, inclusive com os 1102 registros reais.
+- A ponte `google.script.run` isolada — funciona perfeitamente sozinha.
+- Demora de execução do `doGet` (~15s pra montar a página) — testado com
+  `Utilities.sleep(15000)` forçado, não é isso.
+- Tamanho puro da resposta HTML — testado com 60KB+ de HTML estático
+  (`HtmlService.createHtmlOutput`), funciona sem problema.
+- Projeto Apps Script "corrompido" por várias reimplantações — descartado: um
+  projeto **novo, do zero**, com os mesmos 4 arquivos, reproduz o mesmo travamento.
+- Nomes das abas de origem: **são `[SF] On` / `[SF] VD`, COM colchetes** — a versão
+  anterior deste README dizia o contrário (`SF On`/`SF VD` sem colchetes); isso
+  estava errado e já foi corrigido em `Código.gs` (`CONFIG.SHEET_ON`/`SHEET_VD`).
+  Não mexer nisso de novo sem reconferir a planilha real primeiro.
+- `getOverlaySheet_`/`getMissoesSheet_` usavam `SpreadsheetApp.getActiveSpreadsheet()`,
+  que retorna `null` num script avulso (não vinculado a uma planilha) — bug real,
+  já corrigido: agora usam a mesma planilha aberta por `PORTFOLIO_SHEET_ID`
+  (`getPortfolioSpreadsheet_()`). Não é a causa do travamento, mas precisava ser
+  corrigido de qualquer forma.
 
-### Uma causa nova, ainda não testada, que meu raciocínio aponta como bem provável
+### Um bug real, confirmado e corrigido: template literals aninhados
 
-Você já tinha eliminado "Controle de Acesso a Apps no Admin Console do Workspace"
-porque a TI da Hotmart verificou e disse que não era isso — **mas isso foi verificado
-para o projeto GCP Padrão que vocês já tinham**. Um projeto GCP customizado novo (o
-que a correção acima pede que você crie) gera um **Client ID OAuth diferente**, que
-pro Google é literalmente um "app" diferente do ponto de vista dessa política. Se a
-política do Workspace da Hotmart for `Restrito` em **Admin Console → Segurança →
-Controles de API → Acesso a apps de terceiros** (ou o nome equivalente em
-português/inglês, "Manage Third-Party App Access"), o app novo (o projeto GCP
-customizado) pode precisar ser explicitamente adicionado à lista de apps confiáveis
-por alguém da TI — mesmo que o app antigo já estivesse liberado. Vale pedir pra TI
-conferir essa tela especificamente **depois** de você criar o projeto customizado
-(seção 5, passo 2), com o Client ID novo em mãos, em vez de assumir que "já
-verificamos isso antes" ainda cobre o projeto novo.
+Usando testes de controle (mesmo conteúdo, mesmo tamanho em bytes, variando só uma
+coisa por vez, e comparando resultado de implantações reais no Apps Script — não só
+teoria), foi isolado e comprovado: **o `HtmlService` do Apps Script quebra
+silenciosamente (tela branca, sem nenhum erro visível, nem no console do
+navegador) quando o arquivo processado por `createTemplateFromFile`/`evaluate()`
+contém, em algum lugar do seu texto-fonte, um template literal (crase) aninhado
+dentro de outro** — por exemplo:
 
-### Duas outras causas que você mencionou e ainda não tinha testado
+```js
+// QUEBRA o Apps Script (crase de dentro aninhada dentro da crase de fora):
+el.innerHTML = `<div>${arr.map(x => `<span>${x}</span>`).join('')}</div>`;
 
-- **Cookies de terceiros bloqueados**: o Apps Script serve a página dentro de um
-  iframe cujo domínio é diferente do domínio da autorização OAuth
-  (`accounts.google.com`) — se o Chrome estiver bloqueando cookies de terceiros
-  globalmente, o handshake de autorização pode não fechar o ciclo. Teste em
-  `chrome://settings/cookies` com "Todos os cookies permitidos" (ou uma exceção pra
-  `[*.]google.com`), num perfil limpo.
-- **Múltiplas contas Google logadas ao mesmo tempo**: se o navegador tiver mais de
-  uma conta Google logada e a conta "ativa" no momento da autorização não for a conta
-  `@hotmart.com` de teste, o fluxo pode confundir qual conta está autorizando. Teste
-  num perfil do Chrome (ou janela anônima) com **só** a conta de teste logada, ou
-  escolhendo explicitamente a conta em `accounts.google.com` antes de abrir o link.
+// Não quebra (mesma saída final, sem aninhamento no texto-fonte):
+function itemHtml(x) { return `<span>${x}</span>`; }
+el.innerHTML = `<div>${arr.map(itemHtml).join('')}</div>`;
+```
 
-## 4. Checklist definitivo antes de considerar o deploy "pronto pra testar"
+Isso foi comprovado com um teste de tamanho igual (mesmos bytes, um com
+aninhamento e outro sem) — só a versão aninhada travava. O `Script.html` tinha 45
+ocorrências desse padrão (espalhadas em telas de Rotina, Missões, Carteira, Meta
+etc.) — todas foram corrigidas nesta sessão, extraindo cada trecho aninhado pra uma
+função nomeada separada (`profileCardHtml`, `rotinaDayCardHtml`, `carteiraRowHtml`
+etc.), sem nenhum aninhamento restante (validado com `node --check` e um scanner
+próprio de profundidade de aninhamento).
 
-Marque cada item, nesta ordem:
+**Essa correção é real e deve ficar** — mas sozinha **não resolveu** o travamento.
+
+### O mistério que ainda falta resolver: um segundo limite, esse de tamanho puro
+
+Depois da correção acima, o app completo (`Código.gs` real + `Index.html` +
+`Estilos.html` + `Script.html` de ~119KB, sem nenhum aninhamento) **ainda trava em
+tela branca** — tanto com dados reais da planilha quanto com dados vazios
+forçados (então não são os dados). Isolando o `Script.html` sozinho (sem depender
+do `Índex.html` de produção, usando um `Índex.html` de diagnóstico mínimo que só
+inclui `Script.html` e define `PORTFOLIOS`/`OVERLAY_DATA`/`missions`/`BOOT_ERROR`
+vazios na mão, publicado como Web App de verdade — não é suficiente testar local):
+
+| Tamanho do `Script.html` testado | Resultado |
+| --- | --- |
+| ~5,4 KB (94 linhas) | ✅ funciona |
+| ~9,7 KB (194 linhas) | ✅ funciona |
+| ~10,8 KB (218 linhas, mas essa tinha aninhamento — já corrigido) | ❌ (motivo já resolvido) |
+| ~11 KB, sem aninhamento (controle) | ✅ funciona |
+| **~27,5 KB (531 linhas, arquivo já corrigido)** | **⏳ teste pendente — foi disparado mas o resultado nunca voltou** |
+| ~58 KB (1105 linhas, arquivo já corrigido) | ❌ trava (tela branca, sem erro) |
+| ~119 KB (arquivo inteiro, 2132 linhas, já corrigido) | ❌ trava (tela branca, sem erro) |
+
+Ou seja: existe um limite em algum ponto **entre ~11 KB e ~58 KB** de JavaScript
+processado por `createTemplateFromFile`/`evaluate()` (seja direto no arquivo, seja
+via `<?!= include(...) ?>` — ambos os caminhos foram testados e dão o mesmo
+resultado) que ainda não foi encontrado. Não é limite de tamanho de *saída* html
+(60KB de HTML estático funciona linear); parece ser específico de conteúdo
+JavaScript processado como template.
+
+**Próximo passo recomendado**: repetir a bisseção por tamanho (mesmo método usado
+pra achar o bug do aninhamento — cortar o arquivo ao meio repetidamente, sempre
+terminando num ponto sintaticamente válido, tipo `head -n N Script.html`, validando
+com `node --check` antes de implantar) entre 11 KB e 58 KB, publicando de verdade
+como Web App a cada corte (testar local/preview.html não reproduz o bug — só
+acontece no Apps Script publicado de verdade) até achar o ponto exato da virada.
+Depois, examinar o que tem exatamente ali (mesma abordagem que achou os template
+literals aninhados: comparar duas versões de MESMO tamanho em bytes, uma logo antes
+e outra logo depois do limite, pra isolar o que exatamente muda).
+
+### Uma pista adicional (via DevTools, Network + Elements)
+
+Inspecionando a página travada com o DevTools (funciona em "Inspecionar" mesmo
+quando F12 direto está bloqueado por política de TI): a requisição principal
+(`.../exec`) retorna 200 OK. Só que o conteúdo real do app nunca chega a aparecer —
+existe um `<iframe id="userHtmlFrame" src="/blank">` (nunca atualizado pra a URL de
+conteúdo real) e um `<dialog id="oauth-dialog">` (tela de "Autorização necessária"
+do próprio Google) que nunca ganha o atributo `open` — ou seja, o próprio mecanismo
+do Google decide não avançar (nem pedir autorização visivelmente, nem carregar o
+conteúdo), sem lançar nenhum erro de JavaScript visível no console. Isso bate com
+"o `Script.html` grande trava de um jeito que não gera uma exceção capturável do
+lado do cliente" — reforça que o próximo passo é achar o tamanho exato da virada
+(pode ser mais fácil de diagnosticar uma vez isolado num arquivo bem menor).
+
+## 4. Checklist antes de considerar o deploy "pronto pra testar"
 
 1. [ ] Rodei `diagnosticarConfiguracao` no editor — `PORTFOLIO_SHEET_ID` e
    `TEAM_PASSWORD` configuradas, planilha abre sem erro.
-2. [ ] Rodei `diagnosticarAbas` — as duas abas (`SF On`, `SF VD`) foram
-   encontradas pela comparação normalizada.
-3. [ ] Rodei `testarLeituraPlanilha` — total de clientes lido é maior que zero (ou
-   exatamente o esperado).
+2. [ ] Rodei `diagnosticarAbas` — as duas abas (`[SF] On`, `[SF] VD`, com
+   colchetes) foram encontradas pela comparação normalizada.
+3. [ ] Rodei `testarLeituraPlanilha` — total de clientes lido bate com o esperado
+   (madu: 154, pedro: 469, josiane: 444, ilana: 35 — 1102 no total, confirmado
+   contra a planilha real).
 4. [ ] Rodei `testarDoGet` — executa sem lançar erro.
-5. [ ] O projeto Apps Script está associado a um **projeto GCP customizado** (não o
-   Padrão) — ver seção 5, passo 2.
-6. [ ] A Tela de Consentimento OAuth desse projeto GCP está configurada como
-   **Interno**, com as scopes `spreadsheets` e `drive.file` adicionadas.
-7. [ ] Pedi pra TI da Hotmart confirmar, com o Client ID do projeto GCP customizado
-   em mãos, que ele não está bloqueado em Controles de API do Admin Console.
-8. [ ] Testei com cookies de terceiros permitidos e com uma única conta
-   `@hotmart.com` logada no navegador de teste.
-9. [ ] Só depois de tudo isso: fiz o Deploy (seção 5, passo 6) e testei o link
-   `/exec` com uma conta de teste.
+5. [ ] **Resolvi o mistério da seção 3 acima** (achar e corrigir o segundo limite
+   de tamanho) — sem isso, o Web App publicado fica em tela branca não importa o
+   que mais esteja certo.
+6. [ ] Só depois disso: fiz o Deploy (seção 5, passo 6) e testei o link `/exec`
+   com uma conta de teste, **publicado de verdade** (testar local/preview.html não
+   reproduz esse bug).
 
 ## 5. Passo a passo manual completo
+
+Não precisa de projeto GCP customizado nem de Tela de Consentimento OAuth
+configurada manualmente — a configuração **Padrão** do Apps Script funciona (já
+confirmado: outros apps da Hotmart publicam assim, e nossos próprios testes
+menores publicaram e abriram normalmente com essa configuração).
 
 ### 1. Planilha de origem
 
 Não precisa criar nada na planilha `Gestão de carteira unificada` — só copiar o ID
 dela (o trecho da URL entre `/d/` e `/edit`).
 
-### 2. Criar o projeto Apps Script com um projeto GCP customizado
+### 2. Criar o projeto Apps Script e colar os arquivos
 
 1. Em [script.google.com](https://script.google.com), crie um projeto novo, nomeie
    "Dashboard Onboarding".
-2. Cole `Código.gs`, `Index.html` e `appsscript.json` (veja a tabela abaixo de onde
-   cola cada um) e `Diagnostico.gs`.
-3. No menu lateral, ícone de **engrenagem** ("Configurações do projeto") → marque
-   **"Mostrar arquivo de manifesto 'appsscript.json' no editor"**, se ainda não
-   aparecer.
-4. Ainda em Configurações do projeto, seção **"Projeto do Google Cloud Platform
-   (GCP)"** → **"Alterar projeto"**.
-5. Em outra aba, acesse [console.cloud.google.com](https://console.cloud.google.com),
-   crie um projeto novo (não use um projeto Padrão do Apps Script) — nomeie algo como
-   "dashboard-onboarding-hotmart". Anote o **Número do projeto** (não o nome).
-6. Volte pro Apps Script, cole esse número em "Alterar projeto" → **Definir projeto**.
-   Essa é a mudança que dá acesso à Tela de Consentimento OAuth de verdade.
+2. Cole cada arquivo deste repositório no lugar certo (tabela abaixo).
 
 | Arquivo deste repositório | Onde cola no editor do Apps Script |
 | --- | --- |
 | `Código.gs` | Arquivo de script `.gs`, chamado exatamente **Código** |
-| `Index.html` | Arquivo HTML, chamado exatamente **Index** |
-| `appsscript.json` | Editado direto no arquivo de manifesto (não crie um novo — substitua o conteúdo do que já existe) |
 | `Diagnostico.gs` | Arquivo de script `.gs`, chamado exatamente **Diagnostico** |
+| `Index.html` | Arquivo HTML, chamado exatamente **Index** |
+| `Estilos.html` | Arquivo HTML, chamado exatamente **Estilos** |
+| `Script.html` | Arquivo HTML, chamado exatamente **Script** |
+| `appsscript.json` | Engrenagem (Configurações do projeto) → marcar "Mostrar arquivo de manifesto" → editar direto o que já existe (não criar um novo) |
 
-### 3. Configurar a Tela de Consentimento OAuth como Interno
+`Índex.html` é só um esqueleto pequeno que faz `<?!= include('Estilos') ?>` e
+`<?!= include('Script') ?>` — não precisa (nem deve) colar todo o CSS/JS ali junto;
+é exatamente por causa disso que os três arquivos são separados (ver seção 3).
 
-1. No [Google Cloud Console](https://console.cloud.google.com), com o projeto novo
-   selecionado, vá em **APIs e Serviços → Tela de permissão OAuth**.
-2. Escolha **Interno** (só aparece se a conta for de uma organização Google
-   Workspace — `hotmart.com` deve qualificar). Se só aparecer "Externo", pare e avise
-   — significa que a conta usada não está reconhecida como parte da organização
-   Workspace, e vale confirmar com a TI antes de continuar.
-3. Preencha nome do app ("Dashboard Onboarding"), e-mail de suporte, e-mail de
-   contato do desenvolvedor (o seu). Salvar.
-4. Na etapa **"Escopos"**, clique em **"Adicionar ou remover escopos"** e adicione:
-   - `https://www.googleapis.com/auth/spreadsheets`
-   - `https://www.googleapis.com/auth/drive.file`
-5. Salvar e voltar ao painel — não precisa publicar/verificar nada além disso, tipo
-   "Interno" não passa por revisão do Google.
+### 3. Script Properties
 
-### 4. Script Properties
+No editor do Apps Script, engrenagem → **Script Properties** → **Add script
+property**:
+- `PORTFOLIO_SHEET_ID` = ID da planilha "Gestão de carteira unificada".
+- `TEAM_PASSWORD` = a senha que o time vai usar pra logar.
 
-1. No editor do Apps Script, engrenagem → **Script Properties** → **Add script
-   property**:
-   - `PORTFOLIO_SHEET_ID` = ID da planilha "Gestão de carteira unificada".
-   - `TEAM_PASSWORD` = a senha que o time vai usar pra logar.
-
-### 5. Rodar os diagnósticos (seção 4 do checklist acima)
+### 4. Rodar os diagnósticos (seção 4 do checklist acima)
 
 No menu de funções do editor (ao lado do botão "Executar"), rode nesta ordem:
 `diagnosticarConfiguracao` → `diagnosticarAbas` → `testarLeituraPlanilha` →
 `testarDoGet`. Se o app for usar upload de fotos, rode também `autorizarDrive` — vai
 pedir uma autorização (Revisar permissões → sua conta → Permitir), é esperado.
 
-### 6. Publicar como Web App
+### 5. Publicar como Web App
 
 1. Botão azul **Implantar** → **Nova implantação**.
 2. Ícone de engrenagem ao lado de "Selecionar tipo" → **App da Web**.
 3. **Executar como**: Eu (sua conta). **Quem pode acessar**: **Qualquer pessoa em
    hotmart.com** (ou o nome equivalente pro domínio de vocês).
 4. **Implantar**. Na primeira vez, autorize (Revisar permissões → sua conta →
-   Permitir) — com o consentimento Interno configurado, não deve aparecer a tela de
-   "Google não verificou este app".
+   Permitir).
 5. Copie a URL do Web App (`.../exec`).
 
-### 7. Testar
+**Antes de comemorar**: abra o link de verdade e confira se a tela de Login
+aparece — se der tela branca, é o bug descrito na seção 3, não um erro de
+configuração deste passo a passo.
 
-Abra a URL copiada **numa conta `@hotmart.com` diferente da sua** (idealmente num
-perfil de navegador só com essa conta logada, cookies de terceiros permitidos — ver
-checklist item 8). Deve aparecer a tela de Login do time, não a de autorização do
-Google.
+### 6. Testar
+
+Abra a URL copiada. Deve aparecer a tela de Login do time. Se quiser confirmar que
+funciona pra outras pessoas, peça pra alguém com conta `@hotmart.com` diferente
+abrir o mesmo link.
 
 ## 6. Atualizando o app depois de mudanças no código
 
