@@ -1,0 +1,298 @@
+<title>Carteira em Kanban</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --surface-page:   #f5f3ef;
+    --surface-card:   #ffffff;
+    --surface-header: #0d0d0d;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --border:         rgba(11,11,11,0.10);
+    --brand-orange:   #ff4000;
+    --brand-yellow:   #ffd450;
+    --brand-gray:     #c3bfb8;
+    --brand-maroon:   #3e0f1d;
+    --brand-purple:   #b48eff;
+    --brand-blue:     #44d0ff;
+    --status-good:      #0ca30c;
+    --status-warning:   #fab219;
+    --status-critical:  #d03b3b;
+    --status-progress:  #2a78d6;
+    --success-text:    #006300;
+    --font-body: 'Hotmart Sans', 'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --font-display: 'Hotmart Display', Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface-page:   #0d0d0d;
+      --surface-card:   #1a1a19;
+      --surface-header: #000000;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --border:         rgba(255,255,255,0.12);
+      --brand-orange:   #ff5a24;
+      --status-critical:  #e66767;
+      --status-progress:  #3987e5;
+      --success-text:    #0ca30c;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-page:   #0d0d0d;
+    --surface-card:   #1a1a19;
+    --surface-header: #000000;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --gridline:       #2c2c2a;
+    --border:         rgba(255,255,255,0.12);
+    --brand-orange:   #ff5a24;
+    --status-critical:  #e66767;
+    --status-progress:  #3987e5;
+    --success-text:    #0ca30c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--surface-page); color: var(--text-primary); font-family: var(--font-body); }
+  h1, h2, h3 { font-family: var(--font-display); }
+
+  .topbar { background: var(--surface-header); color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .topbar .brand { display: flex; align-items: center; gap: 10px; }
+  .flame { width: 22px; height: 22px; display: inline-block; color: var(--brand-orange); flex-shrink: 0; }
+  .flame path { fill: currentColor; }
+  .topbar h1 { font-size: 15px; font-weight: 600; margin: 0; }
+  .topbar .sub { font-size: 12px; color: #c3c2b7; margin-top: 1px; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .topbar-profile-btn { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid rgba(255,255,255,0.25); color: #fff; border-radius: 20px; padding: 4px 10px 4px 4px; font-size: 12.5px; font-family: inherit; }
+  .topbar-avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--brand-orange); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; flex-shrink: 0; }
+
+  .nav-tabs { background: var(--surface-header); padding: 0 24px; display: flex; gap: 4px; border-top: 1px solid rgba(255,255,255,0.08); }
+  .nav-tab { padding: 10px 16px; font-size: 13px; color: #b8b7ae; border-bottom: 2px solid transparent; }
+  .nav-tab.active { color: #fff; border-bottom-color: var(--brand-orange); font-weight: 600; }
+
+  .wrap { max-width: 1360px; margin: 0 auto; padding: 20px 24px 60px; }
+
+  .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+  .page-head h2 { margin: 0 0 3px; font-size: 20px; }
+  .page-head .sub { font-size: 13px; color: var(--text-secondary); }
+
+  .view-switch { display: inline-flex; border: 1px solid var(--border); border-radius: 9px; padding: 3px; background: var(--surface-card); gap: 2px; }
+  .view-switch button { padding: 8px 14px; font-size: 12.5px; font-weight: 700; border: none; border-radius: 6px; background: transparent; color: var(--text-secondary); cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .view-switch button.active { background: var(--surface-header); color: #fff; }
+
+  .view-block { display: none; }
+  .view-block.active { display: block; }
+
+  /* ===== lista (tabela) ===== */
+  .panel { background: var(--surface-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted); border-bottom: 1px solid var(--gridline); white-space: nowrap; }
+  tbody td { padding: 10px 12px; border-bottom: 1px solid var(--gridline); vertical-align: middle; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-page); }
+  .name-cell { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .row-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .row-dot.critico { background: var(--status-critical); box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-critical) 20%, transparent); }
+  .row-dot.atencao { background: var(--status-warning); box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-warning) 25%, transparent); }
+  .row-dot.oportunidade { background: var(--brand-blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-blue) 25%, transparent); }
+  .row-dot.none { background: var(--gridline); }
+  .muted { color: var(--text-muted); }
+  .num { font-variant-numeric: tabular-nums; text-align: right; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 3px 9px; border-radius: 100px; font-weight: 600; white-space: nowrap; }
+  .badge-progress { background: color-mix(in srgb, var(--status-progress) 15%, transparent); color: var(--status-progress); }
+
+  /* ===== kanban ===== */
+  .kanban-board { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 6px; align-items: flex-start; }
+  .kanban-col { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 14px 6px; min-width: 240px; max-width: 240px; flex-shrink: 0; }
+  .kanban-col-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 2px solid; }
+  .kanban-col[data-stage="pre"] .kanban-col-head { border-color: var(--brand-gray); }
+  .kanban-col[data-stage="welcome"] .kanban-col-head { border-color: var(--brand-blue); }
+  .kanban-col[data-stage="migration"] .kanban-col-head { border-color: var(--brand-purple); }
+  .kanban-col[data-stage="ready"] .kanban-col-head { border-color: var(--status-warning); }
+  .kanban-col[data-stage="activation"] .kanban-col-head { border-color: var(--status-good); }
+  .kanban-col-title { font-weight: 700; font-size: 12.5px; line-height: 1.3; }
+  .kanban-count { font-size: 11px; color: var(--text-muted); background: var(--surface-page); border-radius: 999px; padding: 2px 8px; flex-shrink: 0; margin-left: 8px; }
+  .kanban-card { background: var(--surface-page); border: 1px solid var(--border); border-radius: 10px; padding: 11px 12px; margin-bottom: 9px; cursor: grab; }
+  .kanban-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
+  .kanban-card-name { font-size: 12.5px; font-weight: 700; }
+  .kanban-card-segmento { font-size: 10.5px; color: var(--text-muted); margin-top: 1px; }
+  .kanban-card-gmv { font-size: 13px; font-weight: 800; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  .kanban-card-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 7px; }
+  .kanban-card-days { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .kanban-card-days.ok { background: var(--surface-card); color: var(--text-secondary); border: 1px solid var(--border); }
+  .kanban-card-days.atencao { background: color-mix(in srgb, var(--status-warning) 22%, transparent); color: #8a5a00; }
+  :root[data-theme="dark"] .kanban-card-days.atencao, :root:not([data-theme="light"]) .kanban-card-days.atencao { color: var(--status-warning); }
+  .kanban-card-days.critico { background: color-mix(in srgb, var(--status-critical) 16%, transparent); color: var(--status-critical); }
+
+  .kanban-note { font-size: 12px; color: var(--text-muted); margin: -6px 0 16px; }
+</style>
+
+<div class="topbar">
+  <div class="brand">
+    <svg class="flame" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 2C11 8 8 12 8 18C8 23.52 11.58 28 16 28C20.42 28 24 23.52 24 18C24 14.2 21.6 11.2 19.2 9.2C19.9 12 18.2 14 18.2 14C18.2 14 18.6 9.4 16 2Z"/></svg>
+    <div>
+      <h1>Dashboard Onboarding</h1>
+      <div class="sub">Carteira, cronograma e CRM em um só lugar</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="topbar-profile-btn"><span class="topbar-avatar">PE</span> Pedro <span style="font-size:9px;color:#c3c2b7">▾</span></div>
+  </div>
+</div>
+<div class="nav-tabs">
+  <div class="nav-tab active">📋 Carteira</div>
+  <div class="nav-tab">🔔 Central de Atenção</div>
+  <div class="nav-tab">🎯 Meta</div>
+  <div class="nav-tab">📉 Analytics</div>
+  <div class="nav-tab">🧭 Rotina</div>
+  <div class="nav-tab">📅 Calendário do Time</div>
+</div>
+
+<div class="wrap">
+
+  <div class="page-head">
+    <div>
+      <h2>Carteira</h2>
+      <div class="sub">12 clientes ativos no seu onboarding</div>
+    </div>
+    <div class="view-switch">
+      <button class="active" onclick="setView('lista', this)">📋 Lista</button>
+      <button onclick="setView('kanban', this)">🗂 Kanban</button>
+    </div>
+  </div>
+
+  <!-- ===== VISTA LISTA (como já existe hoje) ===== -->
+  <div class="view-block active" id="view-lista">
+    <div class="panel">
+      <table>
+        <thead>
+          <tr><th></th><th>Nome</th><th>Status</th><th>Segmento</th><th class="num">GMV</th><th class="num">Days carteira</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="row-dot none"></span></td><td class="name-cell">Comércio Nogueira</td><td><span class="badge badge-progress">Pre Onboarding</span></td><td class="muted">Varejo</td><td class="num">R$ 0</td><td class="num">3</td></tr>
+          <tr><td><span class="row-dot none"></span></td><td class="name-cell">Ateliê Sereno</td><td><span class="badge badge-progress">Pre Onboarding</span></td><td class="muted">Moda</td><td class="num">R$ 0</td><td class="num">5</td></tr>
+          <tr><td><span class="row-dot critico"></span></td><td class="name-cell">Marcos Vinícius</td><td><span class="badge badge-progress">Welcome</span></td><td class="muted">Eletrônicos</td><td class="num">R$ 0</td><td class="num">6</td></tr>
+          <tr><td><span class="row-dot none"></span></td><td class="name-cell">Loja Vale Norte</td><td><span class="badge badge-progress">Welcome</span></td><td class="muted">Varejo</td><td class="num">R$ 0</td><td class="num">2</td></tr>
+          <tr><td><span class="row-dot none"></span></td><td class="name-cell">Estúdio Aurora</td><td><span class="badge badge-progress">Welcome</span></td><td class="muted">Educação</td><td class="num">R$ 0</td><td class="num">9</td></tr>
+          <tr><td><span class="row-dot atencao"></span></td><td class="name-cell">Studio Bela Estética</td><td><span class="badge badge-progress">Product Migration</span></td><td class="muted">Estética</td><td class="num">R$ 0</td><td class="num">18</td></tr>
+          <tr><td><span class="row-dot none"></span></td><td class="name-cell">Torres Consultoria</td><td><span class="badge badge-progress">Product Migration</span></td><td class="muted">Consultoria</td><td class="num">R$ 0</td><td class="num">7</td></tr>
+          <tr><td><span class="row-dot critico"></span></td><td class="name-cell">Ana Beatriz Ferreira</td><td><span class="badge badge-progress">Ready for Activation</span></td><td class="muted">Moda</td><td class="num">R$ 0</td><td class="num">34</td></tr>
+          <tr><td><span class="row-dot none"></span></td><td class="name-cell">Comércio Vale Sul</td><td><span class="badge badge-progress">Ready for Activation</span></td><td class="muted">Varejo</td><td class="num">R$ 0</td><td class="num">12</td></tr>
+          <tr><td><span class="row-dot atencao"></span></td><td class="name-cell">João Torres</td><td><span class="badge badge-progress">Activation &amp; Monitoring</span></td><td class="muted">Consultoria</td><td class="num">R$ 24.800</td><td class="num">45</td></tr>
+          <tr><td><span class="row-dot none"></span></td><td class="name-cell">Padaria Ideal</td><td><span class="badge badge-progress">Activation &amp; Monitoring</span></td><td class="muted">Alimentação</td><td class="num">R$ 11.300</td><td class="num">22</td></tr>
+          <tr><td><span class="row-dot oportunidade"></span></td><td class="name-cell">Estúdio Ferreira Digital</td><td><span class="badge badge-progress">Activation &amp; Monitoring</span></td><td class="muted">Moda</td><td class="num">R$ 18.900</td><td class="num">30</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== VISTA KANBAN (nova) ===== -->
+  <div class="view-block" id="view-kanban">
+    <div class="kanban-note">As colunas seguem o <code>Status</code> real de cada cliente. O selo de dias usa o mesmo limiar da Central de Atenção — 15 dias parado acende atenção, 30 dias em Ready for Activation acende crítico. Activation &amp; Monitoring nunca sinaliza, é a etapa final.</div>
+    <div class="kanban-board">
+
+      <div class="kanban-col" data-stage="pre">
+        <div class="kanban-col-head">
+          <div class="kanban-col-title">Pre Onboarding</div>
+          <span class="kanban-count">2</span>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><div><div class="kanban-card-name">Comércio Nogueira</div><div class="kanban-card-segmento">Varejo</div></div></div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">3 dias</span></div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><div><div class="kanban-card-name">Ateliê Sereno</div><div class="kanban-card-segmento">Moda</div></div></div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">5 dias</span></div>
+        </div>
+      </div>
+
+      <div class="kanban-col" data-stage="welcome">
+        <div class="kanban-col-head">
+          <div class="kanban-col-title">Welcome</div>
+          <span class="kanban-count">3</span>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><div><div class="kanban-card-name">Marcos Vinícius</div><div class="kanban-card-segmento">Eletrônicos</div></div><span class="row-dot critico" title="Sem contato há 16 dias"></span></div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">6 dias</span></div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><div><div class="kanban-card-name">Loja Vale Norte</div><div class="kanban-card-segmento">Varejo</div></div></div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">2 dias</span></div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><div><div class="kanban-card-name">Estúdio Aurora</div><div class="kanban-card-segmento">Educação</div></div></div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">9 dias</span></div>
+        </div>
+      </div>
+
+      <div class="kanban-col" data-stage="migration">
+        <div class="kanban-col-head">
+          <div class="kanban-col-title">Product Migration</div>
+          <span class="kanban-count">2</span>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><div><div class="kanban-card-name">Studio Bela Estética</div><div class="kanban-card-segmento">Estética</div></div><span class="row-dot atencao" title="Parado há 18 dias"></span></div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days atencao">⚠ 18 dias</span></div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><div><div class="kanban-card-name">Torres Consultoria</div><div class="kanban-card-segmento">Consultoria</div></div></div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">7 dias</span></div>
+        </div>
+      </div>
+
+      <div class="kanban-col" data-stage="ready">
+        <div class="kanban-col-head">
+          <div class="kanban-col-title">Ready for Activation</div>
+          <span class="kanban-count">2</span>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><div><div class="kanban-card-name">Ana Beatriz Ferreira</div><div class="kanban-card-segmento">Moda</div></div><span class="row-dot critico" title="34 dias sem ativar"></span></div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days critico">🔴 34 dias</span></div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><div><div class="kanban-card-name">Comércio Vale Sul</div><div class="kanban-card-segmento">Varejo</div></div></div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">12 dias</span></div>
+        </div>
+      </div>
+
+      <div class="kanban-col" data-stage="activation">
+        <div class="kanban-col-head">
+          <div class="kanban-col-title">Activation &amp; Monitoring</div>
+          <span class="kanban-count">3</span>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><div><div class="kanban-card-name">João Torres</div><div class="kanban-card-segmento">Consultoria</div></div><span class="row-dot atencao" title="Brinde não enviado"></span></div>
+          <div class="kanban-card-gmv">R$ 24.800</div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">45 dias</span></div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><div><div class="kanban-card-name">Padaria Ideal</div><div class="kanban-card-segmento">Alimentação</div></div></div>
+          <div class="kanban-card-gmv">R$ 11.300</div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">22 dias</span></div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><div><div class="kanban-card-name">Estúdio Ferreira Digital</div><div class="kanban-card-segmento">Moda</div></div><span class="row-dot oportunidade" title="92% da meta aos 60 dias"></span></div>
+          <div class="kanban-card-gmv">R$ 18.900</div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">30 dias</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function setView(name, btn) {
+    btn.parentElement.querySelectorAll('button').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    document.querySelectorAll('.view-block').forEach(function (v) { v.classList.remove('active'); });
+    document.getElementById('view-' + name).classList.add('active');
+  }
+</script>
