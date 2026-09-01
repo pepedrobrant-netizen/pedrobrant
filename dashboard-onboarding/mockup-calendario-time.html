@@ -1,0 +1,407 @@
+<title>Gestão do Time</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --surface-page:   #f5f3ef;
+    --surface-card:   #ffffff;
+    --surface-header: #0d0d0d;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --border:         rgba(11,11,11,0.10);
+    --brand-orange:   #ff4000;
+    --brand-yellow:   #ffd450;
+    --brand-gray:     #c3bfb8;
+    --brand-maroon:   #3e0f1d;
+    --brand-lemon:    #6dff96;
+    --brand-purple:   #b48eff;
+    --brand-blue:     #44d0ff;
+    --status-good:      #0ca30c;
+    --status-warning:   #fab219;
+    --status-critical:  #d03b3b;
+    --success-text:    #006300;
+    --font-body: 'Hotmart Sans', 'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --font-display: 'Hotmart Display', Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface-page:   #0d0d0d;
+      --surface-card:   #1a1a19;
+      --surface-header: #000000;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --border:         rgba(255,255,255,0.12);
+      --brand-orange:   #ff5a24;
+      --status-critical:  #e66767;
+      --success-text:    #0ca30c;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-page:   #0d0d0d;
+    --surface-card:   #1a1a19;
+    --surface-header: #000000;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --gridline:       #2c2c2a;
+    --border:         rgba(255,255,255,0.12);
+    --brand-orange:   #ff5a24;
+    --status-critical:  #e66767;
+    --success-text:    #0ca30c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--surface-page); color: var(--text-primary); font-family: var(--font-body); }
+  h1, h2, h3 { font-family: var(--font-display); }
+
+  .topbar { background: var(--surface-header); color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .topbar .brand { display: flex; align-items: center; gap: 10px; }
+  .flame { width: 22px; height: 22px; display: inline-block; color: var(--brand-orange); flex-shrink: 0; }
+  .flame path { fill: currentColor; }
+  .topbar h1 { font-size: 15px; font-weight: 600; margin: 0; }
+  .topbar .sub { font-size: 12px; color: #c3c2b7; margin-top: 1px; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .topbar-profile-btn { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid rgba(255,255,255,0.25); color: #fff; border-radius: 20px; padding: 4px 10px 4px 4px; font-size: 12.5px; font-family: inherit; }
+  .topbar-avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--brand-orange); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; flex-shrink: 0; }
+
+  .nav-tabs { background: var(--surface-header); padding: 0 24px; display: flex; gap: 4px; border-top: 1px solid rgba(255,255,255,0.08); }
+  .nav-tab { padding: 10px 16px; font-size: 13px; color: #b8b7ae; border-bottom: 2px solid transparent; }
+  .nav-tab.active { color: #fff; border-bottom-color: var(--brand-orange); font-weight: 600; }
+  .nav-tab.admin-only { display: flex; align-items: center; gap: 5px; }
+  .nav-tab.admin-only .crown { font-size: 10px; }
+
+  .wrap { max-width: 1360px; margin: 0 auto; padding: 20px 24px 60px; }
+
+  .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+  .page-head h2 { margin: 0 0 4px; font-size: 20px; }
+  .page-head .sub { font-size: 13px; color: var(--text-secondary); }
+  .admin-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--brand-orange); background: color-mix(in srgb, var(--brand-orange) 10%, transparent); border: 1px solid color-mix(in srgb, var(--brand-orange) 30%, transparent); padding: 3px 10px; border-radius: 999px; margin-bottom: 8px; }
+
+  .section-title { font-size: 13px; font-weight: 700; margin: 0 0 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* ===== layout: calendário + agenda lado a lado ===== */
+  .cal-layout { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; margin-bottom: 30px; align-items: start; }
+  @media (max-width: 1000px) { .cal-layout { grid-template-columns: 1fr; } }
+
+  .cal-card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; }
+  .cal-head-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .cal-month-nav { display: flex; align-items: center; gap: 12px; }
+  .cal-month-nav button { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-page); color: var(--text-secondary); cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+  .cal-month-nav button:hover { border-color: var(--brand-orange); color: var(--brand-orange); }
+  .cal-month-label { font-family: var(--font-display); font-size: 18px; font-weight: 700; min-width: 168px; text-align: center; text-transform: capitalize; }
+  .cal-add-btn { background: var(--brand-orange); color: #fff; border: none; border-radius: 8px; padding: 9px 16px; font-weight: 700; font-size: 12.5px; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 6px; }
+  .cal-add-btn:hover { opacity: 0.92; }
+
+  .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 4px; }
+  .cal-weekdays span { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted); text-align: center; padding-bottom: 6px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-day { aspect-ratio: 1; border-radius: 9px; padding: 6px 7px; display: flex; flex-direction: column; gap: 3px; cursor: default; }
+  .cal-day.empty { visibility: hidden; }
+  .cal-day.has-events { cursor: pointer; }
+  .cal-day .n { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .cal-day.today { background: color-mix(in srgb, var(--brand-orange) 9%, transparent); border: 1.5px solid var(--brand-orange); }
+  .cal-day.today .n { color: var(--brand-orange); font-weight: 800; }
+  .cal-day.selected { background: var(--surface-header); }
+  .cal-day.selected .n { color: #fff; }
+  .cal-day-dots { display: flex; gap: 3px; flex-wrap: wrap; margin-top: auto; }
+  .cal-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .cal-dot.reuniao { background: var(--brand-orange); }
+  .cal-dot.evento { background: var(--brand-blue); }
+  .cal-dot.fechamento { background: var(--status-good); }
+  .cal-dot.treinamento { background: var(--brand-purple); }
+  .cal-dot.individual { background: var(--brand-gray); }
+
+  .cal-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--gridline); }
+  .cal-legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-secondary); }
+
+  /* ===== agenda ===== */
+  .agenda-card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; }
+  .agenda-list { display: flex; flex-direction: column; gap: 4px; max-height: 460px; overflow-y: auto; }
+  .agenda-item { display: flex; gap: 14px; padding: 12px 4px; border-bottom: 1px solid var(--gridline); }
+  .agenda-item:last-child { border-bottom: none; }
+  .agenda-date { width: 44px; flex-shrink: 0; text-align: center; }
+  .agenda-date .dow { font-size: 9.5px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.03em; }
+  .agenda-date .dom { font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .agenda-body { flex: 1; min-width: 0; }
+  .agenda-title { font-weight: 700; font-size: 13.5px; }
+  .agenda-meta { font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+  .agenda-cat-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ===== planilhas de controle ===== */
+  .links-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .link-card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; display: flex; gap: 14px; align-items: flex-start; text-decoration: none; color: inherit; transition: border-color 0.15s, transform 0.15s; }
+  .link-card:hover { border-color: var(--brand-orange); transform: translateY(-2px); }
+  .link-icon { width: 38px; height: 38px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; background: color-mix(in srgb, var(--status-good) 14%, transparent); }
+  .link-body { flex: 1; min-width: 0; }
+  .link-title { font-weight: 700; font-size: 13.5px; }
+  .link-desc { font-size: 11.5px; color: var(--text-secondary); margin-top: 3px; line-height: 1.4; }
+  .link-open { font-size: 11px; font-weight: 700; color: var(--brand-orange); margin-top: 8px; display: inline-flex; align-items: center; gap: 4px; }
+
+  @media (max-width: 900px) {
+    .cal-day .n { font-size: 11px; }
+  }
+
+  /* ===== alternador de visão (só pra comparação no mockup) ===== */
+  .viewer-switch-bar { background: #fff8e6; border-bottom: 1px solid #f0deac; padding: 10px 24px; display: flex; align-items: center; justify-content: center; gap: 14px; font-size: 12.5px; color: #7a5b00; }
+  .viewer-switch-bar b { font-weight: 700; }
+  .viewer-switch { display: inline-flex; border: 1px solid #e3c569; border-radius: 8px; overflow: hidden; }
+  .viewer-switch button { padding: 6px 14px; font-size: 12px; font-weight: 600; border: none; background: #fff; color: #7a5b00; cursor: pointer; font-family: inherit; }
+  .viewer-switch button.active { background: #7a5b00; color: #fff; }
+
+  .view-only-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); background: var(--surface-page); border: 1px solid var(--border); padding: 3px 10px; border-radius: 999px; margin-bottom: 8px; }
+
+  .cal-day:not(.empty) { cursor: pointer; transition: background 0.12s; }
+  .cal-day:not(.empty):not(.selected):hover { background: var(--surface-page); }
+
+  /* ===== modal (evento e novo evento) ===== */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(13,13,13,0.55); display: flex; align-items: center; justify-content: center; z-index: 200; }
+  .modal-overlay.hidden { display: none; }
+  .modal-card { background: var(--surface-card); border-radius: 14px; padding: 26px 28px; width: 460px; max-width: 92vw; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.35); }
+  .modal-close-btn { position: relative; float: right; background: none; border: none; font-size: 18px; cursor: pointer; color: var(--text-secondary); }
+  .modal-close-btn:hover { color: var(--text-primary); }
+  .modal-cat-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; padding: 4px 11px; border-radius: 999px; background: var(--surface-page); border: 1px solid var(--border); margin-bottom: 12px; }
+  .modal-card h3 { margin: 0 0 6px; font-size: 18px; }
+  .modal-event-date { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; }
+  .modal-event-desc { font-size: 13.5px; line-height: 1.6; color: var(--text-primary); margin-bottom: 18px; }
+  .modal-link-box { background: color-mix(in srgb, var(--brand-blue) 8%, transparent); border: 1px solid color-mix(in srgb, var(--brand-blue) 30%, transparent); border-left: 4px solid var(--brand-blue); border-radius: 8px; padding: 14px 16px; }
+  .modal-link-box .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-secondary); margin-bottom: 6px; }
+  .modal-link-box a { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 700; color: var(--brand-orange); text-decoration: none; }
+  .modal-link-box a:hover { text-decoration: underline; }
+
+  .form-field { margin-bottom: 14px; }
+  .form-field label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px; }
+  .form-field input, .form-field select, .form-field textarea { width: 100%; font-size: 13.5px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-page); color: var(--text-primary); font-family: inherit; }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus { outline: 2px solid var(--brand-orange); outline-offset: -1px; }
+  .form-field textarea { min-height: 60px; resize: vertical; }
+  .form-field .hint { font-size: 11px; color: var(--text-muted); margin-top: 5px; }
+  .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-submit-btn { width: 100%; padding: 12px; border-radius: 8px; border: none; background: var(--brand-orange); color: #fff; font-size: 13.5px; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 4px; }
+</style>
+
+<div class="viewer-switch-bar">
+  Comparar as duas visões (o calendário é o mesmo pros dois — só muda quem pode cadastrar):
+  <div class="viewer-switch">
+    <button class="active" onclick="setViewer('admin', this)">👑 Amanda / Julia (podem cadastrar)</button>
+    <button onclick="setViewer('time', this)">🙂 Pedro / Madu / Josiane / Ilana (só visualizam)</button>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="brand">
+    <svg class="flame" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 2C11 8 8 12 8 18C8 23.52 11.58 28 16 28C20.42 28 24 23.52 24 18C24 14.2 21.6 11.2 19.2 9.2C19.9 12 18.2 14 18.2 14C18.2 14 18.6 9.4 16 2Z"/></svg>
+    <div>
+      <h1>Dashboard Onboarding</h1>
+      <div class="sub">Carteira, cronograma e CRM em um só lugar</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="topbar-profile-btn"><span class="topbar-avatar" id="viewerAvatar">AM</span> <span id="viewerNome">Amanda</span> <span style="font-size:9px;color:#c3c2b7">▾</span></div>
+  </div>
+</div>
+<div class="nav-tabs">
+  <div class="nav-tab">📋 Carteira</div>
+  <div class="nav-tab">🔔 Central de Atenção</div>
+  <div class="nav-tab">🎯 Meta</div>
+  <div class="nav-tab">📉 Analytics</div>
+  <div class="nav-tab">🧭 Rotina</div>
+  <div class="nav-tab active" id="navGestaoTab">📅 Calendário do Time</div>
+</div>
+
+<div id="viewAdmin" class="wrap">
+
+  <div class="page-head">
+    <div>
+      <span class="admin-tag" id="pageTag">👑 Só Amanda e Julia cadastram eventos aqui</span>
+      <h2>Calendário do Time</h2>
+      <div class="sub" id="pageSub">Eventos do mês, visíveis pra todo o time — clique num evento pra ver os detalhes e o link da planilha, quando precisar de um.</div>
+    </div>
+  </div>
+
+  <div class="cal-layout">
+    <div class="cal-card">
+      <div class="cal-head-row">
+        <div class="cal-month-nav">
+          <button>‹</button>
+          <div class="cal-month-label">Setembro 2026</div>
+          <button>›</button>
+        </div>
+        <button class="cal-add-btn" id="addEventBtn" onclick="document.getElementById('newEventOverlay').classList.remove('hidden')">+ Novo evento</button>
+      </div>
+
+      <div class="cal-weekdays">
+        <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+
+      <div class="cal-legend">
+        <span><span class="cal-dot reuniao"></span>Reunião de time</span>
+        <span><span class="cal-dot individual"></span>1:1</span>
+        <span><span class="cal-dot evento"></span>Evento</span>
+        <span><span class="cal-dot fechamento"></span>Fechamento / Meta</span>
+        <span><span class="cal-dot treinamento"></span>Treinamento</span>
+      </div>
+    </div>
+
+    <div class="agenda-card">
+      <div class="section-title" style="margin-bottom:14px">Próximos eventos <span style="text-transform:none;font-weight:400;color:var(--text-muted)">— clique num evento pra ver os detalhes</span></div>
+      <div class="agenda-list" id="agendaList"></div>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="modal-overlay hidden" id="eventModalOverlay" onclick="if(event.target===this) closeModal('eventModalOverlay')">
+  <div class="modal-card">
+    <button class="modal-close-btn" onclick="closeModal('eventModalOverlay')">✕</button>
+    <span class="modal-cat-badge" id="evCatBadge"></span>
+    <h3 id="evTitle"></h3>
+    <div class="modal-event-date" id="evDate"></div>
+    <div class="modal-event-desc" id="evDesc"></div>
+    <div class="modal-link-box hidden" id="evLinkBox">
+      <div class="lbl">Esse evento precisa de registro na planilha</div>
+      <a href="#" target="_blank" id="evLinkAnchor">📊 <span id="evLinkLabel"></span> ↗</a>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="newEventOverlay" onclick="if(event.target===this) closeModal('newEventOverlay')">
+  <div class="modal-card">
+    <button class="modal-close-btn" onclick="closeModal('newEventOverlay')">✕</button>
+    <h3>Novo evento</h3>
+    <div class="modal-event-date" style="margin-bottom:18px">Visível pra todo o time assim que salvo</div>
+    <div class="form-field">
+      <label>Título</label>
+      <input type="text" placeholder="Ex: Reunião de time, Fechamento de metas…">
+    </div>
+    <div class="form-row-2">
+      <div class="form-field">
+        <label>Data</label>
+        <input type="date" value="2026-09-15">
+      </div>
+      <div class="form-field">
+        <label>Hora (opcional)</label>
+        <input type="time">
+      </div>
+    </div>
+    <div class="form-field">
+      <label>Categoria</label>
+      <select>
+        <option>🟠 Reunião de time</option>
+        <option>⚪ 1:1</option>
+        <option>🔵 Evento</option>
+        <option>🟢 Fechamento / Meta</option>
+        <option>🟣 Treinamento</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label>Descrição (opcional)</label>
+      <textarea placeholder="O que precisa acontecer nesse evento"></textarea>
+    </div>
+    <div class="form-field">
+      <label>Link da planilha (opcional)</label>
+      <input type="url" placeholder="https://docs.google.com/spreadsheets/...">
+      <div class="hint">Preenche só se esse evento exigir que alguém registre algo numa planilha — o link aparece pro time quando clicarem no evento.</div>
+    </div>
+    <button class="form-submit-btn" onclick="closeModal('newEventOverlay')">Salvar evento</button>
+  </div>
+</div>
+
+<script>
+  var EVENTS = [
+    { day: 1,  dow: 'Ter', title: 'Virada do período fiscal', cat: 'fechamento', catLabel: '🟢 Fechamento / Meta',
+      desc: 'Marca o início de um novo período fiscal na apuração de metas (campo "Período" da planilha de origem).', link: null },
+    { day: 3,  dow: 'Qui', time: '10h', title: 'Reunião de time', cat: 'reuniao', catLabel: '🟠 Reunião de time',
+      desc: 'Reunião semanal de alinhamento com toda a equipe.', link: null },
+    { day: 8,  dow: 'Ter', time: '14h', title: '1:1 — Julia & Pedro', cat: 'individual', catLabel: '⚪ 1:1',
+      desc: 'Conversa individual de acompanhamento.', link: null },
+    { day: 10, dow: 'Qui', time: '16h', title: 'Hotmart Cast — Trend Moda Feminina', cat: 'evento', catLabel: '🔵 Evento',
+      desc: 'Evento agendado no CRM da cliente Ana Beatriz Ferreira — puxado automaticamente do campo hotmartCastData.', link: null },
+    { day: 15, dow: 'Ter', title: 'Fechamento parcial de metas', cat: 'fechamento', catLabel: '🟢 Fechamento / Meta',
+      desc: 'Conferência de metade do mês — cada consultor precisa registrar o andamento de cada cliente na planilha de controle.',
+      link: { label: 'Controle de Metas Mensais', url: '#' } },
+    { day: 17, dow: 'Qui', time: '10h', title: 'Reunião de time', cat: 'reuniao', catLabel: '🟠 Reunião de time',
+      desc: 'Reunião semanal de alinhamento com toda a equipe.', link: null },
+    { day: 22, dow: 'Ter', time: '11h', title: 'Treinamento — novo fluxo de CRM', cat: 'treinamento', catLabel: '🟣 Treinamento',
+      desc: 'Apresentação do novo fluxo de preenchimento do CRM (aba Ações de Relacionamento).', link: null },
+    { day: 24, dow: 'Qui', time: '10h', title: 'Reunião de time', cat: 'reuniao', catLabel: '🟠 Reunião de time',
+      desc: 'Reunião semanal de alinhamento com toda a equipe.', link: null },
+    { day: 30, dow: 'Qua', title: 'Fechamento do mês + relatório pra diretoria', cat: 'fechamento', catLabel: '🟢 Fechamento / Meta',
+      desc: 'Fechamento oficial do mês — preencher os números finais de cada consultor antes do envio do relatório.',
+      link: { label: 'Relatório pra Diretoria', url: '#' } }
+  ];
+
+  function eventsOnDay(day) { return EVENTS.filter(function (e) { return e.day === day; }); }
+
+  function renderCalendar() {
+    var grid = document.getElementById('calGrid');
+    var leadingEmpty = 2, totalDays = 30, todayDay = 1, selectedDay = 15;
+    var html = '';
+    for (var i = 0; i < leadingEmpty; i++) html += '<div class="cal-day empty"></div>';
+    for (var d = 1; d <= totalDays; d++) {
+      var evs = eventsOnDay(d);
+      var cls = 'cal-day' + (evs.length ? ' has-events' : '') + (d === todayDay ? ' today' : '') + (d === selectedDay ? ' selected' : '');
+      var dots = evs.map(function (e) { return '<span class="cal-dot ' + e.cat + '"></span>'; }).join('');
+      html += '<div class="' + cls + '" onclick="onDayClick(' + d + ')"><span class="n">' + d + '</span>' +
+        (evs.length ? '<div class="cal-day-dots">' + dots + '</div>' : '') + '</div>';
+    }
+    var trailingEmpty = (leadingEmpty + totalDays) % 7 === 0 ? 0 : 7 - ((leadingEmpty + totalDays) % 7);
+    for (var j = 0; j < trailingEmpty; j++) html += '<div class="cal-day empty"></div>';
+    grid.innerHTML = html;
+  }
+
+  function renderAgenda() {
+    var list = document.getElementById('agendaList');
+    list.innerHTML = EVENTS.map(function (e, idx) {
+      return '<div class="agenda-item" onclick="openEvent(' + idx + ')">' +
+        '<div class="agenda-date"><div class="dow">' + e.dow + '</div><div class="dom">' + String(e.day).padStart(2, '0') + '</div></div>' +
+        '<div class="agenda-body"><div class="agenda-title">' + e.title + (e.time ? ' — ' + e.time : '') + '</div>' +
+        '<div class="agenda-meta">' + e.catLabel + (e.link ? ' · 🔗 tem planilha' : '') + '</div></div>' +
+        '</div>';
+    }).join('');
+  }
+
+  function onDayClick(day) {
+    var evs = eventsOnDay(day);
+    if (evs.length) openEvent(EVENTS.indexOf(evs[0]));
+  }
+
+  function openEvent(idx) {
+    var e = EVENTS[idx];
+    document.getElementById('evCatBadge').textContent = e.catLabel;
+    document.getElementById('evTitle').textContent = e.title;
+    document.getElementById('evDate').textContent = e.dow + ', dia ' + e.day + ' de setembro' + (e.time ? ' às ' + e.time : '');
+    document.getElementById('evDesc').textContent = e.desc;
+    var linkBox = document.getElementById('evLinkBox');
+    if (e.link) {
+      linkBox.classList.remove('hidden');
+      document.getElementById('evLinkLabel').textContent = e.link.label;
+      document.getElementById('evLinkAnchor').href = e.link.url;
+    } else {
+      linkBox.classList.add('hidden');
+    }
+    document.getElementById('eventModalOverlay').classList.remove('hidden');
+  }
+
+  function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+  renderCalendar();
+  renderAgenda();
+
+  function setViewer(who, btn) {
+    btn.parentElement.querySelectorAll('button').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    var isAdmin = who === 'admin';
+    document.getElementById('addEventBtn').style.display = isAdmin ? '' : 'none';
+    document.getElementById('pageTag').textContent = isAdmin ? '👑 Só Amanda e Julia cadastram eventos aqui' : '🙂 Você vê os eventos, mas só Amanda/Julia cadastram';
+    document.getElementById('pageTag').className = isAdmin ? 'admin-tag' : 'view-only-tag';
+    document.getElementById('viewerAvatar').textContent = isAdmin ? 'AM' : 'PE';
+    document.getElementById('viewerNome').textContent = isAdmin ? 'Amanda' : 'Pedro';
+  }
+</script>
