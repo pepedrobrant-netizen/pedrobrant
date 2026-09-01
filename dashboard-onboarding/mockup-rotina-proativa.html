@@ -74,12 +74,15 @@
   .nav-tab.active { color: #fff; border-bottom-color: var(--brand-orange); font-weight: 600; }
 
   .rotina-sub-tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; border-bottom: 1px solid var(--gridline); }
-  .rotina-sub-tab { padding: 9px 14px; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); border-bottom: 2px solid transparent; cursor: default; }
+  .rotina-sub-tab { padding: 9px 14px; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); border: none; background: none; border-bottom: 2px solid transparent; cursor: pointer; font-family: inherit; }
   .rotina-sub-tab.active { color: var(--brand-orange); border-bottom-color: var(--brand-orange); }
   .rotina-sub-tab.new-tag { display: inline-flex; align-items: center; gap: 5px; }
-  .rotina-sub-tab.new-tag .pill { font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; background: var(--brand-orange); color: #fff; padding: 1px 5px; border-radius: 999px; }
+  .rotina-sub-tab .pill { font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; background: var(--brand-orange); color: #fff; padding: 1px 5px; border-radius: 999px; }
 
   .wrap { max-width: 1200px; margin: 0 auto; padding: 20px 24px 60px; }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
 
   .page-head { margin-bottom: 18px; }
   .page-head h2 { margin: 0 0 3px; font-size: 20px; }
@@ -87,7 +90,7 @@
 
   .section-title { font-size: 13px; font-weight: 700; margin: 0 0 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
 
-  /* ===== resumo do dia ===== */
+  /* ===== resumo do dia (Hoje) ===== */
   .today-summary { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
   .today-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; padding: 6px 13px; border-radius: 999px; }
   .today-pill .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
@@ -101,7 +104,6 @@
   .today-pill.oportunidade .dot { background: var(--brand-blue); }
   .today-pill.agenda { background: var(--surface-card); border: 1px solid var(--border); color: var(--text-secondary); }
 
-  /* ===== lista de ações prioritárias ===== */
   .today-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px; }
   .today-action { display: flex; gap: 13px; align-items: flex-start; background: var(--surface-card); border: 1px solid var(--border); border-left: 4px solid; border-radius: 11px; padding: 15px 17px; transition: opacity 0.15s; }
   .today-action.critico { border-left-color: var(--status-critical); }
@@ -132,14 +134,12 @@
   .today-action-links a:hover { text-decoration: underline; }
   .today-action-links a.secondary { color: var(--text-secondary); }
 
-  /* ===== agenda do dia ===== */
   .today-agenda-strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 30px; }
   .today-agenda-chip { flex-shrink: 0; background: var(--surface-card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; min-width: 168px; }
   .today-agenda-chip .time { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
   .today-agenda-chip .title { font-size: 12px; color: var(--text-secondary); margin-top: 2px; line-height: 1.4; }
   .today-agenda-chip .src { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted); margin-top: 6px; }
 
-  /* ===== lembretes de processo (colapsado) ===== */
   .process-block { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
   .process-block summary { padding: 15px 18px; cursor: pointer; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: space-between; list-style: none; }
   .process-block summary::-webkit-details-marker { display: none; }
@@ -154,6 +154,58 @@
 
   .divider-note { text-align: center; font-size: 11.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 30px 0 16px; display: flex; align-items: center; gap: 12px; }
   .divider-note::before, .divider-note::after { content: ''; flex: 1; height: 1px; background: var(--gridline); }
+
+  /* ===== Semana ===== */
+  .week-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+  .week-day-card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 17px; }
+  .week-day-name { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 700; }
+  .week-day-tema { font-family: var(--font-display); font-size: 15px; font-weight: 700; margin: 2px 0 11px; }
+  .week-stat { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px; margin-bottom: 12px; background: color-mix(in srgb, var(--brand-orange) 12%, transparent); color: var(--brand-orange); }
+  .week-items { display: flex; flex-direction: column; gap: 5px; }
+  .week-item { font-size: 12px; color: var(--text-secondary); line-height: 1.4; padding-left: 14px; position: relative; }
+  .week-item::before { content: '·'; position: absolute; left: 2px; color: var(--text-muted); }
+
+  /* ===== Checklist semanal (com progresso real) ===== */
+  .progress-group { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; }
+  .progress-group-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .progress-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--gridline); }
+  .progress-row:last-child { border-bottom: none; }
+  .progress-label { flex: 1; font-size: 12.5px; color: var(--text-primary); }
+  .progress-bar-track { width: 110px; height: 6px; border-radius: 999px; background: var(--gridline); overflow: hidden; flex-shrink: 0; }
+  .progress-bar-fill { height: 100%; border-radius: 999px; background: var(--status-good); }
+  .progress-bar-fill.warn { background: var(--status-warning); }
+  .progress-count { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 46px; text-align: right; }
+  .progress-link { font-size: 11px; font-weight: 700; color: var(--brand-orange); white-space: nowrap; text-decoration: none; }
+  .progress-link:hover { text-decoration: underline; }
+  .progress-ok-tag { font-size: 11px; font-weight: 700; color: var(--status-good); white-space: nowrap; }
+
+  /* ===== Por tipo de cliente ===== */
+  .tipo-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; }
+  .tipo-col { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+  .tipo-col-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+  .tipo-col-title { font-weight: 700; font-size: 13.5px; }
+  .tipo-count { font-size: 11.5px; color: var(--text-muted); }
+  .tipo-client { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--gridline); }
+  .tipo-client:last-child { border-bottom: none; }
+  .tipo-client-name { font-size: 12.5px; font-weight: 600; }
+  .tipo-client-progress { font-size: 11px; color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tipo-more { font-size: 11.5px; color: var(--text-muted); padding-top: 9px; text-align: center; }
+
+  /* ===== Mensal ===== */
+  .mensal-list { display: flex; flex-direction: column; gap: 10px; }
+  .mensal-item { display: flex; align-items: center; gap: 15px; background: var(--surface-card); border: 1px solid var(--border); border-radius: 11px; padding: 14px 17px; }
+  .mensal-days { width: 58px; flex-shrink: 0; text-align: center; }
+  .mensal-days .n { font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .mensal-days .lbl { font-size: 8.5px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.02em; }
+  .mensal-body { flex: 1; min-width: 0; }
+  .mensal-title { font-weight: 700; font-size: 13px; }
+  .mensal-sub { font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; }
+  .mensal-pending { font-size: 11px; font-weight: 700; padding: 4px 11px; border-radius: 999px; white-space: nowrap; }
+  .mensal-pending.ok { background: color-mix(in srgb, var(--status-good) 15%, transparent); color: var(--status-good); }
+  .mensal-pending.warn { background: color-mix(in srgb, var(--status-warning) 20%, transparent); color: #8a5a00; }
+  :root[data-theme="dark"] .mensal-pending.warn, :root:not([data-theme="light"]) .mensal-pending.warn { color: var(--status-warning); }
+
+  .placeholder-note { background: var(--surface-card); border: 1px dashed var(--border); border-radius: 12px; padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px; }
 
   @media (max-width: 640px) {
     .today-action-top { flex-direction: column; }
@@ -183,66 +235,299 @@
 
 <div class="wrap">
 
-  <div class="rotina-sub-tabs">
-    <div class="rotina-sub-tab active new-tag">🎯 Hoje <span class="pill">novo</span></div>
-    <div class="rotina-sub-tab">📅 Semana</div>
-    <div class="rotina-sub-tab">✅ Checklist semanal</div>
-    <div class="rotina-sub-tab">🧭 Por tipo de cliente</div>
-    <div class="rotina-sub-tab">🗓 Mensal</div>
-    <div class="rotina-sub-tab">🎯 Missões</div>
+  <div class="rotina-sub-tabs" id="rotinaSubTabs">
+    <button class="rotina-sub-tab active new-tag" onclick="setTab('hoje', this)">🎯 Hoje <span class="pill">novo</span></button>
+    <button class="rotina-sub-tab" onclick="setTab('semana', this)">📅 Semana</button>
+    <button class="rotina-sub-tab" onclick="setTab('checklist', this)">✅ Checklist semanal</button>
+    <button class="rotina-sub-tab" onclick="setTab('tipo', this)">🧭 Por tipo de cliente</button>
+    <button class="rotina-sub-tab" onclick="setTab('mensal', this)">🗓 Mensal</button>
+    <button class="rotina-sub-tab" onclick="setTab('missoes', this)">🎯 Missões</button>
   </div>
 
-  <div class="page-head">
-    <h2>Hoje — terça, 1 de setembro</h2>
-    <div class="sub">Gerado a partir dos sinais da Central de Atenção e dos eventos do Calendário do Time — muda todo dia, não é um checklist fixo. Marque o que já resolveu.</div>
-  </div>
-
-  <div class="today-summary">
-    <span class="today-pill critico"><span class="dot"></span>Crítico · 2</span>
-    <span class="today-pill atencao"><span class="dot"></span>Atenção · 2</span>
-    <span class="today-pill oportunidade"><span class="dot"></span>Oportunidade · 3</span>
-    <span class="today-pill agenda">📅 3 compromissos hoje</span>
-  </div>
-
-  <div class="section-title">Ações prioritárias</div>
-  <div class="today-list" id="todayList"></div>
-
-  <div class="section-title">Hoje na agenda</div>
-  <div class="today-agenda-strip">
-    <div class="today-agenda-chip">
-      <div class="time">09h</div>
-      <div class="title">Call de boas-vindas — Marcos Vinícius</div>
-      <div class="src">🙋 Cronograma</div>
+  <!-- ===== HOJE ===== -->
+  <div class="tab-panel active" id="panel-hoje">
+    <div class="page-head">
+      <h2>Hoje — terça, 1 de setembro</h2>
+      <div class="sub">Gerado a partir dos sinais da Central de Atenção e dos eventos do Calendário do Time — muda todo dia, não é um checklist fixo. Marque o que já resolveu.</div>
     </div>
-    <div class="today-agenda-chip">
-      <div class="time">11h</div>
-      <div class="title">Follow-up técnico — Studio Bela Estética</div>
-      <div class="src">🙋 Cronograma</div>
-    </div>
-    <div class="today-agenda-chip">
-      <div class="time">—</div>
-      <div class="title">Virada do período fiscal</div>
-      <div class="src">📅 Calendário do time</div>
-    </div>
-  </div>
 
-  <div class="divider-note">Ainda vale conferir</div>
+    <div class="today-summary">
+      <span class="today-pill critico"><span class="dot"></span>Crítico · 2</span>
+      <span class="today-pill atencao"><span class="dot"></span>Atenção · 2</span>
+      <span class="today-pill oportunidade"><span class="dot"></span>Oportunidade · 3</span>
+      <span class="today-pill agenda">📅 3 compromissos hoje</span>
+    </div>
 
-  <details class="process-block">
-    <summary>🌤️ Lembretes de processo (rotina fixa do dia) <span class="caret">▸</span></summary>
-    <div class="process-block-body">
-      <div class="process-group">
-        <div class="process-group-title">☀️ Manhã — antes de qualquer reunião</div>
-        <div class="process-item">Abrir o Dashboard de Ativação — verificar clientes que abriram ou deveriam ter aberto carrinho</div>
-        <div class="process-item">Checar mensagens de WhatsApp dos grupos e responder pendências</div>
+    <div class="section-title">Ações prioritárias</div>
+    <div class="today-list" id="todayList"></div>
+
+    <div class="section-title">Hoje na agenda</div>
+    <div class="today-agenda-strip">
+      <div class="today-agenda-chip">
+        <div class="time">09h</div>
+        <div class="title">Call de boas-vindas — Marcos Vinícius</div>
+        <div class="src">🙋 Cronograma</div>
       </div>
-      <div class="process-group">
-        <div class="process-group-title">🌙 Final do dia — antes de desligar</div>
-        <div class="process-item">Garantir que todos os clientes que mandaram mensagem foram respondidos</div>
-        <div class="process-item">Registrar no SF qualquer interação do dia ainda não anotada</div>
+      <div class="today-agenda-chip">
+        <div class="time">11h</div>
+        <div class="title">Follow-up técnico — Studio Bela Estética</div>
+        <div class="src">🙋 Cronograma</div>
+      </div>
+      <div class="today-agenda-chip">
+        <div class="time">—</div>
+        <div class="title">Virada do período fiscal</div>
+        <div class="src">📅 Calendário do time</div>
       </div>
     </div>
-  </details>
+
+    <div class="divider-note">Ainda vale conferir</div>
+
+    <details class="process-block">
+      <summary>🌤️ Lembretes de processo (rotina fixa do dia) <span class="caret">▸</span></summary>
+      <div class="process-block-body">
+        <div class="process-group">
+          <div class="process-group-title">☀️ Manhã — antes de qualquer reunião</div>
+          <div class="process-item">Abrir o Dashboard de Ativação — verificar clientes que abriram ou deveriam ter aberto carrinho</div>
+          <div class="process-item">Checar mensagens de WhatsApp dos grupos e responder pendências</div>
+        </div>
+        <div class="process-group">
+          <div class="process-group-title">🌙 Final do dia — antes de desligar</div>
+          <div class="process-item">Garantir que todos os clientes que mandaram mensagem foram respondidos</div>
+          <div class="process-item">Registrar no SF qualquer interação do dia ainda não anotada</div>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <!-- ===== SEMANA ===== -->
+  <div class="tab-panel" id="panel-semana">
+    <div class="page-head">
+      <h2>Semana</h2>
+      <div class="sub">A agenda por tema do dia continua editável — só que agora cada dia já chega com o número real de clientes que se encaixam naquele tema, em vez de um lembrete genérico.</div>
+    </div>
+    <div class="week-grid">
+      <div class="week-day-card">
+        <div class="week-day-name">Segunda</div>
+        <div class="week-day-tema">SF + Planejamento</div>
+        <div class="week-stat">📊 4 com Health desatualizado</div>
+        <div class="week-items">
+          <div class="week-item">9:15 All Hands BU</div>
+          <div class="week-item">11:00 Resultados Onboarding</div>
+          <div class="week-item">Atualizar Health de toda a carteira</div>
+          <div class="week-item">Verificar calendário de eventos</div>
+        </div>
+      </div>
+      <div class="week-day-card">
+        <div class="week-day-name">Terça</div>
+        <div class="week-day-tema">Ativações + Alavancas</div>
+        <div class="week-stat">🛒 3 com carrinho aberto pra ativar</div>
+        <div class="week-items">
+          <div class="week-item">9:15 Treinamento Sales</div>
+          <div class="week-item">Dashboard — verificar carrinhos do dia</div>
+          <div class="week-item">Foco em clientes para ativar</div>
+          <div class="week-item">Verificar alavancas pendentes</div>
+        </div>
+      </div>
+      <div class="week-day-card">
+        <div class="week-day-name">Quarta</div>
+        <div class="week-day-tema">Destrave Operacional</div>
+        <div class="week-stat">🔧 2 com bloqueio técnico</div>
+        <div class="week-items">
+          <div class="week-item">10:00 Daily ON/Start (Destrave)</div>
+          <div class="week-item">Levantar bloqueios técnicos</div>
+          <div class="week-item">Atualizar clientes Delayed</div>
+          <div class="week-item">SF — ajustar status e datas</div>
+        </div>
+      </div>
+      <div class="week-day-card">
+        <div class="week-day-name">Quinta</div>
+        <div class="week-day-tema">Críticos + Treinamento</div>
+        <div class="week-stat">🔴 5 com +60 dias sem ativação</div>
+        <div class="week-items">
+          <div class="week-item">9:30 Treinamento Onboarding</div>
+          <div class="week-item">Ghost e Disengaged — tentativa multicanal</div>
+          <div class="week-item">Revisar clientes +60 dias sem ativação</div>
+          <div class="week-item">Reunião com liderança às 14:30</div>
+        </div>
+      </div>
+      <div class="week-day-card">
+        <div class="week-day-name">Sexta</div>
+        <div class="week-day-tema">Fechamento + SF completo</div>
+        <div class="week-stat">📝 1 sem comentário essa semana</div>
+        <div class="week-items">
+          <div class="week-item">14:00 Fechamento da semana</div>
+          <div class="week-item">SF — atualizar todos os comentários</div>
+          <div class="week-item">Revisar cobertura completa</div>
+          <div class="week-item">Confirmar abertura de carrinho da semana</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CHECKLIST SEMANAL ===== -->
+  <div class="tab-panel" id="panel-checklist">
+    <div class="page-head">
+      <h2>Checklist semanal</h2>
+      <div class="sub">Cada item deixa de ser uma caixinha marcada de boa-fé e vira uma contagem real da carteira — com um link direto pra quem ainda falta.</div>
+    </div>
+
+    <div class="progress-group">
+      <div class="progress-group-title">Salesforce — atualização obrigatória</div>
+      <div class="progress-row">
+        <div class="progress-label">Health e Health Reason revisados</div>
+        <div class="progress-bar-track"><div class="progress-bar-fill warn" style="width:88%"></div></div>
+        <div class="progress-count">23/26</div>
+        <a class="progress-link" href="#">ver quem falta</a>
+      </div>
+      <div class="progress-row">
+        <div class="progress-label">Datas de abertura de carrinho conferidas</div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:100%"></div></div>
+        <div class="progress-count">26/26</div>
+        <span class="progress-ok-tag">✓ completo</span>
+      </div>
+      <div class="progress-row">
+        <div class="progress-label">Strategy for Achieving Goals atualizado</div>
+        <div class="progress-bar-track"><div class="progress-bar-fill warn" style="width:81%"></div></div>
+        <div class="progress-count">21/26</div>
+        <a class="progress-link" href="#">ver quem falta</a>
+      </div>
+    </div>
+
+    <div class="progress-group">
+      <div class="progress-group-title">Contato e acompanhamento</div>
+      <div class="progress-row">
+        <div class="progress-label">Todo cliente contatado ao menos 1x esta semana</div>
+        <div class="progress-bar-track"><div class="progress-bar-fill warn" style="width:92%"></div></div>
+        <div class="progress-count">24/26</div>
+        <a class="progress-link" href="#">ver quem falta</a>
+      </div>
+      <div class="progress-row">
+        <div class="progress-label">Clientes Delayed com follow-up + nova data</div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:100%"></div></div>
+        <div class="progress-count">3/3</div>
+        <span class="progress-ok-tag">✓ completo</span>
+      </div>
+    </div>
+
+    <div class="progress-group">
+      <div class="progress-group-title">Alavancas de relacionamento</div>
+      <div class="progress-row">
+        <div class="progress-label">Brindes pendentes enviados e registrados no SF</div>
+        <div class="progress-bar-track"><div class="progress-bar-fill warn" style="width:83%"></div></div>
+        <div class="progress-count">5/6</div>
+        <a class="progress-link" href="#">ver quem falta</a>
+      </div>
+      <div class="progress-row">
+        <div class="progress-label">Convite pro próximo evento enviado</div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:100%"></div></div>
+        <div class="progress-count">26/26</div>
+        <span class="progress-ok-tag">✓ completo</span>
+      </div>
+    </div>
+
+    <div class="progress-group">
+      <div class="progress-group-title">Gestão de carteira</div>
+      <div class="progress-row">
+        <div class="progress-label">Avaliados com a liderança pra desencarteiramento</div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" style="width:100%"></div></div>
+        <div class="progress-count">2/2</div>
+        <span class="progress-ok-tag">✓ completo</span>
+      </div>
+      <div class="progress-row">
+        <div class="progress-label">Handoff pra CS revisado (+90 dias + GMV)</div>
+        <div class="progress-bar-track"><div class="progress-bar-fill warn" style="width:33%"></div></div>
+        <div class="progress-count">1/3</div>
+        <a class="progress-link" href="#">ver quem falta</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== POR TIPO DE CLIENTE ===== -->
+  <div class="tab-panel" id="panel-tipo">
+    <div class="page-head">
+      <h2>Por tipo de cliente</h2>
+      <div class="sub">Em vez do mesmo checklist de texto genérico pra qualquer onboarder, cada coluna já vem filtrada com os clientes reais da sua carteira, e o progresso do checklist é por cliente, não geral.</div>
+    </div>
+    <div class="tipo-columns">
+      <div class="tipo-col">
+        <div class="tipo-col-head">
+          <div class="tipo-col-title">🟢 Para ativar</div>
+          <div class="tipo-count">5 clientes</div>
+        </div>
+        <div class="tipo-client"><span class="tipo-client-name">Marcos Vinícius</span><span class="tipo-client-progress">4/7 itens</span></div>
+        <div class="tipo-client"><span class="tipo-client-name">Studio Bela Estética</span><span class="tipo-client-progress">6/7 itens</span></div>
+        <div class="tipo-client"><span class="tipo-client-name">Comércio Nogueira</span><span class="tipo-client-progress">2/7 itens</span></div>
+        <div class="tipo-more">+ 2 clientes</div>
+      </div>
+      <div class="tipo-col">
+        <div class="tipo-col-head">
+          <div class="tipo-col-title">🔵 Ativados — GMV +10k</div>
+          <div class="tipo-count">14 clientes</div>
+        </div>
+        <div class="tipo-client"><span class="tipo-client-name">Ana Beatriz Ferreira</span><span class="tipo-client-progress">5/7 itens</span></div>
+        <div class="tipo-client"><span class="tipo-client-name">João Torres</span><span class="tipo-client-progress">7/7 ✓</span></div>
+        <div class="tipo-client"><span class="tipo-client-name">Torres Consultoria</span><span class="tipo-client-progress">6/7 itens</span></div>
+        <div class="tipo-more">+ 11 clientes</div>
+      </div>
+      <div class="tipo-col">
+        <div class="tipo-col-head">
+          <div class="tipo-col-title">🔴 Standby / Churn</div>
+          <div class="tipo-count">2 clientes</div>
+        </div>
+        <div class="tipo-client"><span class="tipo-client-name">Ateliê Sereno</span><span class="tipo-client-progress">3/7 itens</span></div>
+        <div class="tipo-client"><span class="tipo-client-name">Comércio Vale Norte</span><span class="tipo-client-progress">2/7 itens</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MENSAL ===== -->
+  <div class="tab-panel" id="panel-mensal">
+    <div class="page-head">
+      <h2>Mensal</h2>
+      <div class="sub">Os prazos do mês ganham contagem regressiva real e o número de clientes que ainda faltam pra cada um — em vez de um texto solto que só lembra a data.</div>
+    </div>
+    <div class="mensal-list">
+      <div class="mensal-item">
+        <div class="mensal-days"><div class="n">19</div><div class="lbl">dias</div></div>
+        <div class="mensal-body"><div class="mensal-title">Encarteiramento</div><div class="mensal-sub">Prazo: até dia 20 do mês</div></div>
+        <span class="mensal-pending ok">✓ 0 pendentes</span>
+      </div>
+      <div class="mensal-item">
+        <div class="mensal-days"><div class="n">28</div><div class="lbl">dias</div></div>
+        <div class="mensal-body"><div class="mensal-title">Desencarteiramento</div><div class="mensal-sub">Prazo: até dia 29 do mês</div></div>
+        <span class="mensal-pending warn">2 a avaliar</span>
+      </div>
+      <div class="mensal-item">
+        <div class="mensal-days"><div class="n">14</div><div class="lbl">dias</div></div>
+        <div class="mensal-body"><div class="mensal-title">Team guide — Metas</div><div class="mensal-sub">Prazo: até dia 15 do mês</div></div>
+        <span class="mensal-pending ok">✓ 0 pendentes</span>
+      </div>
+      <div class="mensal-item">
+        <div class="mensal-days"><div class="n">—</div><div class="lbl">contínuo</div></div>
+        <div class="mensal-body"><div class="mensal-title">Análise de previsão da meta</div><div class="mensal-sub">Pra o próximo mês, sem data fixa</div></div>
+        <span class="mensal-pending warn">4 pendentes</span>
+      </div>
+      <div class="mensal-item">
+        <div class="mensal-days"><div class="n">—</div><div class="lbl">contínuo</div></div>
+        <div class="mensal-body"><div class="mensal-title">Atualização SF</div><div class="mensal-sub">Campos de carteira sempre em dia</div></div>
+        <span class="mensal-pending warn">3 pendentes</span>
+      </div>
+      <div class="mensal-item">
+        <div class="mensal-days"><div class="n">—</div><div class="lbl">contínuo</div></div>
+        <div class="mensal-body"><div class="mensal-title">Brinde de cliente</div><div class="mensal-sub">Enviado assim que o cliente entra em Welcome</div></div>
+        <span class="mensal-pending warn">1 pendente</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MISSÕES (sem mudança proposta aqui) ===== -->
+  <div class="tab-panel" id="panel-missoes">
+    <div class="page-head">
+      <h2>Missões</h2>
+      <div class="sub">Sem mudanças propostas nessa sub-aba por enquanto — ela já funciona por conquista/gamificação, não por checklist manual.</div>
+    </div>
+    <div class="placeholder-note">A tela de Missões continua como está hoje.</div>
+  </div>
 
 </div>
 
@@ -300,6 +585,13 @@
     var done = card.classList.toggle('is-done');
     check.classList.toggle('is-done', done);
     check.textContent = done ? '✓' : '';
+  }
+
+  function setTab(name, btn) {
+    document.querySelectorAll('#rotinaSubTabs .rotina-sub-tab').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+    document.getElementById('panel-' + name).classList.add('active');
   }
 
   renderToday();
