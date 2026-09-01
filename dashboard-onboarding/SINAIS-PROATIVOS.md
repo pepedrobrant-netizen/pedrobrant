@@ -38,6 +38,30 @@ navegação vira **"🔔 Central de Atenção"**, mesma posição (2ª aba). O c
 A Carteira (`renderCarteira`/tabela) continua existindo like hoje, sem mudança
 estrutural — só ganha um indicador visual leve (ver seção 4).
 
+**Correção importante (decidida com o Pedro depois do mockup): o perfil do
+cliente NÃO pertence à Central de Atenção.** Ele pertence à Carteira — todo
+cliente tem perfil (Cronograma/CRM/Saúde), tenha sinal ativo ou não. Se o
+destaque de navegação ficar preso em "Central de Atenção" toda vez que um
+perfil é aberto, fica repetitivo (o perfil já mostra os sinais dele, não
+precisa duplicar o contexto) e fica sem sentido pra um cliente sem nenhum
+sinal ativo — ele não é "sobre atenção".
+
+Regra de destaque do nav ao abrir um perfil, **não importa a origem**:
+- Cliente aberto pela Carteira → nav destaca **Carteira**.
+- Cliente aberto por um card da Central de Atenção → nav destaca **Carteira**
+  também, não "Central de Atenção" — o perfil é conteúdo da Carteira, a
+  Central de Atenção só foi o caminho até ele.
+- "Central de Atenção" como aba só fica destacada enquanto a pessoa está na
+  própria grade de sinais (ou na galeria "Buscar cliente"), nunca dentro de
+  um perfil aberto.
+
+Na prática, isso é só o estado de qual `nav-tab` recebe a classe `.active` —
+não muda o conteúdo do perfil em si, nem duplica nada. O bug a evitar é: não
+existe um estado tipo `state.screen === 'atencao'` cobrindo tanto a grade
+quanto o perfil aberto a partir dela — são dois estados de tela diferentes
+(`'atencao'` para a grade, `'perfil'`/o que já existir para o perfil), e o
+`nav-tab` que fica ativo depende só de qual dos dois é o estado atual.
+
 ## 3. Regra de agregação: 1 card por cliente, nunca por sinal
 
 Um cliente pode ter mais de um sinal ativo ao mesmo tempo (ex: meta em risco **e**
