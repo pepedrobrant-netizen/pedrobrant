@@ -168,6 +168,9 @@
   .progress-link { font-size: 11px; font-weight: 700; color: var(--brand-orange); white-space: nowrap; text-decoration: none; }
   .progress-link:hover { text-decoration: underline; }
   .progress-ok-tag { font-size: 11px; font-weight: 700; color: var(--status-good); white-space: nowrap; }
+  .progress-row.illustrative { opacity: 0.6; }
+  .illustrative-tag { font-size: 10px; font-weight: 700; color: var(--text-muted); white-space: nowrap; }
+  .gap-note { font-size: 11.5px; color: var(--text-muted); background: var(--surface-page); border: 1px dashed var(--border); border-radius: 8px; padding: 9px 12px; margin: -2px 0 12px; line-height: 1.5; }
 
   /* ===== Por tipo de cliente ===== */
   .tipo-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; }
@@ -297,11 +300,12 @@
 
     <div class="progress-group">
       <div class="progress-group-title">Salesforce — atualização obrigatória</div>
-      <div class="progress-row">
+      <div class="gap-note">🧪 Os itens marcados abaixo dependem de campos que hoje só existem dentro do Salesforce (<code>Health</code>, <code>Health Reason</code>, <code>Strategy for Achieving Goals</code>) — o dashboard ainda não recebe esses dados. Os números aqui são ilustrativos até alguém incluir esses campos na sincronização que já alimenta a planilha.</div>
+      <div class="progress-row illustrative">
         <div class="progress-label">Health e Health Reason revisados</div>
         <div class="progress-bar-track"><div class="progress-bar-fill warn" style="width:88%"></div></div>
         <div class="progress-count">23/26</div>
-        <a class="progress-link" href="#">ver quem falta</a>
+        <span class="illustrative-tag">🧪 ilustrativo</span>
       </div>
       <div class="progress-row">
         <div class="progress-label">Datas de abertura de carrinho conferidas</div>
@@ -309,11 +313,11 @@
         <div class="progress-count">26/26</div>
         <span class="progress-ok-tag">✓ completo</span>
       </div>
-      <div class="progress-row">
+      <div class="progress-row illustrative">
         <div class="progress-label">Strategy for Achieving Goals atualizado</div>
         <div class="progress-bar-track"><div class="progress-bar-fill warn" style="width:81%"></div></div>
         <div class="progress-count">21/26</div>
-        <a class="progress-link" href="#">ver quem falta</a>
+        <span class="illustrative-tag">🧪 ilustrativo</span>
       </div>
     </div>
 
