@@ -173,21 +173,16 @@
   .gap-note { font-size: 11.5px; color: var(--text-muted); background: var(--surface-page); border: 1px dashed var(--border); border-radius: 8px; padding: 9px 12px; margin: -2px 0 12px; line-height: 1.5; }
 
   /* ===== Por tipo de cliente ===== */
-  .stage-board { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 6px; }
-  .stage-col { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 15px; min-width: 220px; flex-shrink: 0; }
-  .stage-col-head { margin-bottom: 12px; }
-  .stage-col-title { font-weight: 700; font-size: 12.5px; }
-  .stage-count { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
-  .stage-client-card { background: var(--surface-page); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; margin-bottom: 8px; }
-  .stage-client-card:last-child { margin-bottom: 0; }
-  .stage-client-name { font-size: 12.5px; font-weight: 700; }
-  .stage-client-empresa { font-size: 10.5px; color: var(--text-muted); margin-top: 1px; }
-  .stage-client-days { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; margin-top: 7px; padding: 2px 8px; border-radius: 999px; }
-  .stage-client-days.ok { background: var(--surface-card); color: var(--text-secondary); border: 1px solid var(--border); }
-  .stage-client-days.atencao { background: color-mix(in srgb, var(--status-warning) 22%, transparent); color: #8a5a00; }
-  :root[data-theme="dark"] .stage-client-days.atencao, :root:not([data-theme="light"]) .stage-client-days.atencao { color: var(--status-warning); }
-  .stage-client-days.critico { background: color-mix(in srgb, var(--status-critical) 16%, transparent); color: var(--status-critical); }
-  .stage-empty { font-size: 11.5px; color: var(--text-muted); text-align: center; padding: 10px 0; }
+  .tipo-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; }
+  .tipo-col { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+  .tipo-col-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+  .tipo-col-title { font-weight: 700; font-size: 13.5px; }
+  .tipo-count { font-size: 11.5px; color: var(--text-muted); }
+  .tipo-client { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--gridline); }
+  .tipo-client:last-child { border-bottom: none; }
+  .tipo-client-name { font-size: 12.5px; font-weight: 600; }
+  .tipo-client-progress { font-size: 11px; color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tipo-more { font-size: 11.5px; color: var(--text-muted); padding-top: 9px; text-align: center; }
 
   /* ===== Mensal ===== */
   .mensal-list { display: flex; flex-direction: column; gap: 10px; }
@@ -379,93 +374,35 @@
   <div class="tab-panel" id="panel-tipo">
     <div class="page-head">
       <h2>Por tipo de cliente</h2>
-      <div class="sub">Uma coluna por etapa do <code>Status</code> — só as etapas de onboarding em andamento (Pre Onboarding até Activation &amp; Monitoring). Active/Accomplished não entram aqui porque já passaram do onboarding. O selo de dias usa o mesmo limiar da Central de Atenção: 15 dias parado é atenção, 30 dias em Ready for Activation é crítico — Activation &amp; Monitoring nunca sinaliza, porque é a etapa final e fica mais tempo por design.</div>
+      <div class="sub">Mesma visão de antes (3 colunas, checklist por cliente) — mas agora só entram clientes cujo <code>Status</code> é Pre Onboarding, Welcome, Product Migration, Ready for Activation ou Activation &amp; Monitoring. Quem já é Active ou Accomplished não aparece aqui, porque já passou do onboarding.</div>
     </div>
-    <div class="stage-board">
-      <div class="stage-col">
-        <div class="stage-col-head">
-          <div class="stage-col-title">Pre Onboarding</div>
-          <div class="stage-count">2 clientes</div>
+    <div class="tipo-columns">
+      <div class="tipo-col">
+        <div class="tipo-col-head">
+          <div class="tipo-col-title">🟢 Para ativar</div>
+          <div class="tipo-count">5 clientes</div>
         </div>
-        <div class="stage-client-card">
-          <div class="stage-client-name">Comércio Nogueira</div>
-          <div class="stage-client-empresa">Comércio Nogueira Ltda</div>
-          <span class="stage-client-days ok">3 dias</span>
-        </div>
-        <div class="stage-client-card">
-          <div class="stage-client-name">Ateliê Sereno</div>
-          <div class="stage-client-empresa">Ateliê Sereno</div>
-          <span class="stage-client-days ok">5 dias</span>
-        </div>
+        <div class="tipo-client"><span class="tipo-client-name">Marcos Vinícius</span><span class="tipo-client-progress">4/7 itens</span></div>
+        <div class="tipo-client"><span class="tipo-client-name">Studio Bela Estética</span><span class="tipo-client-progress">6/7 itens</span></div>
+        <div class="tipo-client"><span class="tipo-client-name">Comércio Nogueira</span><span class="tipo-client-progress">2/7 itens</span></div>
+        <div class="tipo-more">+ 2 clientes</div>
       </div>
-      <div class="stage-col">
-        <div class="stage-col-head">
-          <div class="stage-col-title">Welcome</div>
-          <div class="stage-count">3 clientes</div>
+      <div class="tipo-col">
+        <div class="tipo-col-head">
+          <div class="tipo-col-title">🔵 Ativados — em Activation &amp; Monitoring</div>
+          <div class="tipo-count">4 clientes</div>
         </div>
-        <div class="stage-client-card">
-          <div class="stage-client-name">Marcos Vinícius</div>
-          <div class="stage-client-empresa">Loja MV Eletrônicos</div>
-          <span class="stage-client-days ok">6 dias</span>
-        </div>
-        <div class="stage-client-card">
-          <div class="stage-client-name">Loja Vale Norte</div>
-          <div class="stage-client-empresa">Loja Vale Norte</div>
-          <span class="stage-client-days ok">2 dias</span>
-        </div>
-        <div class="stage-client-card">
-          <div class="stage-client-name">Estúdio Aurora</div>
-          <div class="stage-client-empresa">Estúdio Aurora</div>
-          <span class="stage-client-days ok">9 dias</span>
-        </div>
+        <div class="tipo-client"><span class="tipo-client-name">João Torres</span><span class="tipo-client-progress">7/7 ✓</span></div>
+        <div class="tipo-client"><span class="tipo-client-name">Padaria Ideal</span><span class="tipo-client-progress">5/7 itens</span></div>
+        <div class="tipo-more">+ 2 clientes</div>
       </div>
-      <div class="stage-col">
-        <div class="stage-col-head">
-          <div class="stage-col-title">Product Migration</div>
-          <div class="stage-count">2 clientes</div>
+      <div class="tipo-col">
+        <div class="tipo-col-head">
+          <div class="tipo-col-title">🔴 Standby / Churn</div>
+          <div class="tipo-count">2 clientes</div>
         </div>
-        <div class="stage-client-card">
-          <div class="stage-client-name">Studio Bela Estética</div>
-          <div class="stage-client-empresa">Studio Bela Estética</div>
-          <span class="stage-client-days atencao">⚠ 18 dias</span>
-        </div>
-        <div class="stage-client-card">
-          <div class="stage-client-name">Torres Consultoria</div>
-          <div class="stage-client-empresa">Torres Consultoria</div>
-          <span class="stage-client-days ok">7 dias</span>
-        </div>
-      </div>
-      <div class="stage-col">
-        <div class="stage-col-head">
-          <div class="stage-col-title">Ready for Activation</div>
-          <div class="stage-count">2 clientes</div>
-        </div>
-        <div class="stage-client-card">
-          <div class="stage-client-name">Ana Beatriz Ferreira</div>
-          <div class="stage-client-empresa">Trend Moda Feminina</div>
-          <span class="stage-client-days critico">🔴 34 dias</span>
-        </div>
-        <div class="stage-client-card">
-          <div class="stage-client-name">Comércio Vale Sul</div>
-          <div class="stage-client-empresa">Comércio Vale Sul</div>
-          <span class="stage-client-days ok">12 dias</span>
-        </div>
-      </div>
-      <div class="stage-col">
-        <div class="stage-col-head">
-          <div class="stage-col-title">Activation &amp; Monitoring</div>
-          <div class="stage-count">2 clientes</div>
-        </div>
-        <div class="stage-client-card">
-          <div class="stage-client-name">João Torres</div>
-          <div class="stage-client-empresa">Torres Consultoria</div>
-          <span class="stage-client-days ok">45 dias</span>
-        </div>
-        <div class="stage-client-card">
-          <div class="stage-client-name">Padaria Ideal</div>
-          <div class="stage-client-empresa">Padaria Ideal</div>
-          <span class="stage-client-days ok">22 dias</span>
-        </div>
+        <div class="tipo-client"><span class="tipo-client-name">Ateliê Sereno</span><span class="tipo-client-progress">3/7 itens</span></div>
+        <div class="tipo-client"><span class="tipo-client-name">Comércio Vale Norte</span><span class="tipo-client-progress">2/7 itens</span></div>
       </div>
     </div>
   </div>
