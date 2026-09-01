@@ -155,16 +155,6 @@
   .divider-note { text-align: center; font-size: 11.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 30px 0 16px; display: flex; align-items: center; gap: 12px; }
   .divider-note::before, .divider-note::after { content: ''; flex: 1; height: 1px; background: var(--gridline); }
 
-  /* ===== Semana ===== */
-  .week-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
-  .week-day-card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 17px; }
-  .week-day-name { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 700; }
-  .week-day-tema { font-family: var(--font-display); font-size: 15px; font-weight: 700; margin: 2px 0 11px; }
-  .week-stat { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px; margin-bottom: 12px; background: color-mix(in srgb, var(--brand-orange) 12%, transparent); color: var(--brand-orange); }
-  .week-items { display: flex; flex-direction: column; gap: 5px; }
-  .week-item { font-size: 12px; color: var(--text-secondary); line-height: 1.4; padding-left: 14px; position: relative; }
-  .week-item::before { content: '·'; position: absolute; left: 2px; color: var(--text-muted); }
-
   /* ===== Checklist semanal (com progresso real) ===== */
   .progress-group { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; }
   .progress-group-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
@@ -237,7 +227,6 @@
 
   <div class="rotina-sub-tabs" id="rotinaSubTabs">
     <button class="rotina-sub-tab active new-tag" onclick="setTab('hoje', this)">🎯 Hoje <span class="pill">novo</span></button>
-    <button class="rotina-sub-tab" onclick="setTab('semana', this)">📅 Semana</button>
     <button class="rotina-sub-tab" onclick="setTab('checklist', this)">✅ Checklist semanal</button>
     <button class="rotina-sub-tab" onclick="setTab('tipo', this)">🧭 Por tipo de cliente</button>
     <button class="rotina-sub-tab" onclick="setTab('mensal', this)">🗓 Mensal</button>
@@ -297,71 +286,6 @@
         </div>
       </div>
     </details>
-  </div>
-
-  <!-- ===== SEMANA ===== -->
-  <div class="tab-panel" id="panel-semana">
-    <div class="page-head">
-      <h2>Semana</h2>
-      <div class="sub">A agenda por tema do dia continua editável — só que agora cada dia já chega com o número real de clientes que se encaixam naquele tema, em vez de um lembrete genérico.</div>
-    </div>
-    <div class="week-grid">
-      <div class="week-day-card">
-        <div class="week-day-name">Segunda</div>
-        <div class="week-day-tema">SF + Planejamento</div>
-        <div class="week-stat">📊 4 com Health desatualizado</div>
-        <div class="week-items">
-          <div class="week-item">9:15 All Hands BU</div>
-          <div class="week-item">11:00 Resultados Onboarding</div>
-          <div class="week-item">Atualizar Health de toda a carteira</div>
-          <div class="week-item">Verificar calendário de eventos</div>
-        </div>
-      </div>
-      <div class="week-day-card">
-        <div class="week-day-name">Terça</div>
-        <div class="week-day-tema">Ativações + Alavancas</div>
-        <div class="week-stat">🛒 3 com carrinho aberto pra ativar</div>
-        <div class="week-items">
-          <div class="week-item">9:15 Treinamento Sales</div>
-          <div class="week-item">Dashboard — verificar carrinhos do dia</div>
-          <div class="week-item">Foco em clientes para ativar</div>
-          <div class="week-item">Verificar alavancas pendentes</div>
-        </div>
-      </div>
-      <div class="week-day-card">
-        <div class="week-day-name">Quarta</div>
-        <div class="week-day-tema">Destrave Operacional</div>
-        <div class="week-stat">🔧 2 com bloqueio técnico</div>
-        <div class="week-items">
-          <div class="week-item">10:00 Daily ON/Start (Destrave)</div>
-          <div class="week-item">Levantar bloqueios técnicos</div>
-          <div class="week-item">Atualizar clientes Delayed</div>
-          <div class="week-item">SF — ajustar status e datas</div>
-        </div>
-      </div>
-      <div class="week-day-card">
-        <div class="week-day-name">Quinta</div>
-        <div class="week-day-tema">Críticos + Treinamento</div>
-        <div class="week-stat">🔴 5 com +60 dias sem ativação</div>
-        <div class="week-items">
-          <div class="week-item">9:30 Treinamento Onboarding</div>
-          <div class="week-item">Ghost e Disengaged — tentativa multicanal</div>
-          <div class="week-item">Revisar clientes +60 dias sem ativação</div>
-          <div class="week-item">Reunião com liderança às 14:30</div>
-        </div>
-      </div>
-      <div class="week-day-card">
-        <div class="week-day-name">Sexta</div>
-        <div class="week-day-tema">Fechamento + SF completo</div>
-        <div class="week-stat">📝 1 sem comentário essa semana</div>
-        <div class="week-items">
-          <div class="week-item">14:00 Fechamento da semana</div>
-          <div class="week-item">SF — atualizar todos os comentários</div>
-          <div class="week-item">Revisar cobertura completa</div>
-          <div class="week-item">Confirmar abertura de carrinho da semana</div>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- ===== CHECKLIST SEMANAL ===== -->
