@@ -141,8 +141,8 @@
   .kanban-card:hover { border-color: var(--brand-orange); }
   .kanban-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
   .kanban-card-name { font-size: 12.5px; font-weight: 700; }
-  .kanban-card-segmento { font-size: 10.5px; color: var(--text-muted); margin-top: 1px; }
-  .kanban-card-gmv { font-size: 13px; font-weight: 800; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  .kanban-card-meta { font-size: 10.5px; color: var(--text-muted); margin-top: 1px; font-variant-numeric: tabular-nums; }
+  .kanban-card-gmv { font-size: 14px; font-weight: 800; margin-top: 9px; font-variant-numeric: tabular-nums; }
   .kanban-card-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 7px; }
   .kanban-card-days { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
   .kanban-card-days.ok { background: var(--surface-card); color: var(--text-secondary); border: 1px solid var(--border); }
@@ -222,7 +222,7 @@
     </div>
 
     <div class="view-block" id="view-kanban">
-      <div class="kanban-note-top" style="margin:12px 16px 14px">Só a jornada ativa de onboarding entra aqui — as mesmas 5 etapas que já são o filtro padrão da Carteira hoje (<code>Pre Onboarding</code> → <code>Activation &amp; Monitoring</code>). Cada card mostra só o essencial: nome, segmento, GMV (quando já ativado) e o selo de dias na etapa. Clicar no card abre o perfil completo, igual clicar numa linha da lista.</div>
+      <div class="kanban-note-top" style="margin:12px 16px 14px">Só a jornada ativa de onboarding entra aqui — as mesmas 5 etapas que já são o filtro padrão da Carteira hoje (<code>Pre Onboarding</code> → <code>Activation &amp; Monitoring</code>). Cada card mostra as 3 informações principais da carteira — Nome, ID e GMV — mais o selo de dias na etapa. Clicar no card abre o perfil completo, igual clicar numa linha da lista.</div>
       <div class="kanban-board" style="padding:0 16px 16px">
 
         <div class="kanban-col" data-stage="pre">
@@ -231,11 +231,13 @@
             <span class="kanban-count">2</span>
           </div>
           <div class="kanban-card">
-            <div class="kanban-card-top"><div><div class="kanban-card-name">Comércio Nogueira</div><div class="kanban-card-segmento">Varejo</div></div></div>
+            <div class="kanban-card-top"><div><div class="kanban-card-name">Comércio Nogueira</div><div class="kanban-card-meta">#10231</div></div></div>
+            <div class="kanban-card-gmv">R$ 0</div>
             <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">3 dias</span></div>
           </div>
           <div class="kanban-card">
-            <div class="kanban-card-top"><div><div class="kanban-card-name">Ateliê Sereno</div><div class="kanban-card-segmento">Moda</div></div></div>
+            <div class="kanban-card-top"><div><div class="kanban-card-name">Ateliê Sereno</div><div class="kanban-card-meta">#10244</div></div></div>
+            <div class="kanban-card-gmv">R$ 0</div>
             <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">5 dias</span></div>
           </div>
         </div>
@@ -246,15 +248,18 @@
             <span class="kanban-count">3</span>
           </div>
           <div class="kanban-card">
-            <div class="kanban-card-top"><div><div class="kanban-card-name">Marcos Vinícius</div><div class="kanban-card-segmento">Eletrônicos</div></div><span class="row-dot critico" title="Sem contato há 16 dias"></span></div>
+            <div class="kanban-card-top"><div><div class="kanban-card-name">Marcos Vinícius</div><div class="kanban-card-meta">#10198</div></div><span class="row-dot critico" title="Sem contato há 16 dias"></span></div>
+            <div class="kanban-card-gmv">R$ 0</div>
             <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">6 dias</span></div>
           </div>
           <div class="kanban-card">
-            <div class="kanban-card-top"><div><div class="kanban-card-name">Loja Vale Norte</div><div class="kanban-card-segmento">Varejo</div></div></div>
+            <div class="kanban-card-top"><div><div class="kanban-card-name">Loja Vale Norte</div><div class="kanban-card-meta">#10289</div></div></div>
+            <div class="kanban-card-gmv">R$ 0</div>
             <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">2 dias</span></div>
           </div>
           <div class="kanban-card">
-            <div class="kanban-card-top"><div><div class="kanban-card-name">Estúdio Aurora</div><div class="kanban-card-segmento">Educação</div></div></div>
+            <div class="kanban-card-top"><div><div class="kanban-card-name">Estúdio Aurora</div><div class="kanban-card-meta">#10276</div></div></div>
+            <div class="kanban-card-gmv">R$ 0</div>
             <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">9 dias</span></div>
           </div>
         </div>
@@ -265,11 +270,13 @@
             <span class="kanban-count">2</span>
           </div>
           <div class="kanban-card">
-            <div class="kanban-card-top"><div><div class="kanban-card-name">Studio Bela Estética</div><div class="kanban-card-segmento">Estética</div></div><span class="row-dot atencao" title="Parado há 18 dias"></span></div>
+            <div class="kanban-card-top"><div><div class="kanban-card-name">Studio Bela Estética</div><div class="kanban-card-meta">#10267</div></div><span class="row-dot atencao" title="Parado há 18 dias"></span></div>
+            <div class="kanban-card-gmv">R$ 0</div>
             <div class="kanban-card-bottom"><span></span><span class="kanban-card-days atencao">⚠ 18 dias</span></div>
           </div>
           <div class="kanban-card">
-            <div class="kanban-card-top"><div><div class="kanban-card-name">Torres Consultoria</div><div class="kanban-card-segmento">Consultoria</div></div></div>
+            <div class="kanban-card-top"><div><div class="kanban-card-name">Torres Consultoria</div><div class="kanban-card-meta">#10253</div></div></div>
+            <div class="kanban-card-gmv">R$ 0</div>
             <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">7 dias</span></div>
           </div>
         </div>
@@ -280,11 +287,13 @@
             <span class="kanban-count">2</span>
           </div>
           <div class="kanban-card">
-            <div class="kanban-card-top"><div><div class="kanban-card-name">Ana Beatriz Ferreira</div><div class="kanban-card-segmento">Moda</div></div><span class="row-dot critico" title="34 dias sem ativar"></span></div>
+            <div class="kanban-card-top"><div><div class="kanban-card-name">Ana Beatriz Ferreira</div><div class="kanban-card-meta">#10212</div></div><span class="row-dot critico" title="34 dias sem ativar"></span></div>
+            <div class="kanban-card-gmv">R$ 0</div>
             <div class="kanban-card-bottom"><span></span><span class="kanban-card-days critico">🔴 34 dias</span></div>
           </div>
           <div class="kanban-card">
-            <div class="kanban-card-top"><div><div class="kanban-card-name">Comércio Vale Sul</div><div class="kanban-card-segmento">Varejo</div></div></div>
+            <div class="kanban-card-top"><div><div class="kanban-card-name">Comércio Vale Sul</div><div class="kanban-card-meta">#10221</div></div></div>
+            <div class="kanban-card-gmv">R$ 0</div>
             <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">12 dias</span></div>
           </div>
         </div>
@@ -295,17 +304,17 @@
             <span class="kanban-count">3</span>
           </div>
           <div class="kanban-card">
-            <div class="kanban-card-top"><div><div class="kanban-card-name">João Torres</div><div class="kanban-card-segmento">Consultoria</div></div><span class="row-dot atencao" title="Brinde não enviado"></span></div>
+            <div class="kanban-card-top"><div><div class="kanban-card-name">João Torres</div><div class="kanban-card-meta">#10305</div></div><span class="row-dot atencao" title="Brinde não enviado"></span></div>
             <div class="kanban-card-gmv">R$ 24.800</div>
             <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">45 dias</span></div>
           </div>
           <div class="kanban-card">
-            <div class="kanban-card-top"><div><div class="kanban-card-name">Padaria Ideal</div><div class="kanban-card-segmento">Alimentação</div></div></div>
+            <div class="kanban-card-top"><div><div class="kanban-card-name">Padaria Ideal</div><div class="kanban-card-meta">#10287</div></div></div>
             <div class="kanban-card-gmv">R$ 11.300</div>
             <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">22 dias</span></div>
           </div>
           <div class="kanban-card">
-            <div class="kanban-card-top"><div><div class="kanban-card-name">Estúdio Ferreira Digital</div><div class="kanban-card-segmento">Moda</div></div><span class="row-dot oportunidade" title="92% da meta aos 60 dias"></span></div>
+            <div class="kanban-card-top"><div><div class="kanban-card-name">Estúdio Ferreira Digital</div><div class="kanban-card-meta">#10259</div></div><span class="row-dot oportunidade" title="92% da meta aos 60 dias"></span></div>
             <div class="kanban-card-gmv">R$ 18.900</div>
             <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">30 dias</span></div>
           </div>
