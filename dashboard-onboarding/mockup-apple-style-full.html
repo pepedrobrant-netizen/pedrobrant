@@ -302,8 +302,29 @@
   }
 
   /* ===== login ===== */
-  .login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
-  .login-card { max-width: 760px; width: 100%; text-align: center; }
+  .login-screen { min-height: 100vh; }
+  .auth-split { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
+  .auth-left { display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+  .auth-left-inner { max-width: 340px; width: 100%; }
+  .auth-logo { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 44px; }
+  .auth-logo .flame { width: 20px; height: 20px; }
+  .auth-title { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; }
+  .auth-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 28px; line-height: 1.5; }
+  .auth-field label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 7px; }
+  .auth-input-wrap { display: flex; align-items: center; background: var(--surface-card); border-radius: 12px; box-shadow: var(--shadow-sm); padding: 2px; }
+  .auth-input-wrap input { flex: 1; border: none; background: none; padding: 12px 14px; font-size: 14px; color: var(--text-primary); font-family: inherit; outline: none; }
+  .auth-eye-btn { background: none; border: none; font-size: 15px; cursor: pointer; padding: 8px 12px; color: var(--text-muted); }
+  .auth-error { font-size: 12.5px; color: var(--status-critical); min-height: 18px; margin: 8px 0 4px; }
+  .auth-submit-btn { width: 100%; padding: 13px; border-radius: 12px; border: none; background: var(--brand-orange); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 6px; }
+  .auth-submit-btn:disabled { opacity: 0.65; cursor: default; }
+  .auth-right { background: var(--surface-header); color: #fff; display: flex; align-items: center; justify-content: center; padding: 48px; position: relative; overflow: hidden; }
+  .auth-right-flame-bg { position: absolute; width: 640px; height: 640px; opacity: 0.08; right: -140px; bottom: -140px; color: var(--brand-orange); }
+  .auth-right-copy { position: relative; max-width: 380px; }
+  .auth-tagline { font-size: 38px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.12; margin-bottom: 16px; }
+  .auth-right-sub { font-size: 14px; line-height: 1.6; color: rgba(255,255,255,0.72); }
+  @media (max-width: 860px) { .auth-split { grid-template-columns: 1fr; } .auth-right { display: none; } }
+
+  .login-card { max-width: 760px; width: 100%; text-align: center; padding: 60px 24px; }
   .login-flame { width: 44px; height: 44px; color: var(--brand-orange); margin-bottom: 18px; }
   .login-card h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 8px; }
   .login-card .sub { font-size: 15px; color: var(--text-secondary); margin-bottom: 36px; }
@@ -357,10 +378,42 @@
 
 <!-- ===================== LOGIN ===================== -->
 <section class="login-screen" id="screen-login">
-  <div class="login-card">
+
+  <!-- etapa 1: senha da equipe -->
+  <div class="auth-split" id="authStagePassword">
+    <div class="auth-left">
+      <div class="auth-left-inner">
+        <div class="auth-logo">
+          <svg class="flame" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 2C11 8 8 12 8 18C8 23.52 11.58 28 16 28C20.42 28 24 23.52 24 18C24 14.2 21.6 11.2 19.2 9.2C19.9 12 18.2 14 18.2 14C18.2 14 18.6 9.4 16 2Z"/></svg>
+          hotmart
+        </div>
+        <div class="auth-title">Entrar</div>
+        <div class="auth-sub">Use a senha da equipe de onboarding para continuar</div>
+        <div class="auth-field">
+          <label>Senha</label>
+          <div class="auth-input-wrap">
+            <input id="loginPassword" type="password" placeholder="Senha da equipe" onkeydown="if(event.key==='Enter') submitLogin()">
+            <button class="auth-eye-btn" onclick="togglePwVisibility()" title="Mostrar/ocultar senha" id="eyeBtn">👁</button>
+          </div>
+        </div>
+        <div class="auth-error" id="loginError"></div>
+        <button class="auth-submit-btn" onclick="submitLogin()" id="submitBtn">Entrar</button>
+      </div>
+    </div>
+    <div class="auth-right">
+      <svg class="auth-right-flame-bg" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 2C11 8 8 12 8 18C8 23.52 11.58 28 16 28C20.42 28 24 23.52 24 18C24 14.2 21.6 11.2 19.2 9.2C19.9 12 18.2 14 18.2 14C18.2 14 18.6 9.4 16 2Z"/></svg>
+      <div class="auth-right-copy">
+        <div class="auth-tagline">Hotmart.<br>Aqui acontece.</div>
+        <p class="auth-right-sub">Gestão de carteira, cronograma e CRM em um só lugar — acompanhe seus clientes de onboarding, o progresso do cronograma e a saúde da carteira sem sair de uma única tela.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- etapa 2: escolher perfil -->
+  <div class="login-card" id="authStageProfiles" style="display:none">
     <svg class="flame login-flame" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 2C11 8 8 12 8 18C8 23.52 11.58 28 16 28C20.42 28 24 23.52 24 18C24 14.2 21.6 11.2 19.2 9.2C19.9 12 18.2 14 18.2 14C18.2 14 18.6 9.4 16 2Z"/></svg>
-    <h1>Dashboard Onboarding</h1>
-    <div class="sub">Escolha seu perfil pra ver sua carteira, cronograma e rotina.</div>
+    <h1>Escolha seu perfil</h1>
+    <div class="sub">Pra ver sua carteira, cronograma e rotina.</div>
     <div class="profile-grid">
       <button class="profile-card" onclick="login('Ilana','IL')"><span class="profile-avatar">IL</span><span class="profile-name">Ilana</span><span class="profile-role">Onboarder</span></button>
       <button class="profile-card" onclick="login('Pedro','PE')"><span class="profile-avatar">PE</span><span class="profile-name">Pedro</span><span class="profile-role">Onboarder</span></button>
@@ -774,6 +827,35 @@
   }
 
   /* ===== login ===== */
+  function togglePwVisibility() {
+    var input = document.getElementById('loginPassword');
+    var eye = document.getElementById('eyeBtn');
+    var showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    eye.textContent = showing ? '👁' : '🙈';
+  }
+  function submitLogin() {
+    var pw = document.getElementById('loginPassword').value;
+    var errorEl = document.getElementById('loginError');
+    var btn = document.getElementById('submitBtn');
+    if (!pw) { errorEl.textContent = 'Digite a senha da equipe.'; return; }
+    errorEl.textContent = '';
+    btn.disabled = true;
+    btn.textContent = 'Entrando…';
+    setTimeout(function () {
+      btn.disabled = false;
+      btn.textContent = 'Entrar';
+      document.getElementById('authStagePassword').style.display = 'none';
+      var profiles = document.getElementById('authStageProfiles');
+      profiles.style.display = 'block';
+      var cards = profiles.querySelectorAll('.profile-card');
+      cards.forEach(function (el, i) {
+        el.classList.remove('anim-in');
+        void el.offsetWidth;
+        if (!reduceMotion) { el.style.animationDelay = (i * 40) + 'ms'; el.classList.add('anim-in'); }
+      });
+    }, 600);
+  }
   function login(name, initials) {
     document.getElementById('topnavAvatar').textContent = initials;
     document.getElementById('topnavName').textContent = name;
@@ -791,7 +873,11 @@
   }
   function logout() {
     document.getElementById('appShell').style.display = 'none';
-    document.getElementById('screen-login').style.display = 'flex';
+    document.getElementById('screen-login').style.display = 'block';
+    document.getElementById('authStageProfiles').style.display = 'none';
+    document.getElementById('authStagePassword').style.display = 'grid';
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginError').textContent = '';
   }
 
   /* ===== perfil do cliente ===== */
