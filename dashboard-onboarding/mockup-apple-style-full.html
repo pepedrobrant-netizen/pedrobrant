@@ -317,9 +317,10 @@
   .auth-error { font-size: 12.5px; color: var(--status-critical); min-height: 18px; margin: 8px 0 4px; }
   .auth-submit-btn { width: 100%; padding: 13px; border-radius: 12px; border: none; background: var(--brand-orange); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 6px; }
   .auth-submit-btn:disabled { opacity: 0.65; cursor: default; }
-  .auth-right { background: var(--surface-header); color: #fff; display: flex; align-items: center; justify-content: center; padding: 48px; position: relative; overflow: hidden; }
-  .auth-right-flame-bg { position: absolute; width: 640px; height: 640px; opacity: 0.08; right: -140px; bottom: -140px; color: var(--brand-orange); }
-  .auth-right-copy { position: relative; max-width: 380px; }
+  .auth-right { background: radial-gradient(circle at 30% 20%, #ff6a33 0%, var(--brand-orange) 45%, #d9330a 100%); color: #fff; display: flex; align-items: center; justify-content: center; padding: 48px; position: relative; overflow: hidden; }
+  .auth-right::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 80% 85%, rgba(255,255,255,0.16) 0%, transparent 45%); }
+  .auth-right-flame-bg { position: absolute; width: 640px; height: 640px; opacity: 0.14; right: -140px; bottom: -140px; color: #fff; transform: rotate(-8deg); }
+  .auth-right-copy { position: relative; z-index: 1; max-width: 380px; }
   .auth-tagline { font-size: 38px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.12; margin-bottom: 16px; }
   .auth-right-sub { font-size: 14px; line-height: 1.6; color: rgba(255,255,255,0.72); }
   @media (max-width: 860px) { .auth-split { grid-template-columns: 1fr; } .auth-right { display: none; } }
