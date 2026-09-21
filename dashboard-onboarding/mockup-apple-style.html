@@ -1,0 +1,373 @@
+<title>Carteira — Direção Apple</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800;9..40,900&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --surface-page:   #f7f5f1;
+    --surface-card:   #ffffff;
+    --surface-header: #101010;
+    --surface-sunken: #efece5;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #57564f;
+    --text-muted:     #918f86;
+    --hairline:       rgba(11,11,11,0.07);
+    --border:         rgba(11,11,11,0.08);
+    --brand-orange:   #ff4000;
+    --brand-gray:     #c3bfb8;
+    --brand-blue:     #2a78d6;
+    --status-good:      #0ca30c;
+    --status-warning:   #b8790a;
+    --status-critical:  #d03b3b;
+    --success-text:    #006300;
+    --shadow-sm: 0 1px 2px rgba(20,18,14,0.05);
+    --shadow-md: 0 10px 30px rgba(20,18,14,0.07), 0 1px 3px rgba(20,18,14,0.05);
+    --shadow-lg: 0 22px 50px rgba(20,18,14,0.11), 0 2px 6px rgba(20,18,14,0.06);
+    --font-body: 'Hotmart Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface-page:   #0a0a0a;
+      --surface-card:   #19191a;
+      --surface-header: #0a0a0a;
+      --surface-sunken: #121213;
+      --text-primary:   #f5f4f2;
+      --text-secondary: #b7b5ad;
+      --text-muted:     #7d7b74;
+      --hairline:       rgba(255,255,255,0.08);
+      --border:         rgba(255,255,255,0.1);
+      --brand-orange:   #ff5a24;
+      --status-critical:  #ea6e6e;
+      --status-warning:   #e0a930;
+      --success-text:    #29c229;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+      --shadow-md: 0 10px 30px rgba(0,0,0,0.45);
+      --shadow-lg: 0 22px 50px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-page:   #0a0a0a;
+    --surface-card:   #19191a;
+    --surface-header: #0a0a0a;
+    --surface-sunken: #121213;
+    --text-primary:   #f5f4f2;
+    --text-secondary: #b7b5ad;
+    --text-muted:     #7d7b74;
+    --hairline:       rgba(255,255,255,0.08);
+    --border:         rgba(255,255,255,0.1);
+    --brand-orange:   #ff5a24;
+    --status-critical:  #ea6e6e;
+    --status-warning:   #e0a930;
+    --success-text:    #29c229;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+    --shadow-md: 0 10px 30px rgba(0,0,0,0.45);
+    --shadow-lg: 0 22px 50px rgba(0,0,0,0.55);
+  }
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--surface-page); color: var(--text-primary); font-family: var(--font-body); }
+
+  .direction-note { background: #fff8e6; border-bottom: 1px solid #f0deac; padding: 11px 24px; font-size: 12.5px; color: #7a5b00; text-align: center; line-height: 1.5; }
+  .direction-note b { font-weight: 700; }
+
+  /* ===== nav: apple.com-style sticky blurred bar ===== */
+  .topnav { position: sticky; top: 0; z-index: 50; background: color-mix(in srgb, var(--surface-header) 82%, transparent); backdrop-filter: blur(20px) saturate(1.6); -webkit-backdrop-filter: blur(20px) saturate(1.6); border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .topnav-inner { max-width: 1280px; margin: 0 auto; padding: 0 28px; display: flex; align-items: center; gap: 28px; height: 52px; }
+  .topnav-brand { display: flex; align-items: center; gap: 9px; color: #fff; flex-shrink: 0; }
+  .flame { width: 19px; height: 19px; color: var(--brand-orange); }
+  .flame path { fill: currentColor; }
+  .topnav-brand span { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
+  .topnav-tabs { display: flex; align-items: center; gap: 2px; background: rgba(255,255,255,0.08); border-radius: 999px; padding: 3px; margin: 0 auto; }
+  .topnav-tab { font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,0.62); padding: 6px 15px; border-radius: 999px; white-space: nowrap; letter-spacing: -0.01em; }
+  .topnav-tab.active { background: #fff; color: #101010; }
+  .topnav-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .topnav-avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--brand-orange); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; }
+
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 48px 28px 90px; }
+
+  /* ===== page head ===== */
+  .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 34px; }
+  .page-head h1 { font-size: 40px; font-weight: 800; letter-spacing: -0.025em; margin: 0 0 6px; line-height: 1.05; text-wrap: balance; }
+  .page-head .sub { font-size: 15px; color: var(--text-secondary); }
+
+  .segmented { display: inline-flex; background: var(--surface-sunken); border-radius: 12px; padding: 4px; gap: 2px; flex-shrink: 0; }
+  .segmented button { border: none; background: transparent; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--text-secondary); padding: 9px 18px; border-radius: 9px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; transition: background 0.15s, color 0.15s; }
+  .segmented button.active { background: var(--surface-card); color: var(--text-primary); box-shadow: var(--shadow-sm); }
+
+  /* ===== KPI widgets ===== */
+  .widget-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 40px; }
+  .widget { background: var(--surface-card); border-radius: 20px; padding: 22px 22px 20px; box-shadow: var(--shadow-md); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  .widget:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+  .widget-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 14px; }
+  .widget-label { font-size: 12.5px; color: var(--text-secondary); font-weight: 500; margin-bottom: 3px; }
+  .widget-value { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .widget-value.critical { color: var(--status-critical); }
+  .widget.featured { background: linear-gradient(155deg, color-mix(in srgb, var(--brand-orange) 92%, black) 0%, var(--brand-orange) 100%); color: #fff; }
+  .widget.featured .widget-label { color: rgba(255,255,255,0.85); }
+  .widget.featured .widget-icon { background: rgba(255,255,255,0.18); }
+  .widget.featured .widget-sub { font-size: 11.5px; color: rgba(255,255,255,0.8); margin-top: 4px; }
+
+  /* ===== toolbar (livre, sem caixa) ===== */
+  .toolbar-free { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+  .search-pill { flex: 1 1 260px; max-width: 340px; display: flex; align-items: center; gap: 8px; background: var(--surface-card); border-radius: 12px; padding: 10px 14px; box-shadow: var(--shadow-sm); font-size: 13.5px; color: var(--text-muted); }
+  .filter-pill { background: var(--surface-card); border: none; border-radius: 999px; padding: 8px 15px; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); box-shadow: var(--shadow-sm); font-family: inherit; cursor: pointer; }
+  .filter-pill.on { background: var(--text-primary); color: var(--surface-card); }
+
+  /* ===== tabela (view lista) ===== */
+  .view-block { display: none; }
+  .view-block.active { display: block; }
+  .table-card { background: var(--surface-card); border-radius: 20px; box-shadow: var(--shadow-md); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  thead th { text-align: left; padding: 15px 20px 13px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; }
+  tbody td { padding: 14px 20px; border-top: 1px solid var(--hairline); vertical-align: middle; }
+  tbody tr:hover td { background: var(--surface-sunken); }
+  .row-name { display: flex; align-items: center; gap: 11px; font-weight: 600; }
+  .row-avatar { width: 32px; height: 32px; border-radius: 50%; background: color-mix(in srgb, var(--brand-orange) 14%, var(--surface-sunken)); color: var(--brand-orange); display: flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 800; flex-shrink: 0; }
+  .row-id { font-size: 11px; color: var(--text-muted); font-weight: 400; margin-top: 1px; font-variant-numeric: tabular-nums; }
+  .pill-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; padding: 4px 11px; border-radius: 999px; white-space: nowrap; }
+  .pill-status.muted { background: var(--surface-sunken); color: var(--text-secondary); }
+  .pill-status.warning { background: color-mix(in srgb, var(--status-warning) 16%, transparent); color: var(--status-warning); }
+  .pill-status.progress { background: color-mix(in srgb, var(--brand-blue) 14%, transparent); color: var(--brand-blue); }
+  .pill-status.critical { background: color-mix(in srgb, var(--status-critical) 14%, transparent); color: var(--status-critical); }
+  .pill-status.good { background: color-mix(in srgb, var(--status-good) 14%, transparent); color: var(--success-text); }
+  .mini-bar-track { width: 84px; height: 5px; border-radius: 4px; background: var(--surface-sunken); overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 8px; }
+  .mini-bar-fill { height: 100%; border-radius: 4px; background: var(--brand-orange); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .muted-cell { color: var(--text-muted); }
+
+  /* ===== kanban ===== */
+  .kanban-note { font-size: 13px; color: var(--text-secondary); margin: -6px 0 20px; max-width: 620px; line-height: 1.55; }
+  .kanban-board { display: flex; gap: 18px; overflow-x: auto; padding-bottom: 10px; align-items: flex-start; }
+  .kanban-col { background: var(--surface-sunken); border-radius: 20px; padding: 16px; min-width: 250px; max-width: 250px; flex-shrink: 0; }
+  .kanban-col-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 14px; }
+  .kanban-col-title { font-weight: 700; font-size: 13px; letter-spacing: -0.01em; }
+  .kanban-count { font-size: 11px; color: var(--text-muted); background: var(--surface-card); border-radius: 999px; padding: 2px 9px; font-weight: 600; }
+  .kanban-card { background: var(--surface-card); border-radius: 16px; padding: 14px 15px; margin-bottom: 10px; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+  .kanban-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .kanban-card-top { display: flex; align-items: center; gap: 10px; }
+  .kanban-card-avatar { width: 30px; height: 30px; border-radius: 50%; background: color-mix(in srgb, var(--brand-orange) 14%, var(--surface-sunken)); color: var(--brand-orange); display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 800; flex-shrink: 0; }
+  .kanban-card-name { font-size: 13px; font-weight: 700; letter-spacing: -0.01em; }
+  .kanban-card-id { font-size: 10.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .kanban-card-gmv { font-size: 15px; font-weight: 800; margin-top: 11px; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+  .kanban-card-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 9px; }
+  .kanban-card-days { font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+  .kanban-card-days.ok { background: var(--surface-sunken); color: var(--text-secondary); }
+  .kanban-card-days.atencao { background: color-mix(in srgb, var(--status-warning) 20%, transparent); color: var(--status-warning); }
+  .kanban-card-days.critico { background: color-mix(in srgb, var(--status-critical) 16%, transparent); color: var(--status-critical); }
+  .signal-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .signal-dot.critico { background: var(--status-critical); }
+  .signal-dot.atencao { background: var(--status-warning); }
+  .signal-dot.oportunidade { background: var(--brand-blue); }
+
+  @media (max-width: 1080px) { .widget-row { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 640px) { .widget-row { grid-template-columns: repeat(2, 1fr); } .page-head h1 { font-size: 30px; } }
+</style>
+
+<div class="direction-note">
+  <b>Exploração de direção visual (não é decisão fechada):</b> mesmo conteúdo e regras já definidos até aqui — só a linguagem visual muda, inspirada nos apps de sistema da Apple (macOS/iOS) e no site apple.com. Cores e tipografia continuam do brandbook Hotmart; o que muda é a barra translúcida, os cantos mais arredondados, o uso de sombra suave em vez de bordas, e títulos maiores em vez da fonte serifada de display.
+</div>
+
+<div class="topnav">
+  <div class="topnav-inner">
+    <div class="topnav-brand">
+      <svg class="flame" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 2C11 8 8 12 8 18C8 23.52 11.58 28 16 28C20.42 28 24 23.52 24 18C24 14.2 21.6 11.2 19.2 9.2C19.9 12 18.2 14 18.2 14C18.2 14 18.6 9.4 16 2Z"/></svg>
+      <span>Onboarding</span>
+    </div>
+    <div class="topnav-tabs">
+      <div class="topnav-tab active">Carteira</div>
+      <div class="topnav-tab">Central de Atenção</div>
+      <div class="topnav-tab">Meta</div>
+      <div class="topnav-tab">Analytics</div>
+      <div class="topnav-tab">Rotina</div>
+      <div class="topnav-tab">Calendário</div>
+    </div>
+    <div class="topnav-right">
+      <span class="topnav-avatar">PE</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="page-head">
+    <div>
+      <h1>Carteira</h1>
+      <div class="sub">12 clientes ativos no seu onboarding</div>
+    </div>
+    <div class="segmented">
+      <button class="active" onclick="setView('lista', this)">Lista</button>
+      <button onclick="setView('kanban', this)">Kanban</button>
+    </div>
+  </div>
+
+  <div class="widget-row">
+    <div class="widget">
+      <div class="widget-icon" style="background:color-mix(in srgb, var(--brand-orange) 14%, transparent);color:var(--brand-orange)">◎</div>
+      <div class="widget-label">Clientes na carteira</div>
+      <div class="widget-value">12</div>
+    </div>
+    <div class="widget">
+      <div class="widget-icon" style="background:color-mix(in srgb, var(--status-good) 14%, transparent);color:var(--success-text)">$</div>
+      <div class="widget-label">GMV total</div>
+      <div class="widget-value">R$ 55.000</div>
+    </div>
+    <div class="widget">
+      <div class="widget-icon" style="background:color-mix(in srgb, var(--brand-blue) 14%, transparent);color:var(--brand-blue)">◐</div>
+      <div class="widget-label">Progresso médio</div>
+      <div class="widget-value">54%</div>
+    </div>
+    <div class="widget">
+      <div class="widget-icon" style="background:color-mix(in srgb, var(--status-critical) 14%, transparent);color:var(--status-critical)">!</div>
+      <div class="widget-label">Em alerta de prazo</div>
+      <div class="widget-value critical">2</div>
+    </div>
+    <div class="widget featured">
+      <div class="widget-icon">↗</div>
+      <div class="widget-label">Novos este mês</div>
+      <div class="widget-value">3</div>
+      <div class="widget-sub">ver histórico por mês</div>
+    </div>
+  </div>
+
+  <div class="toolbar-free">
+    <div class="search-pill">🔍 Buscar por nome do cliente…</div>
+    <button class="filter-pill">Status</button>
+    <button class="filter-pill">Closer</button>
+    <button class="filter-pill">Marcos</button>
+    <button class="filter-pill on">🔴 Em alerta</button>
+  </div>
+
+  <!-- ===== LISTA ===== -->
+  <div class="view-block active" id="view-lista">
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr><th>Cliente</th><th>Status</th><th>Progresso</th><th class="num">GMV</th><th>Alerta</th><th class="num">Último contato</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="row-name"><span class="row-avatar">CN</span><div><div>Comércio Nogueira</div><div class="row-id">#10231</div></div></div></td>
+            <td><span class="pill-status muted">Pre Onboarding</span></td>
+            <td><span class="mini-bar-track"><span class="mini-bar-fill" style="width:8%"></span></span>8%</td>
+            <td class="num muted-cell">R$ 0</td>
+            <td><span class="pill-status muted">Aguardando</span></td>
+            <td class="num muted-cell">há 2 dias</td>
+          </tr>
+          <tr>
+            <td><div class="row-name"><span class="row-avatar">AS</span><div><div>Ateliê Sereno</div><div class="row-id">#10244</div></div></div></td>
+            <td><span class="pill-status muted">Pre Onboarding</span></td>
+            <td><span class="mini-bar-track"><span class="mini-bar-fill" style="width:12%"></span></span>12%</td>
+            <td class="num muted-cell">R$ 0</td>
+            <td><span class="pill-status muted">Aguardando</span></td>
+            <td class="num muted-cell">há 5 dias</td>
+          </tr>
+          <tr>
+            <td><div class="row-name"><span class="row-avatar">MV</span><div><div>Marcos Vinícius</div><div class="row-id">#10198</div></div></div></td>
+            <td><span class="pill-status muted">Welcome</span></td>
+            <td><span class="mini-bar-track"><span class="mini-bar-fill" style="width:20%"></span></span>20%</td>
+            <td class="num muted-cell">R$ 0</td>
+            <td><span class="pill-status muted">Aguardando</span></td>
+            <td class="num muted-cell">há 16 dias</td>
+          </tr>
+          <tr>
+            <td><div class="row-name"><span class="row-avatar">SB</span><div><div>Studio Bela Estética</div><div class="row-id">#10267</div></div></div></td>
+            <td><span class="pill-status muted">Product Migration</span></td>
+            <td><span class="mini-bar-track"><span class="mini-bar-fill" style="width:35%"></span></span>35%</td>
+            <td class="num muted-cell">R$ 0</td>
+            <td><span class="pill-status muted">Aguardando</span></td>
+            <td class="num muted-cell">há 4 dias</td>
+          </tr>
+          <tr>
+            <td><div class="row-name"><span class="row-avatar">AB</span><div><div>Ana Beatriz Ferreira</div><div class="row-id">#10212</div></div></div></td>
+            <td><span class="pill-status warning">Ready for Activation</span></td>
+            <td><span class="mini-bar-track"><span class="mini-bar-fill" style="width:60%;background:var(--status-warning)"></span></span>60%</td>
+            <td class="num muted-cell">R$ 0</td>
+            <td><span class="pill-status critical">+90 dias</span></td>
+            <td class="num muted-cell">há 16 dias</td>
+          </tr>
+          <tr>
+            <td><div class="row-name"><span class="row-avatar">JT</span><div><div>João Torres</div><div class="row-id">#10305</div></div></div></td>
+            <td><span class="pill-status progress">Activation &amp; Monitoring</span></td>
+            <td><span class="mini-bar-track"><span class="mini-bar-fill" style="width:88%;background:var(--brand-blue)"></span></span>88%</td>
+            <td class="num">R$ 24.800</td>
+            <td><span class="pill-status good">Ativado</span></td>
+            <td class="num muted-cell">há 3 dias</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== KANBAN ===== -->
+  <div class="view-block" id="view-kanban">
+    <div class="kanban-note">Mesma jornada de sempre — Pre Onboarding até Activation &amp; Monitoring — só que com a folga visual e as sombras suaves da linguagem Apple em vez de bordas.</div>
+    <div class="kanban-board">
+      <div class="kanban-col">
+        <div class="kanban-col-head"><div class="kanban-col-title">Pre Onboarding</div><span class="kanban-count">2</span></div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><span class="kanban-card-avatar">CN</span><div><div class="kanban-card-name">Comércio Nogueira</div><div class="kanban-card-id">#10231</div></div></div>
+          <div class="kanban-card-gmv">R$ 0</div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">3 dias</span></div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><span class="kanban-card-avatar">AS</span><div><div class="kanban-card-name">Ateliê Sereno</div><div class="kanban-card-id">#10244</div></div></div>
+          <div class="kanban-card-gmv">R$ 0</div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">5 dias</span></div>
+        </div>
+      </div>
+      <div class="kanban-col">
+        <div class="kanban-col-head"><div class="kanban-col-title">Welcome</div><span class="kanban-count">2</span></div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><span class="kanban-card-avatar">MV</span><div><div class="kanban-card-name">Marcos Vinícius</div><div class="kanban-card-id">#10198</div></div><span class="signal-dot critico" style="margin-left:auto" title="Sem contato há 16 dias"></span></div>
+          <div class="kanban-card-gmv">R$ 0</div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">6 dias</span></div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><span class="kanban-card-avatar">EA</span><div><div class="kanban-card-name">Estúdio Aurora</div><div class="kanban-card-id">#10276</div></div></div>
+          <div class="kanban-card-gmv">R$ 0</div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">9 dias</span></div>
+        </div>
+      </div>
+      <div class="kanban-col">
+        <div class="kanban-col-head"><div class="kanban-col-title">Product Migration</div><span class="kanban-count">1</span></div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><span class="kanban-card-avatar">SB</span><div><div class="kanban-card-name">Studio Bela Estética</div><div class="kanban-card-id">#10267</div></div><span class="signal-dot atencao" style="margin-left:auto" title="Parado há 18 dias"></span></div>
+          <div class="kanban-card-gmv">R$ 0</div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days atencao">18 dias</span></div>
+        </div>
+      </div>
+      <div class="kanban-col">
+        <div class="kanban-col-head"><div class="kanban-col-title">Ready for Activation</div><span class="kanban-count">1</span></div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><span class="kanban-card-avatar">AB</span><div><div class="kanban-card-name">Ana Beatriz Ferreira</div><div class="kanban-card-id">#10212</div></div><span class="signal-dot critico" style="margin-left:auto" title="34 dias sem ativar"></span></div>
+          <div class="kanban-card-gmv">R$ 0</div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days critico">34 dias</span></div>
+        </div>
+      </div>
+      <div class="kanban-col">
+        <div class="kanban-col-head"><div class="kanban-col-title">Activation &amp; Monitoring</div><span class="kanban-count">2</span></div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><span class="kanban-card-avatar">JT</span><div><div class="kanban-card-name">João Torres</div><div class="kanban-card-id">#10305</div></div><span class="signal-dot atencao" style="margin-left:auto" title="Brinde não enviado"></span></div>
+          <div class="kanban-card-gmv">R$ 24.800</div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">45 dias</span></div>
+        </div>
+        <div class="kanban-card">
+          <div class="kanban-card-top"><span class="kanban-card-avatar">PI</span><div><div class="kanban-card-name">Padaria Ideal</div><div class="kanban-card-id">#10287</div></div></div>
+          <div class="kanban-card-gmv">R$ 11.300</div>
+          <div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">22 dias</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function setView(name, btn) {
+    btn.parentElement.querySelectorAll('button').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    document.querySelectorAll('.view-block').forEach(function (v) { v.classList.remove('active'); });
+    document.getElementById('view-' + name).classList.add('active');
+  }
+</script>
