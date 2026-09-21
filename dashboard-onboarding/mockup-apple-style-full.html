@@ -1,0 +1,573 @@
+<title>Dashboard Onboarding — Direção Apple</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800;9..40,900&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --surface-page:   #f7f5f1;
+    --surface-card:   #ffffff;
+    --surface-header: #101010;
+    --surface-sunken: #efece5;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #57564f;
+    --text-muted:     #918f86;
+    --hairline:       rgba(11,11,11,0.07);
+    --border:         rgba(11,11,11,0.08);
+    --brand-orange:   #ff4000;
+    --brand-gray:     #c3bfb8;
+    --brand-blue:     #2a78d6;
+    --status-good:      #0ca30c;
+    --status-warning:   #b8790a;
+    --status-critical:  #d03b3b;
+    --success-text:    #006300;
+    --shadow-sm: 0 1px 2px rgba(20,18,14,0.05);
+    --shadow-md: 0 10px 30px rgba(20,18,14,0.07), 0 1px 3px rgba(20,18,14,0.05);
+    --shadow-lg: 0 22px 50px rgba(20,18,14,0.11), 0 2px 6px rgba(20,18,14,0.06);
+    --font-body: 'Hotmart Sans', 'DM Sans', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface-page:   #0a0a0a;
+      --surface-card:   #19191a;
+      --surface-header: #0a0a0a;
+      --surface-sunken: #121213;
+      --text-primary:   #f5f4f2;
+      --text-secondary: #b7b5ad;
+      --text-muted:     #7d7b74;
+      --hairline:       rgba(255,255,255,0.08);
+      --border:         rgba(255,255,255,0.1);
+      --brand-orange:   #ff5a24;
+      --status-critical:  #ea6e6e;
+      --status-warning:   #e0a930;
+      --success-text:    #29c229;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+      --shadow-md: 0 10px 30px rgba(0,0,0,0.45);
+      --shadow-lg: 0 22px 50px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-page:   #0a0a0a;
+    --surface-card:   #19191a;
+    --surface-header: #0a0a0a;
+    --surface-sunken: #121213;
+    --text-primary:   #f5f4f2;
+    --text-secondary: #b7b5ad;
+    --text-muted:     #7d7b74;
+    --hairline:       rgba(255,255,255,0.08);
+    --border:         rgba(255,255,255,0.1);
+    --brand-orange:   #ff5a24;
+    --status-critical:  #ea6e6e;
+    --status-warning:   #e0a930;
+    --success-text:    #29c229;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+    --shadow-md: 0 10px 30px rgba(0,0,0,0.45);
+    --shadow-lg: 0 22px 50px rgba(0,0,0,0.55);
+  }
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  html, body { margin: 0; padding: 0; }
+  body { background: var(--surface-page); color: var(--text-primary); font-family: var(--font-body); }
+
+  .direction-note { background: #fff8e6; border-bottom: 1px solid #f0deac; padding: 11px 24px; font-size: 12.5px; color: #7a5b00; text-align: center; line-height: 1.5; }
+  .direction-note b { font-weight: 700; }
+
+  /* ===== nav ===== */
+  .topnav { position: sticky; top: 0; z-index: 50; background: color-mix(in srgb, var(--surface-header) 82%, transparent); backdrop-filter: blur(20px) saturate(1.6); -webkit-backdrop-filter: blur(20px) saturate(1.6); border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .topnav-inner { max-width: 1280px; margin: 0 auto; padding: 0 28px; display: flex; align-items: center; gap: 28px; height: 52px; }
+  .topnav-brand { display: flex; align-items: center; gap: 9px; color: #fff; flex-shrink: 0; }
+  .flame { width: 19px; height: 19px; color: var(--brand-orange); }
+  .flame path { fill: currentColor; }
+  .topnav-brand span { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
+  .topnav-tabs { display: flex; align-items: center; gap: 2px; background: rgba(255,255,255,0.08); border-radius: 999px; padding: 3px; margin: 0 auto; overflow-x: auto; }
+  .topnav-tab { font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,0.62); padding: 6px 14px; border-radius: 999px; white-space: nowrap; letter-spacing: -0.01em; cursor: pointer; border: none; background: none; font-family: inherit; }
+  .topnav-tab.active { background: #fff; color: #101010; }
+  .topnav-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .topnav-avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--brand-orange); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; }
+
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 48px 28px 90px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ===== page head ===== */
+  .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
+  .page-head h1 { font-size: 38px; font-weight: 800; letter-spacing: -0.025em; margin: 0 0 6px; line-height: 1.05; text-wrap: balance; }
+  .page-head .sub { font-size: 15px; color: var(--text-secondary); max-width: 560px; line-height: 1.5; }
+
+  .segmented { display: inline-flex; background: var(--surface-sunken); border-radius: 12px; padding: 4px; gap: 2px; flex-shrink: 0; }
+  .segmented button { border: none; background: transparent; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--text-secondary); padding: 9px 18px; border-radius: 9px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; transition: background 0.15s, color 0.15s; }
+  .segmented button.active { background: var(--surface-card); color: var(--text-primary); box-shadow: var(--shadow-sm); }
+  .subview { display: none; }
+  .subview.active { display: block; }
+
+  .section-title { font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 14px; }
+
+  /* ===== widgets ===== */
+  .widget-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 36px; }
+  .widget-row.n4 { grid-template-columns: repeat(4, 1fr); }
+  .widget { background: var(--surface-card); border-radius: 20px; padding: 22px 22px 20px; box-shadow: var(--shadow-md); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  .widget:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+  .widget-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 14px; }
+  .widget-label { font-size: 12.5px; color: var(--text-secondary); font-weight: 500; margin-bottom: 3px; }
+  .widget-value { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .widget-value.critical { color: var(--status-critical); }
+  .widget.featured { background: linear-gradient(155deg, color-mix(in srgb, var(--brand-orange) 92%, black) 0%, var(--brand-orange) 100%); color: #fff; }
+  .widget.featured .widget-label { color: rgba(255,255,255,0.85); }
+  .widget.featured .widget-icon { background: rgba(255,255,255,0.18); }
+  .widget.featured .widget-sub { font-size: 11.5px; color: rgba(255,255,255,0.8); margin-top: 4px; }
+
+  /* ===== toolbar livre ===== */
+  .toolbar-free { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+  .search-pill { flex: 1 1 260px; max-width: 340px; display: flex; align-items: center; gap: 8px; background: var(--surface-card); border-radius: 12px; padding: 10px 14px; box-shadow: var(--shadow-sm); font-size: 13.5px; color: var(--text-muted); }
+  .filter-pill { background: var(--surface-card); border: none; border-radius: 999px; padding: 8px 15px; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); box-shadow: var(--shadow-sm); font-family: inherit; cursor: pointer; }
+  .filter-pill.on { background: var(--text-primary); color: var(--surface-card); }
+
+  /* ===== tabela ===== */
+  .table-card { background: var(--surface-card); border-radius: 20px; box-shadow: var(--shadow-md); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  thead th { text-align: left; padding: 15px 20px 13px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; }
+  tbody td { padding: 14px 20px; border-top: 1px solid var(--hairline); vertical-align: middle; }
+  tbody tr:hover td { background: var(--surface-sunken); }
+  .row-name { display: flex; align-items: center; gap: 11px; font-weight: 600; }
+  .avatar-circle { width: 32px; height: 32px; border-radius: 50%; background: color-mix(in srgb, var(--brand-orange) 14%, var(--surface-sunken)); color: var(--brand-orange); display: flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 800; flex-shrink: 0; }
+  .row-id { font-size: 11px; color: var(--text-muted); font-weight: 400; margin-top: 1px; font-variant-numeric: tabular-nums; }
+  .pill-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; padding: 4px 11px; border-radius: 999px; white-space: nowrap; }
+  .pill-status.muted { background: var(--surface-sunken); color: var(--text-secondary); }
+  .pill-status.warning { background: color-mix(in srgb, var(--status-warning) 16%, transparent); color: var(--status-warning); }
+  .pill-status.progress { background: color-mix(in srgb, var(--brand-blue) 14%, transparent); color: var(--brand-blue); }
+  .pill-status.critical { background: color-mix(in srgb, var(--status-critical) 14%, transparent); color: var(--status-critical); }
+  .pill-status.good { background: color-mix(in srgb, var(--status-good) 14%, transparent); color: var(--success-text); }
+  .mini-bar-track { width: 84px; height: 5px; border-radius: 4px; background: var(--surface-sunken); overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 8px; }
+  .mini-bar-fill { height: 100%; border-radius: 4px; background: var(--brand-orange); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .muted-cell { color: var(--text-muted); }
+
+  /* ===== kanban ===== */
+  .kanban-note { font-size: 13px; color: var(--text-secondary); margin: -6px 0 20px; max-width: 620px; line-height: 1.55; }
+  .kanban-board { display: flex; gap: 18px; overflow-x: auto; padding-bottom: 10px; align-items: flex-start; }
+  .kanban-col { background: var(--surface-sunken); border-radius: 20px; padding: 16px; min-width: 250px; max-width: 250px; flex-shrink: 0; }
+  .kanban-col-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 14px; }
+  .kanban-col-title { font-weight: 700; font-size: 13px; letter-spacing: -0.01em; }
+  .kanban-count { font-size: 11px; color: var(--text-muted); background: var(--surface-card); border-radius: 999px; padding: 2px 9px; font-weight: 600; }
+  .kanban-card { background: var(--surface-card); border-radius: 16px; padding: 14px 15px; margin-bottom: 10px; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+  .kanban-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .kanban-card-top { display: flex; align-items: center; gap: 10px; }
+  .kanban-card-name { font-size: 13px; font-weight: 700; letter-spacing: -0.01em; }
+  .kanban-card-id { font-size: 10.5px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .kanban-card-gmv { font-size: 15px; font-weight: 800; margin-top: 11px; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+  .kanban-card-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 9px; }
+  .kanban-card-days { font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+  .kanban-card-days.ok { background: var(--surface-sunken); color: var(--text-secondary); }
+  .kanban-card-days.atencao { background: color-mix(in srgb, var(--status-warning) 20%, transparent); color: var(--status-warning); }
+  .kanban-card-days.critico { background: color-mix(in srgb, var(--status-critical) 16%, transparent); color: var(--status-critical); }
+  .signal-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .signal-dot.critico { background: var(--status-critical); }
+  .signal-dot.atencao { background: var(--status-warning); }
+  .signal-dot.oportunidade { background: var(--brand-blue); }
+
+  /* ===== central de atenção ===== */
+  .attn-summary { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
+  .attn-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; padding: 7px 14px; border-radius: 999px; background: var(--surface-card); box-shadow: var(--shadow-sm); }
+  .attn-pill .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .attn-pill.critico { color: var(--status-critical); }
+  .attn-pill.critico .dot { background: var(--status-critical); }
+  .attn-pill.atencao { color: var(--status-warning); }
+  .attn-pill.atencao .dot { background: var(--status-warning); }
+  .attn-pill.oportunidade { color: var(--brand-blue); }
+  .attn-pill.oportunidade .dot { background: var(--brand-blue); }
+  .attn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .attn-card { background: var(--surface-card); border-radius: 20px; padding: 20px; box-shadow: var(--shadow-md); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+  .attn-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+  .attn-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .attn-card-who { display: flex; align-items: center; gap: 11px; }
+  .attn-card-name { font-weight: 700; font-size: 14px; }
+  .attn-card-empresa { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+  .attn-signal { font-size: 13px; color: var(--text-primary); margin-top: 14px; line-height: 1.5; }
+  .attn-signal b { font-weight: 700; }
+  .attn-extra { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding-top: 11px; border-top: 1px dashed var(--hairline); font-size: 12px; color: var(--text-secondary); }
+
+  .galeria-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+  .galeria-card { background: var(--surface-card); border-radius: 18px; padding: 18px; box-shadow: var(--shadow-md); display: flex; flex-direction: column; gap: 10px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+  .galeria-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+  .galeria-nome { font-weight: 700; font-size: 13.5px; }
+  .galeria-empresa { font-size: 11.5px; color: var(--text-muted); margin-top: -6px; }
+  .galeria-gmv { font-size: 15px; font-weight: 800; }
+
+  /* ===== meta ===== */
+  .meta-hero { display: grid; grid-template-columns: auto 1fr; gap: 36px; align-items: center; background: var(--surface-card); border-radius: 24px; padding: 32px 36px; box-shadow: var(--shadow-md); margin-bottom: 32px; }
+  .progress-ring { width: 140px; height: 140px; border-radius: 50%; background: conic-gradient(var(--brand-orange) calc(var(--pct) * 1%), var(--surface-sunken) 0); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .progress-ring-inner { width: 108px; height: 108px; border-radius: 50%; background: var(--surface-card); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .progress-ring-inner .pct { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+  .progress-ring-inner .lbl { font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .meta-hero-body h2 { margin: 0 0 6px; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+  .meta-hero-body .sub { font-size: 13.5px; color: var(--text-secondary); }
+  .meta-hero-nums { display: flex; gap: 28px; margin-top: 16px; }
+  .meta-hero-num .v { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .meta-hero-num .l { font-size: 11.5px; color: var(--text-muted); }
+
+  .leader-list { background: var(--surface-card); border-radius: 20px; box-shadow: var(--shadow-md); padding: 8px; }
+  .leader-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px; }
+  .leader-row:hover { background: var(--surface-sunken); }
+  .leader-rank { width: 22px; font-size: 13px; font-weight: 800; color: var(--text-muted); text-align: center; flex-shrink: 0; }
+  .leader-name { font-weight: 700; font-size: 13.5px; flex: 0 0 110px; }
+  .leader-bar-track { flex: 1; height: 8px; border-radius: 4px; background: var(--surface-sunken); overflow: hidden; }
+  .leader-bar-fill { height: 100%; border-radius: 4px; background: var(--brand-orange); }
+  .leader-pct { width: 46px; text-align: right; font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+  /* ===== analytics ===== */
+  .bar-list-card { background: var(--surface-card); border-radius: 20px; padding: 24px 26px; box-shadow: var(--shadow-md); margin-bottom: 20px; }
+  .bar-list-row { display: grid; grid-template-columns: 170px 1fr 50px; align-items: center; gap: 14px; padding: 10px 0; }
+  .bar-list-label { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
+  .bar-list-track { height: 10px; border-radius: 5px; background: var(--surface-sunken); overflow: hidden; }
+  .bar-list-fill { height: 100%; border-radius: 5px; background: var(--brand-orange); }
+  .bar-list-val { text-align: right; font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .hist-row { display: flex; align-items: flex-end; gap: 10px; height: 130px; padding: 10px 4px 0; }
+  .hist-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .hist-bar { width: 100%; max-width: 34px; border-radius: 6px 6px 3px 3px; background: color-mix(in srgb, var(--brand-orange) 70%, var(--surface-sunken)); position: relative; }
+  .hist-bar .n { position: absolute; top: -18px; left: 0; right: 0; text-align: center; font-size: 11px; font-weight: 700; color: var(--text-secondary); }
+  .hist-lbl { font-size: 10.5px; color: var(--text-muted); font-weight: 600; }
+
+  /* ===== rotina ===== */
+  .today-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px; }
+  .today-action { display: flex; gap: 14px; align-items: flex-start; background: var(--surface-card); border-radius: 18px; padding: 17px 19px; box-shadow: var(--shadow-md); }
+  .today-check { width: 22px; height: 22px; border-radius: 7px; background: var(--surface-sunken); flex-shrink: 0; margin-top: 1px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; }
+  .today-check.done { background: var(--status-good); }
+  .today-action.is-done { opacity: 0.5; }
+  .today-action.is-done .today-action-text { text-decoration: line-through; }
+  .today-action-top { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .today-action-client { font-weight: 700; font-size: 13.5px; }
+  .today-action-empresa { font-size: 11.5px; color: var(--text-muted); margin-left: 6px; }
+  .today-action-text { font-size: 12.5px; color: var(--text-secondary); margin-top: 5px; line-height: 1.45; }
+  .today-action-suggest { font-size: 12.5px; font-weight: 700; margin-top: 9px; }
+  .today-agenda-strip { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
+  .today-agenda-chip { flex-shrink: 0; background: var(--surface-card); border-radius: 16px; padding: 14px 16px; min-width: 180px; box-shadow: var(--shadow-sm); }
+  .today-agenda-chip .time { font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .today-agenda-chip .title { font-size: 12px; color: var(--text-secondary); margin-top: 3px; line-height: 1.4; }
+
+  /* ===== calendário ===== */
+  .cal-layout { display: grid; grid-template-columns: 1.5fr 1fr; gap: 18px; align-items: start; }
+  .cal-card, .agenda-card { background: var(--surface-card); border-radius: 22px; padding: 24px; box-shadow: var(--shadow-md); }
+  .cal-head-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .cal-month-label { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+  .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 4px; }
+  .cal-weekdays span { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); text-align: center; padding-bottom: 6px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-day { aspect-ratio: 1; border-radius: 12px; padding: 7px; display: flex; flex-direction: column; gap: 3px; }
+  .cal-day.empty { visibility: hidden; }
+  .cal-day.today { background: color-mix(in srgb, var(--brand-orange) 12%, transparent); }
+  .cal-day .n { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .cal-day.today .n { color: var(--brand-orange); }
+  .cal-day-dots { display: flex; gap: 3px; margin-top: auto; }
+  .cal-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .cal-dot.reuniao { background: var(--brand-orange); }
+  .cal-dot.evento { background: var(--brand-blue); }
+  .cal-dot.fechamento { background: var(--status-good); }
+  .agenda-list-item { display: flex; gap: 14px; padding: 12px 0; border-top: 1px solid var(--hairline); }
+  .agenda-list-item:first-child { border-top: none; }
+  .agenda-date { width: 42px; text-align: center; flex-shrink: 0; }
+  .agenda-date .dow { font-size: 9px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+  .agenda-date .dom { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .agenda-title { font-weight: 700; font-size: 13px; }
+  .agenda-meta { font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; }
+
+  @media (max-width: 1080px) { .widget-row, .widget-row.n4 { grid-template-columns: repeat(3, 1fr); } .cal-layout { grid-template-columns: 1fr; } }
+  @media (max-width: 640px) { .widget-row, .widget-row.n4 { grid-template-columns: repeat(2, 1fr); } .page-head h1 { font-size: 28px; } .meta-hero { grid-template-columns: 1fr; text-align: center; } .meta-hero-nums { justify-content: center; } }
+</style>
+
+<div class="direction-note">
+  <b>Exploração de direção visual do site inteiro (não é decisão fechada):</b>
+  mesmas telas, regras e dados de sempre — só a linguagem visual muda, inspirada
+  nos apps de sistema da Apple e no apple.com. Clique nas abas do topo pra
+  navegar. Meta e Analytics ainda não tinham sido desenhadas antes nesta
+  conversa, então o conteúdo delas aqui é ilustrativo de estrutura, não uma
+  spec fechada como as outras telas.
+</div>
+
+<div class="topnav">
+  <div class="topnav-inner">
+    <div class="topnav-brand">
+      <svg class="flame" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 2C11 8 8 12 8 18C8 23.52 11.58 28 16 28C20.42 28 24 23.52 24 18C24 14.2 21.6 11.2 19.2 9.2C19.9 12 18.2 14 18.2 14C18.2 14 18.6 9.4 16 2Z"/></svg>
+      <span>Onboarding</span>
+    </div>
+    <div class="topnav-tabs" id="mainTabs">
+      <button class="topnav-tab active" onclick="showScreen('carteira', this)">Carteira</button>
+      <button class="topnav-tab" onclick="showScreen('atencao', this)">Central de Atenção</button>
+      <button class="topnav-tab" onclick="showScreen('meta', this)">Meta</button>
+      <button class="topnav-tab" onclick="showScreen('analytics', this)">Analytics</button>
+      <button class="topnav-tab" onclick="showScreen('rotina', this)">Rotina</button>
+      <button class="topnav-tab" onclick="showScreen('calendario', this)">Calendário</button>
+    </div>
+    <div class="topnav-right"><span class="topnav-avatar">PE</span></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ===================== CARTEIRA ===================== -->
+  <section class="screen active" id="screen-carteira">
+    <div class="page-head">
+      <div><h1>Carteira</h1><div class="sub">12 clientes ativos no seu onboarding</div></div>
+      <div class="segmented">
+        <button class="active" onclick="setSub('carteira','lista',this)">Lista</button>
+        <button onclick="setSub('carteira','kanban',this)">Kanban</button>
+      </div>
+    </div>
+
+    <div class="widget-row">
+      <div class="widget"><div class="widget-icon" style="background:color-mix(in srgb, var(--brand-orange) 14%, transparent);color:var(--brand-orange)">◎</div><div class="widget-label">Clientes na carteira</div><div class="widget-value">12</div></div>
+      <div class="widget"><div class="widget-icon" style="background:color-mix(in srgb, var(--status-good) 14%, transparent);color:var(--success-text)">$</div><div class="widget-label">GMV total</div><div class="widget-value">R$ 55.000</div></div>
+      <div class="widget"><div class="widget-icon" style="background:color-mix(in srgb, var(--brand-blue) 14%, transparent);color:var(--brand-blue)">◐</div><div class="widget-label">Progresso médio</div><div class="widget-value">54%</div></div>
+      <div class="widget"><div class="widget-icon" style="background:color-mix(in srgb, var(--status-critical) 14%, transparent);color:var(--status-critical)">!</div><div class="widget-label">Em alerta de prazo</div><div class="widget-value critical">2</div></div>
+      <div class="widget featured"><div class="widget-icon">↗</div><div class="widget-label">Novos este mês</div><div class="widget-value">3</div><div class="widget-sub">ver histórico por mês</div></div>
+    </div>
+
+    <div class="toolbar-free">
+      <div class="search-pill">🔍 Buscar por nome do cliente…</div>
+      <button class="filter-pill">Status</button>
+      <button class="filter-pill">Closer</button>
+      <button class="filter-pill">Marcos</button>
+      <button class="filter-pill on">🔴 Em alerta</button>
+    </div>
+
+    <div class="subview active" id="carteira-lista">
+      <div class="table-card">
+        <table>
+          <thead><tr><th>Cliente</th><th>Status</th><th>Progresso</th><th class="num">GMV</th><th>Alerta</th><th class="num">Último contato</th></tr></thead>
+          <tbody>
+            <tr><td><div class="row-name"><span class="avatar-circle">CN</span><div><div>Comércio Nogueira</div><div class="row-id">#10231</div></div></div></td><td><span class="pill-status muted">Pre Onboarding</span></td><td><span class="mini-bar-track"><span class="mini-bar-fill" style="width:8%"></span></span>8%</td><td class="num muted-cell">R$ 0</td><td><span class="pill-status muted">Aguardando</span></td><td class="num muted-cell">há 2 dias</td></tr>
+            <tr><td><div class="row-name"><span class="avatar-circle">AS</span><div><div>Ateliê Sereno</div><div class="row-id">#10244</div></div></div></td><td><span class="pill-status muted">Pre Onboarding</span></td><td><span class="mini-bar-track"><span class="mini-bar-fill" style="width:12%"></span></span>12%</td><td class="num muted-cell">R$ 0</td><td><span class="pill-status muted">Aguardando</span></td><td class="num muted-cell">há 5 dias</td></tr>
+            <tr><td><div class="row-name"><span class="avatar-circle">MV</span><div><div>Marcos Vinícius</div><div class="row-id">#10198</div></div></div></td><td><span class="pill-status muted">Welcome</span></td><td><span class="mini-bar-track"><span class="mini-bar-fill" style="width:20%"></span></span>20%</td><td class="num muted-cell">R$ 0</td><td><span class="pill-status muted">Aguardando</span></td><td class="num muted-cell">há 16 dias</td></tr>
+            <tr><td><div class="row-name"><span class="avatar-circle">SB</span><div><div>Studio Bela Estética</div><div class="row-id">#10267</div></div></div></td><td><span class="pill-status muted">Product Migration</span></td><td><span class="mini-bar-track"><span class="mini-bar-fill" style="width:35%"></span></span>35%</td><td class="num muted-cell">R$ 0</td><td><span class="pill-status muted">Aguardando</span></td><td class="num muted-cell">há 4 dias</td></tr>
+            <tr><td><div class="row-name"><span class="avatar-circle">AB</span><div><div>Ana Beatriz Ferreira</div><div class="row-id">#10212</div></div></div></td><td><span class="pill-status warning">Ready for Activation</span></td><td><span class="mini-bar-track"><span class="mini-bar-fill" style="width:60%;background:var(--status-warning)"></span></span>60%</td><td class="num muted-cell">R$ 0</td><td><span class="pill-status critical">+90 dias</span></td><td class="num muted-cell">há 16 dias</td></tr>
+            <tr><td><div class="row-name"><span class="avatar-circle">JT</span><div><div>João Torres</div><div class="row-id">#10305</div></div></div></td><td><span class="pill-status progress">Activation &amp; Monitoring</span></td><td><span class="mini-bar-track"><span class="mini-bar-fill" style="width:88%;background:var(--brand-blue)"></span></span>88%</td><td class="num">R$ 24.800</td><td><span class="pill-status good">Ativado</span></td><td class="num muted-cell">há 3 dias</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="subview" id="carteira-kanban">
+      <div class="kanban-note">Mesma jornada de sempre — Pre Onboarding até Activation &amp; Monitoring — com a folga visual e sombras suaves da linguagem Apple.</div>
+      <div class="kanban-board">
+        <div class="kanban-col"><div class="kanban-col-head"><div class="kanban-col-title">Pre Onboarding</div><span class="kanban-count">2</span></div>
+          <div class="kanban-card"><div class="kanban-card-top"><span class="avatar-circle">CN</span><div><div class="kanban-card-name">Comércio Nogueira</div><div class="kanban-card-id">#10231</div></div></div><div class="kanban-card-gmv">R$ 0</div><div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">3 dias</span></div></div>
+          <div class="kanban-card"><div class="kanban-card-top"><span class="avatar-circle">AS</span><div><div class="kanban-card-name">Ateliê Sereno</div><div class="kanban-card-id">#10244</div></div></div><div class="kanban-card-gmv">R$ 0</div><div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">5 dias</span></div></div>
+        </div>
+        <div class="kanban-col"><div class="kanban-col-head"><div class="kanban-col-title">Welcome</div><span class="kanban-count">2</span></div>
+          <div class="kanban-card"><div class="kanban-card-top"><span class="avatar-circle">MV</span><div><div class="kanban-card-name">Marcos Vinícius</div><div class="kanban-card-id">#10198</div></div><span class="signal-dot critico" style="margin-left:auto"></span></div><div class="kanban-card-gmv">R$ 0</div><div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">6 dias</span></div></div>
+          <div class="kanban-card"><div class="kanban-card-top"><span class="avatar-circle">EA</span><div><div class="kanban-card-name">Estúdio Aurora</div><div class="kanban-card-id">#10276</div></div></div><div class="kanban-card-gmv">R$ 0</div><div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">9 dias</span></div></div>
+        </div>
+        <div class="kanban-col"><div class="kanban-col-head"><div class="kanban-col-title">Product Migration</div><span class="kanban-count">1</span></div>
+          <div class="kanban-card"><div class="kanban-card-top"><span class="avatar-circle">SB</span><div><div class="kanban-card-name">Studio Bela Estética</div><div class="kanban-card-id">#10267</div></div><span class="signal-dot atencao" style="margin-left:auto"></span></div><div class="kanban-card-gmv">R$ 0</div><div class="kanban-card-bottom"><span></span><span class="kanban-card-days atencao">18 dias</span></div></div>
+        </div>
+        <div class="kanban-col"><div class="kanban-col-head"><div class="kanban-col-title">Ready for Activation</div><span class="kanban-count">1</span></div>
+          <div class="kanban-card"><div class="kanban-card-top"><span class="avatar-circle">AB</span><div><div class="kanban-card-name">Ana Beatriz Ferreira</div><div class="kanban-card-id">#10212</div></div><span class="signal-dot critico" style="margin-left:auto"></span></div><div class="kanban-card-gmv">R$ 0</div><div class="kanban-card-bottom"><span></span><span class="kanban-card-days critico">34 dias</span></div></div>
+        </div>
+        <div class="kanban-col"><div class="kanban-col-head"><div class="kanban-col-title">Activation &amp; Monitoring</div><span class="kanban-count">2</span></div>
+          <div class="kanban-card"><div class="kanban-card-top"><span class="avatar-circle">JT</span><div><div class="kanban-card-name">João Torres</div><div class="kanban-card-id">#10305</div></div><span class="signal-dot atencao" style="margin-left:auto"></span></div><div class="kanban-card-gmv">R$ 24.800</div><div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">45 dias</span></div></div>
+          <div class="kanban-card"><div class="kanban-card-top"><span class="avatar-circle">PI</span><div><div class="kanban-card-name">Padaria Ideal</div><div class="kanban-card-id">#10287</div></div></div><div class="kanban-card-gmv">R$ 11.300</div><div class="kanban-card-bottom"><span></span><span class="kanban-card-days ok">22 dias</span></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== CENTRAL DE ATENÇÃO ===================== -->
+  <section class="screen" id="screen-atencao">
+    <div class="page-head">
+      <div><h1>Central de Atenção</h1><div class="sub">Quem precisa de uma ação sua agora — um card por cliente, mesmo quando ele tem mais de um sinal.</div></div>
+      <div class="segmented">
+        <button class="active" onclick="setSub('atencao','grid',this)">Central de Atenção</button>
+        <button onclick="setSub('atencao','buscar',this)">Buscar cliente</button>
+      </div>
+    </div>
+
+    <div class="subview active" id="atencao-grid">
+      <div class="attn-summary">
+        <span class="attn-pill critico"><span class="dot"></span>Crítico · 2</span>
+        <span class="attn-pill atencao"><span class="dot"></span>Atenção · 2</span>
+        <span class="attn-pill oportunidade"><span class="dot"></span>Oportunidade · 3</span>
+      </div>
+      <div class="attn-grid">
+        <div class="attn-card">
+          <div class="attn-card-top"><div class="attn-card-who"><span class="avatar-circle">MV</span><div><div class="attn-card-name">Marcos Vinícius</div><div class="attn-card-empresa">Loja MV Eletrônicos</div></div></div><span class="pill-status critical">Crítico</span></div>
+          <div class="attn-signal">📞 <b>Sem contato</b> há 16 dias</div>
+          <div class="attn-extra"><span class="signal-dot oportunidade"></span>🎂 Aniversário em 3 dias</div>
+        </div>
+        <div class="attn-card">
+          <div class="attn-card-top"><div class="attn-card-who"><span class="avatar-circle">AB</span><div><div class="attn-card-name">Ana Beatriz Ferreira</div><div class="attn-card-empresa">Trend Moda Feminina</div></div></div><span class="pill-status critical">Crítico</span></div>
+          <div class="attn-signal">⚡ <b>Ready for Activation</b> há 34 dias</div>
+          <div class="attn-extra"><span class="signal-dot oportunidade"></span>⭐ 92% da meta aos 60 dias</div>
+        </div>
+        <div class="attn-card">
+          <div class="attn-card-top"><div class="attn-card-who"><span class="avatar-circle">SB</span><div><div class="attn-card-name">Studio Bela Estética</div><div class="attn-card-empresa">Studio Bela Estética</div></div></div><span class="pill-status warning">Atenção</span></div>
+          <div class="attn-signal">🔧 <b>Parado</b> em Product Migration há 18 dias</div>
+        </div>
+        <div class="attn-card">
+          <div class="attn-card-top"><div class="attn-card-who"><span class="avatar-circle">JT</span><div><div class="attn-card-name">João Torres</div><div class="attn-card-empresa">Torres Consultoria</div></div></div><span class="pill-status warning">Atenção</span></div>
+          <div class="attn-signal">🎁 <b>Brinde não enviado</b></div>
+        </div>
+        <div class="attn-card">
+          <div class="attn-card-top"><div class="attn-card-who"><span class="avatar-circle">CV</span><div><div class="attn-card-name">Comércio Vale Sul</div><div class="attn-card-empresa">Comércio Vale Sul</div></div></div><span class="pill-status" style="background:color-mix(in srgb, var(--brand-blue) 14%, transparent);color:var(--brand-blue)">Oportunidade</span></div>
+          <div class="attn-signal">🎯 Marco de 30 dias hoje</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="subview" id="atencao-buscar">
+      <div class="search-pill" style="max-width:360px;margin-bottom:20px">🔍 Buscar cliente…</div>
+      <div class="galeria-grid">
+        <div class="galeria-card"><span class="avatar-circle" style="width:40px;height:40px;font-size:13px">CN</span><div class="galeria-nome">Comércio Nogueira</div><div class="galeria-empresa">Varejo</div><div class="galeria-gmv">R$ 0</div></div>
+        <div class="galeria-card"><span class="avatar-circle" style="width:40px;height:40px;font-size:13px">MV</span><div class="galeria-nome">Marcos Vinícius</div><div class="galeria-empresa">Eletrônicos</div><div class="galeria-gmv">R$ 0</div></div>
+        <div class="galeria-card"><span class="avatar-circle" style="width:40px;height:40px;font-size:13px">AB</span><div class="galeria-nome">Ana Beatriz Ferreira</div><div class="galeria-empresa">Moda</div><div class="galeria-gmv">R$ 0</div></div>
+        <div class="galeria-card"><span class="avatar-circle" style="width:40px;height:40px;font-size:13px">JT</span><div class="galeria-nome">João Torres</div><div class="galeria-empresa">Consultoria</div><div class="galeria-gmv">R$ 24.800</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== META ===================== -->
+  <section class="screen" id="screen-meta">
+    <div class="page-head"><div><h1>Meta</h1><div class="sub">Setembro 2026 — acompanhamento da meta do time e de cada onboarder.</div></div></div>
+
+    <div class="meta-hero">
+      <div class="progress-ring" style="--pct:68"><div class="progress-ring-inner"><div class="pct">68%</div><div class="lbl">da meta</div></div></div>
+      <div class="meta-hero-body">
+        <h2>Meta do time — Setembro</h2>
+        <div class="sub">R$ 55.000 realizados de uma meta de R$ 80.000 pro mês.</div>
+        <div class="meta-hero-nums">
+          <div class="meta-hero-num"><div class="v">R$ 55.000</div><div class="l">Realizado</div></div>
+          <div class="meta-hero-num"><div class="v">R$ 80.000</div><div class="l">Meta do mês</div></div>
+          <div class="meta-hero-num"><div class="v">9 dias</div><div class="l">Restantes</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Por onboarder</div>
+    <div class="leader-list">
+      <div class="leader-row"><div class="leader-rank">1</div><div class="leader-name">Ilana</div><div class="leader-bar-track"><div class="leader-bar-fill" style="width:81%"></div></div><div class="leader-pct">81%</div></div>
+      <div class="leader-row"><div class="leader-rank">2</div><div class="leader-name">Madu</div><div class="leader-bar-track"><div class="leader-bar-fill" style="width:74%"></div></div><div class="leader-pct">74%</div></div>
+      <div class="leader-row"><div class="leader-rank">3</div><div class="leader-name">Pedro</div><div class="leader-bar-track"><div class="leader-bar-fill" style="width:68%"></div></div><div class="leader-pct">68%</div></div>
+      <div class="leader-row"><div class="leader-rank">4</div><div class="leader-name">Josiane</div><div class="leader-bar-track"><div class="leader-bar-fill" style="width:59%"></div></div><div class="leader-pct">59%</div></div>
+    </div>
+  </section>
+
+  <!-- ===================== ANALYTICS ===================== -->
+  <section class="screen" id="screen-analytics">
+    <div class="page-head"><div><h1>Analytics</h1><div class="sub">Visão agregada da carteira — estrutura ilustrativa, ainda não especificada em detalhe.</div></div></div>
+
+    <div class="widget-row n4">
+      <div class="widget"><div class="widget-icon" style="background:color-mix(in srgb, var(--status-good) 14%, transparent);color:var(--success-text)">$</div><div class="widget-label">GMV total da carteira</div><div class="widget-value">R$ 312.400</div></div>
+      <div class="widget"><div class="widget-icon" style="background:color-mix(in srgb, var(--brand-orange) 14%, transparent);color:var(--brand-orange)">◎</div><div class="widget-label">Ticket médio</div><div class="widget-value">R$ 18.350</div></div>
+      <div class="widget"><div class="widget-icon" style="background:color-mix(in srgb, var(--brand-blue) 14%, transparent);color:var(--brand-blue)">⏱</div><div class="widget-label">Tempo médio de ativação</div><div class="widget-value">42 dias</div></div>
+      <div class="widget"><div class="widget-icon" style="background:color-mix(in srgb, var(--status-warning) 16%, transparent);color:var(--status-warning)">%</div><div class="widget-label">Taxa de ativação</div><div class="widget-value">76%</div></div>
+    </div>
+
+    <div class="section-title">Clientes por etapa</div>
+    <div class="bar-list-card">
+      <div class="bar-list-row"><span class="bar-list-label">Pre Onboarding</span><span class="bar-list-track"><span class="bar-list-fill" style="width:17%"></span></span><span class="bar-list-val">2</span></div>
+      <div class="bar-list-row"><span class="bar-list-label">Welcome</span><span class="bar-list-track"><span class="bar-list-fill" style="width:25%"></span></span><span class="bar-list-val">3</span></div>
+      <div class="bar-list-row"><span class="bar-list-label">Product Migration</span><span class="bar-list-track"><span class="bar-list-fill" style="width:17%"></span></span><span class="bar-list-val">2</span></div>
+      <div class="bar-list-row"><span class="bar-list-label">Ready for Activation</span><span class="bar-list-track"><span class="bar-list-fill" style="width:17%"></span></span><span class="bar-list-val">2</span></div>
+      <div class="bar-list-row"><span class="bar-list-label">Activation &amp; Monitoring</span><span class="bar-list-track"><span class="bar-list-fill" style="width:25%"></span></span><span class="bar-list-val">3</span></div>
+    </div>
+
+    <div class="section-title">Novos clientes por mês</div>
+    <div class="bar-list-card">
+      <div class="hist-row">
+        <div class="hist-col"><div class="hist-bar" style="height:38%"><span class="n">2</span></div><div class="hist-lbl">abr</div></div>
+        <div class="hist-col"><div class="hist-bar" style="height:56%"><span class="n">3</span></div><div class="hist-lbl">mai</div></div>
+        <div class="hist-col"><div class="hist-bar" style="height:38%"><span class="n">2</span></div><div class="hist-lbl">jun</div></div>
+        <div class="hist-col"><div class="hist-bar" style="height:75%"><span class="n">4</span></div><div class="hist-lbl">jul</div></div>
+        <div class="hist-col"><div class="hist-bar" style="height:56%"><span class="n">3</span></div><div class="hist-lbl">ago</div></div>
+        <div class="hist-col"><div class="hist-bar" style="height:56%;background:var(--brand-orange)"><span class="n">3</span></div><div class="hist-lbl">set</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== ROTINA ===================== -->
+  <section class="screen" id="screen-rotina">
+    <div class="page-head"><div><h1>Rotina — Hoje</h1><div class="sub">Gerado a partir dos sinais da Central de Atenção e da agenda do dia.</div></div></div>
+
+    <div class="attn-summary">
+      <span class="attn-pill critico"><span class="dot"></span>Crítico · 2</span>
+      <span class="attn-pill atencao"><span class="dot"></span>Atenção · 2</span>
+      <span class="attn-pill oportunidade"><span class="dot"></span>Oportunidade · 3</span>
+    </div>
+
+    <div class="section-title">Ações prioritárias</div>
+    <div class="today-list" id="todayList"></div>
+
+    <div class="section-title">Hoje na agenda</div>
+    <div class="today-agenda-strip">
+      <div class="today-agenda-chip"><div class="time">09h</div><div class="title">Call de boas-vindas — Marcos Vinícius</div></div>
+      <div class="today-agenda-chip"><div class="time">11h</div><div class="title">Follow-up técnico — Studio Bela Estética</div></div>
+      <div class="today-agenda-chip"><div class="time">—</div><div class="title">Virada do período fiscal</div></div>
+    </div>
+  </section>
+
+  <!-- ===================== CALENDÁRIO ===================== -->
+  <section class="screen" id="screen-calendario">
+    <div class="page-head"><div><h1>Calendário do Time</h1><div class="sub">Eventos do mês, visíveis pra todo o time.</div></div></div>
+    <div class="cal-layout">
+      <div class="cal-card">
+        <div class="cal-head-row"><div class="cal-month-label">Setembro 2026</div></div>
+        <div class="cal-weekdays"><span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span></div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+      <div class="agenda-card">
+        <div class="section-title">Próximos eventos</div>
+        <div class="agenda-list-item"><div class="agenda-date"><div class="dow">Ter</div><div class="dom">01</div></div><div><div class="agenda-title">Virada do período fiscal</div><div class="agenda-meta">Fechamento / Meta</div></div></div>
+        <div class="agenda-list-item"><div class="agenda-date"><div class="dow">Qui</div><div class="dom">03</div></div><div><div class="agenda-title">Reunião de time — 10h</div><div class="agenda-meta">Reunião de time</div></div></div>
+        <div class="agenda-list-item"><div class="agenda-date"><div class="dow">Ter</div><div class="dom">15</div></div><div><div class="agenda-title">Fechamento parcial de metas</div><div class="agenda-meta">Fechamento / Meta · 🔗 tem planilha</div></div></div>
+        <div class="agenda-list-item"><div class="agenda-date"><div class="dow">Ter</div><div class="dom">22</div></div><div><div class="agenda-title">Treinamento — novo fluxo de CRM</div><div class="agenda-meta">Treinamento</div></div></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  function showScreen(name, btn) {
+    document.querySelectorAll('#mainTabs .topnav-tab').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
+    document.getElementById('screen-' + name).classList.add('active');
+  }
+  function setSub(screen, name, btn) {
+    btn.parentElement.querySelectorAll('button').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    document.querySelectorAll('#screen-' + screen + ' .subview').forEach(function (v) { v.classList.remove('active'); });
+    document.getElementById(screen + '-' + name).classList.add('active');
+  }
+
+  var TODAY_ACTIONS = [
+    { sev: 'critical', client: 'Marcos Vinícius', empresa: 'Loja MV Eletrônicos', text: 'Sem contato registrado há 16 dias.', suggest: '📞 Fazer contato multicanal hoje' },
+    { sev: 'critical', client: 'Ana Beatriz Ferreira', empresa: 'Trend Moda Feminina', text: 'Ready for Activation há 34 dias — passou do prazo.', suggest: '⚡ Follow-up de ativação urgente' },
+    { sev: 'warning', client: 'Studio Bela Estética', empresa: 'Studio Bela Estética', text: 'Parado em Product Migration há 18 dias.', suggest: '🔧 Verificar bloqueio técnico' },
+    { sev: 'warning', client: 'João Torres', empresa: 'Torres Consultoria', text: 'Brinde de boas-vindas não enviado.', suggest: '🎁 Confirmar envio do brinde' }
+  ];
+  function actionHtml(a, i) {
+    return '<div class="today-action" id="action-' + i + '">' +
+      '<div class="today-check" id="check-' + i + '" onclick="toggleDone(' + i + ')"></div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div class="today-action-top"><span class="today-action-client">' + a.client + '<span class="today-action-empresa">' + a.empresa + '</span></span><span class="pill-status ' + a.sev + '">' + (a.sev === 'critical' ? 'Crítico' : 'Atenção') + '</span></div>' +
+        '<div class="today-action-text">' + a.text + '</div>' +
+        '<div class="today-action-suggest">' + a.suggest + '</div>' +
+      '</div></div>';
+  }
+  document.getElementById('todayList').innerHTML = TODAY_ACTIONS.map(actionHtml).join('');
+  function toggleDone(i) {
+    var card = document.getElementById('action-' + i), check = document.getElementById('check-' + i);
+    var done = card.classList.toggle('is-done');
+    check.classList.toggle('done', done);
+    check.textContent = done ? '✓' : '';
+  }
+
+  var CAL_EVENTS = { 1: 'fechamento', 3: 'reuniao', 15: 'fechamento', 22: 'evento' };
+  function calDayHtml(d) {
+    if (d === 0) return '<div class="cal-day empty"></div>';
+    var cat = CAL_EVENTS[d];
+    var cls = 'cal-day' + (d === 1 ? ' today' : '');
+    var dots = cat ? '<div class="cal-day-dots"><span class="cal-dot ' + cat + '"></span></div>' : '';
+    return '<div class="' + cls + '"><span class="n">' + d + '</span>' + dots + '</div>';
+  }
+  var calCells = [0, 0].concat(Array.from({length: 30}, function (_, i) { return i + 1; }));
+  document.getElementById('calGrid').innerHTML = calCells.map(calDayHtml).join('');
+</script>
